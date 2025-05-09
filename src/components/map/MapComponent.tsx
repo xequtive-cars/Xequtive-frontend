@@ -1,0 +1,1308 @@
+/*
+ * FINAL IMPLEMENTATION - DO NOT MODIFY
+ *
+ * This Map Component is in its final form and has been thoroughly tested.
+ * It provides the following functionality:
+ * - Displays user's current location with a blue dot
+ * - Shows pickup and dropoff markers
+ * - Displays additional stops
+ * - Renders actual driving routes between locations using Mapbox Directions API
+ * - Automatically fits all markers in the viewport
+ *
+ * Any modifications to this component should be carefully reviewed as they
+ * may break existing functionality.
+ */
+
+/**
+ * ███████╗██╗  ██╗███████╗ ██████╗ ██╗   ██╗████████╗██╗██╗   ██╗███████╗
+ * ██╔════╝╚██╗██╔╝██╔════╝██╔═══██╗██║   ██║╚══██╔══╝██║██║   ██║██╔════╝
+ * █████╗   ╚███╔╝ █████╗  ██║   ██║██║   ██║   ██║██████████║█████╗
+ * ██╔══╝   ██╔██╗ ██╔══╝  ██║▄▄ ██║██║   ██║   ██║   ██║╚██╗ ██╔╝██╔══╝
+ * ███████╗██╔╝ ██╗███████╗╚██████╔╝╚██████╔╝   ██║   ██║ ╚████╔╝ ███████╗
+ * ╚══════╝╚═╝  ╚═╝╚══════╝ ╚══▀▀═╝  ╚═════╝    ╚═╝   ╚═╝  ╚═══╝  ╚══════╝
+ *
+ * Map Service Component
+ * Displays a map with user's current location and provides visualization for routes
+ */
+
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { useGeolocation } from "@/hooks/useGeolocation";
+
+// Set Mapbox access token from environment variable
+if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+  console.error(
+    "Mapbox token is not defined. Please check your environment variables."
+  );
+}
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+// Defines a location with latitude, longitude and optional address
+export interface Location {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
+// Define the map interface type
+interface MapInterface {
+  updateLocations: (
+    newPickup: Location | null,
+    newDropoff: Location | null,
+    newStops?: Location[]
+  ) => void;
+}
+
+// The component props, will be extended in the future
+interface MapComponentProps {
+  className?: string;
+  mapZoom?: number;
+  pickupLocation?: Location | null;
+  dropoffLocation?: Location | null;
+  stops?: Location[];
+  showRoute?: boolean;
+  previewLocation?: (Location & { isPreview?: boolean; type?: string }) | null;
+  showCurrentLocation?: boolean;
+  onUserLocationChange?: (
+    location: { latitude: number; longitude: number } | null
+  ) => void;
+  passMapRef?: (mapInstance: MapInterface) => void;
+}
+
+const MapComponent = ({
+  className = "",
+  mapZoom = 12,
+  pickupLocation = null,
+  dropoffLocation = null,
+  stops = [],
+  showRoute = false,
+  previewLocation = null,
+  showCurrentLocation = true,
+  onUserLocationChange,
+  passMapRef,
+}: MapComponentProps) => {
+  // Refs for managing the map and markers
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const userLocationMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const userLocationRadiusRef = useRef<mapboxgl.Marker | null>(null);
+  const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const stopMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
+  const mapInitializedRef = useRef(false);
+
+  // State for user coordinates
+  const [lastUserCoords, setLastUserCoords] = useState<[number, number] | null>(
+    null
+  );
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Use our geolocation hook to get user's position
+  const { error, latitude, longitude, accuracy, getCurrentPosition } =
+    useGeolocation();
+
+  // Store last known user coordinates and notify parent component
+  useEffect(() => {
+    if (latitude && longitude) {
+      setLastUserCoords([longitude, latitude]);
+
+      // Notify parent component about user location change
+      if (onUserLocationChange) {
+        onUserLocationChange({ latitude, longitude });
+      }
+    }
+  }, [latitude, longitude, onUserLocationChange]);
+
+  // Attempt to get user location as soon as component mounts
+  useEffect(() => {
+    if (showCurrentLocation) {
+      getCurrentPosition();
+    }
+  }, [getCurrentPosition, showCurrentLocation]);
+
+  // Memoize the updateRoute function to prevent it from changing on every render
+  const updateRoute = useCallback(() => {
+    if (!map.current) {
+      console.log("updateRoute: Map not initialized");
+      return;
+    }
+
+    // Only proceed if we have at least pickup and dropoff points
+    if (!pickupLocation || !dropoffLocation) {
+      console.log("updateRoute: Missing pickup or dropoff location");
+      return;
+    }
+
+    console.log(
+      "updateRoute: Attempting to update route with locations:",
+      pickupLocation.address || "Pickup (no address)",
+      dropoffLocation.address || "Dropoff (no address)"
+    );
+
+    // If style is not yet loaded, wait for it to load before continuing
+    if (!map.current.isStyleLoaded()) {
+      console.log(
+        "updateRoute: Map style not loaded yet, waiting before updating route"
+      );
+      map.current.once("style.load", () => {
+        console.log("updateRoute: Style loaded, now updating route");
+        updateRoute();
+      });
+      return;
+    }
+
+    // When we have at least pickup and dropoff, fetch directions if showRoute is true
+    if (showRoute) {
+      // Collect all waypoints in order
+      const waypoints: [number, number][] = [];
+
+      // Start with pickup
+      waypoints.push([pickupLocation.longitude, pickupLocation.latitude]);
+
+      // Add stops in order if any
+      if (stops && stops.length > 0) {
+        stops.forEach((stop) => {
+          waypoints.push([stop.longitude, stop.latitude]);
+        });
+      }
+
+      // End with dropoff
+      waypoints.push([dropoffLocation.longitude, dropoffLocation.latitude]);
+
+      // Only proceed if we have at least 2 points (pickup and dropoff)
+      if (waypoints.length >= 2) {
+        // Build the waypoints string for the Directions API
+        // Format: lon1,lat1;lon2,lat2;...
+        const waypointStr = waypoints
+          .map((point) => `${point[0]},${point[1]}`)
+          .join(";");
+
+        // Build the Mapbox Directions API URL
+        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointStr}?geometries=geojson&access_token=${mapboxgl.accessToken}&overview=full`;
+
+        console.log("updateRoute: Fetching directions API");
+
+        // Fetch the directions data
+        fetch(directionsUrl)
+          .then((response) => response.json())
+          .then((data) => {
+            if (!map.current) {
+              console.log("updateRoute: Map no longer exists");
+              return;
+            }
+
+            if (data.routes && data.routes.length > 0) {
+              console.log("updateRoute: Route data received successfully");
+
+              // Get the route geometry (array of coordinates)
+              const route = data.routes[0];
+              const routeGeometry = route.geometry;
+
+              // Remove any existing route layers and source
+              try {
+                // Remove dependent layers first
+                if (map.current.getLayer("route-outline")) {
+                  map.current.removeLayer("route-outline");
+                }
+
+                if (map.current.getLayer("route-line")) {
+                  map.current.removeLayer("route-line");
+                }
+
+                // Then remove the source
+                if (map.current.getSource("route")) {
+                  map.current.removeSource("route");
+                }
+              } catch (error) {
+                console.error(
+                  "updateRoute: Error removing existing route layers:",
+                  error
+                );
+              }
+
+              // Add new source and layers
+              try {
+                // Create route source
+                map.current.addSource("route", {
+                  type: "geojson",
+                  data: {
+                    type: "Feature",
+                    properties: {},
+                    geometry: routeGeometry,
+                  },
+                });
+
+                // Add outline layer for better visibility
+                map.current.addLayer({
+                  id: "route-outline",
+                  type: "line",
+                  source: "route",
+                  layout: {
+                    "line-join": "round",
+                    "line-cap": "round",
+                  },
+                  paint: {
+                    "line-color": "#000",
+                    "line-opacity": 0.8,
+                    "line-width": 7,
+                  },
+                });
+
+                // Add the route line
+                map.current.addLayer({
+                  id: "route-line",
+                  type: "line",
+                  source: "route",
+                  layout: {
+                    "line-join": "round",
+                    "line-cap": "round",
+                  },
+                  paint: {
+                    "line-color": "#3B82F6", // Blue color
+                    "line-width": 5,
+                    "line-opacity": 1,
+                    "line-dasharray": [0.5, 0], // Solid line for real routes
+                  },
+                });
+
+                console.log("updateRoute: Route layers added successfully");
+              } catch (error) {
+                console.error("updateRoute: Error adding route layers:", error);
+              }
+            } else {
+              console.log("updateRoute: No routes returned from API");
+            }
+          })
+          .catch((error) => {
+            console.error("updateRoute: Error fetching directions:", error);
+          });
+      }
+    }
+
+    // Create bounds to fit all points including user location
+    const bounds = new mapboxgl.LngLatBounds();
+
+    // Add pickup point to bounds
+    bounds.extend([pickupLocation.longitude, pickupLocation.latitude]);
+
+    // Add stop points to bounds
+    stops.forEach((stop) => {
+      bounds.extend([stop.longitude, stop.latitude]);
+    });
+
+    // Add dropoff point to bounds
+    bounds.extend([dropoffLocation.longitude, dropoffLocation.latitude]);
+
+    // Add user location to bounds if available
+    if (latitude && longitude && showCurrentLocation) {
+      bounds.extend([longitude, latitude]);
+    }
+
+    // Only fit bounds if we have points
+    if (!bounds.isEmpty() && map.current) {
+      console.log("updateRoute: Fitting map to bounds");
+      map.current.fitBounds(bounds, {
+        padding: 80, // Add more padding to ensure all markers are visible
+        duration: 1000,
+      });
+    }
+  }, [
+    pickupLocation,
+    dropoffLocation,
+    stops,
+    showRoute,
+    latitude,
+    longitude,
+    showCurrentLocation,
+  ]);
+
+  // Initialize map when container is available (once only)
+  useEffect(() => {
+    if (!mapContainer.current || map.current || mapInitializedRef.current)
+      return;
+
+    mapInitializedRef.current = true;
+
+    // London coordinates as default
+    const defaultCenter: [number, number] = [-0.127758, 51.507351];
+
+    // Use user coordinates if available already, or last known coordinates
+    const initialCenter: [number, number] =
+      lastUserCoords ||
+      (latitude && longitude ? [longitude, latitude] : defaultCenter);
+
+    // Create map instance
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: initialCenter,
+      zoom: latitude && longitude ? 15 : mapZoom,
+      preserveDrawingBuffer: true,
+    });
+
+    // Add navigation controls
+    const nav = new mapboxgl.NavigationControl();
+    map.current.addControl(nav, "top-right");
+
+    // Add geolocate control (keep this for additional functionality)
+    const geolocate = new mapboxgl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true,
+      },
+      trackUserLocation: true,
+      showUserHeading: true,
+    });
+
+    geolocateControlRef.current = geolocate;
+    map.current.addControl(geolocate);
+
+    // Prevent automatic triggering of the geolocate control to avoid refreshing
+    geolocate.on("geolocate", () => {
+      console.log("User manually triggered geolocate");
+    });
+
+    // Handle map load event
+    map.current.on("load", () => {
+      console.log("Map load event triggered");
+
+      // Setup route source and layer for future use
+      if (map.current) {
+        try {
+          setMapLoaded(true);
+          console.log("Map loaded, ready for markers and routes");
+
+          // If we already have coordinates, immediately add the marker for user location
+          if (latitude && longitude && showCurrentLocation) {
+            console.log("Adding user location marker after map load");
+            addUserLocationMarker(longitude, latitude, accuracy);
+          }
+
+          // Check if we have pickup and dropoff locations - draw route immediately if available
+          if (pickupLocation && dropoffLocation && showRoute) {
+            console.log("Attempting to draw initial route after map load");
+
+            // Try drawing route immediately if style is loaded
+            if (map.current.isStyleLoaded()) {
+              console.log("Map style already loaded, drawing route now");
+              updateRoute();
+            } else {
+              // If style isn't loaded yet, wait for it
+              console.log(
+                "Waiting for style to load before drawing initial route"
+              );
+              map.current.once("style.load", () => {
+                console.log("Style loaded after map load, now drawing route");
+                updateRoute();
+              });
+
+              // Also set a timeout as backup
+              setTimeout(() => {
+                if (map.current && pickupLocation && dropoffLocation) {
+                  console.log("Timeout backup for initial route drawing");
+                  updateRoute();
+                }
+              }, 1000);
+            }
+          }
+
+          // Only trigger geolocate if specifically requested and no coordinates yet
+          if (
+            showCurrentLocation &&
+            geolocateControlRef.current &&
+            !latitude &&
+            !longitude
+          ) {
+            // Small delay to let the map fully initialize
+            setTimeout(() => {
+              console.log("Triggering geolocate control");
+              geolocateControlRef.current?.trigger();
+            }, 500);
+          }
+        } catch (error) {
+          console.error("Error in map load handler:", error);
+        }
+      }
+    });
+
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+        mapInitializedRef.current = false;
+        setMapLoaded(false);
+      }
+    };
+  }, [
+    mapZoom,
+    lastUserCoords,
+    latitude,
+    longitude,
+    showCurrentLocation,
+    accuracy,
+    pickupLocation,
+    dropoffLocation,
+    showRoute,
+    updateRoute,
+  ]);
+
+  // Helper function to add user location marker to the map
+  const addUserLocationMarker = (
+    longitude: number,
+    latitude: number,
+    accuracy?: number | null
+  ) => {
+    if (!map.current) return;
+
+    // Remove existing user location markers
+    if (userLocationMarkerRef.current) {
+      userLocationMarkerRef.current.remove();
+    }
+    if (userLocationRadiusRef.current) {
+      userLocationRadiusRef.current.remove();
+    }
+
+    // Create a div element for the user location marker (blue dot)
+    const el = document.createElement("div");
+    el.className = "user-location-marker";
+    el.style.backgroundColor = "#4285F4";
+    el.style.border = "2px solid #fff";
+    el.style.borderRadius = "50%";
+    el.style.width = "16px";
+    el.style.height = "16px";
+    el.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+    // Create the user location marker
+    userLocationMarkerRef.current = new mapboxgl.Marker(el)
+      .setLngLat([longitude, latitude])
+      .addTo(map.current);
+
+    // Add accuracy radius if available
+    if (accuracy && accuracy > 0) {
+      // Create accuracy radius element
+      const radiusEl = document.createElement("div");
+      radiusEl.className = "user-location-radius";
+      radiusEl.style.backgroundColor = "rgba(66, 133, 244, 0.2)";
+      radiusEl.style.border = "1px solid rgba(66, 133, 244, 0.4)";
+      radiusEl.style.borderRadius = "50%";
+
+      // Scale the div based on accuracy (roughly)
+      // This is an approximation, as mapbox uses mercator projection
+      const size = Math.min(accuracy / 5, 100); // Limit size for very large accuracy values
+      radiusEl.style.width = `${size}px`;
+      radiusEl.style.height = `${size}px`;
+
+      userLocationRadiusRef.current = new mapboxgl.Marker(radiusEl)
+        .setLngLat([longitude, latitude])
+        .addTo(map.current);
+    }
+  };
+
+  // Update user location marker when coordinates change
+  useEffect(() => {
+    if (!map.current || !latitude || !longitude || !showCurrentLocation) return;
+
+    // Center map on user's location if we just got it for the first time
+    const shouldCenter = !userLocationMarkerRef.current;
+
+    // Add the user location marker
+    addUserLocationMarker(longitude, latitude, accuracy);
+
+    // Center map on user location if this is the first time we got it
+    if (shouldCenter && mapLoaded) {
+      map.current.flyTo({
+        center: [longitude, latitude],
+        zoom: 15,
+        essential: true,
+      });
+    }
+  }, [latitude, longitude, accuracy, showCurrentLocation, mapLoaded]);
+
+  // Update pickup marker when pickup location changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Remove existing pickup marker
+    if (pickupMarkerRef.current) {
+      pickupMarkerRef.current.remove();
+      pickupMarkerRef.current = null;
+    }
+
+    // Add new pickup marker if location is provided
+    if (pickupLocation) {
+      const markerEl = document.createElement("div");
+      markerEl.className = "pickup-marker";
+      markerEl.style.backgroundColor = "#10B981"; // Green color
+      markerEl.style.border = "2px solid #fff";
+      markerEl.style.borderRadius = "50%";
+      markerEl.style.width = "24px";
+      markerEl.style.height = "24px";
+      markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+      // Add a "P" in the center
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.color = "#ffffff";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "bold";
+      markerEl.innerText = "P";
+
+      pickupMarkerRef.current = new mapboxgl.Marker(markerEl)
+        .setLngLat([pickupLocation.longitude, pickupLocation.latitude])
+        .addTo(map.current);
+
+      // Add popup if address is available
+      if (pickupLocation.address) {
+        const popup = new mapboxgl.Popup({ offset: 25 }).setText(
+          `Pickup: ${pickupLocation.address}`
+        );
+        pickupMarkerRef.current.setPopup(popup);
+      }
+
+      // Ensure user location marker is still visible
+      if (showCurrentLocation && latitude && longitude) {
+        addUserLocationMarker(longitude, latitude, accuracy);
+      }
+    }
+
+    // Update route
+    updateRoute();
+  }, [
+    pickupLocation,
+    mapLoaded,
+    showCurrentLocation,
+    latitude,
+    longitude,
+    accuracy,
+    updateRoute,
+  ]);
+
+  // Update dropoff marker when dropoff location changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Remove existing dropoff marker
+    if (dropoffMarkerRef.current) {
+      dropoffMarkerRef.current.remove();
+      dropoffMarkerRef.current = null;
+    }
+
+    // Add new dropoff marker if location is provided
+    if (dropoffLocation) {
+      const markerEl = document.createElement("div");
+      markerEl.className = "dropoff-marker";
+      markerEl.style.backgroundColor = "#EF4444"; // Red color
+      markerEl.style.border = "2px solid #fff";
+      markerEl.style.borderRadius = "50%";
+      markerEl.style.width = "24px";
+      markerEl.style.height = "24px";
+      markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+      // Add a "D" in the center
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.color = "#ffffff";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "bold";
+      markerEl.innerText = "D";
+
+      dropoffMarkerRef.current = new mapboxgl.Marker(markerEl)
+        .setLngLat([dropoffLocation.longitude, dropoffLocation.latitude])
+        .addTo(map.current);
+
+      // Add popup if address is available
+      if (dropoffLocation.address) {
+        const popup = new mapboxgl.Popup({ offset: 25 }).setText(
+          `Dropoff: ${dropoffLocation.address}`
+        );
+        dropoffMarkerRef.current.setPopup(popup);
+      }
+    }
+
+    // Update route
+    updateRoute();
+  }, [dropoffLocation, mapLoaded, updateRoute]);
+
+  // Update stop markers when stops change
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Remove existing stop markers
+    stopMarkersRef.current.forEach((marker) => marker.remove());
+    stopMarkersRef.current = [];
+
+    // Add new stop markers
+    stops.forEach((stop, index) => {
+      const markerEl = document.createElement("div");
+      markerEl.className = "stop-marker";
+      markerEl.style.backgroundColor = "#000000"; // Black color for stops
+      markerEl.style.border = "2px solid #fff";
+      markerEl.style.borderRadius = "50%";
+      markerEl.style.width = "20px";
+      markerEl.style.height = "20px";
+      markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+      // Add stop number in the center
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.color = "#ffffff";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "bold";
+      markerEl.innerText = (index + 1).toString();
+
+      const marker = new mapboxgl.Marker(markerEl)
+        .setLngLat([stop.longitude, stop.latitude])
+        .addTo(map.current!);
+
+      // Add popup if address is available
+      if (stop.address) {
+        const popup = new mapboxgl.Popup({ offset: 25 }).setText(
+          `Stop ${index + 1}: ${stop.address}`
+        );
+        marker.setPopup(popup);
+      }
+
+      stopMarkersRef.current.push(marker);
+    });
+
+    // Update route
+    updateRoute();
+  }, [stops, mapLoaded, updateRoute]);
+
+  // Update route when showRoute changes
+  useEffect(() => {
+    if (mapLoaded) {
+      updateRoute();
+    }
+  }, [showRoute, mapLoaded, updateRoute]);
+
+  // Handle location errors
+  const handleRetry = () => {
+    getCurrentPosition();
+  };
+
+  // Add new effect for handling preview location
+  const previewMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
+  // Handle preview location changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Remove existing preview marker
+    if (previewMarkerRef.current) {
+      previewMarkerRef.current.remove();
+      previewMarkerRef.current = null;
+    }
+
+    // Add new preview marker if location is provided
+    if (previewLocation && previewLocation.isPreview) {
+      // Create marker element with styling based on location type
+      const markerEl = document.createElement("div");
+      markerEl.className = "preview-marker";
+
+      // Set marker style based on type
+      let markerColor = "#6B7280"; // Default gray
+      let markerText = "?";
+
+      if (previewLocation.type === "pickup") {
+        markerColor = "#10B981"; // Green
+        markerText = "P";
+      } else if (previewLocation.type === "dropoff") {
+        markerColor = "#EF4444"; // Red
+        markerText = "D";
+      } else if (previewLocation.type === "stop") {
+        markerColor = "#000000"; // Black
+        markerText = "S";
+      }
+
+      markerEl.style.backgroundColor = markerColor;
+      markerEl.style.border = "2px solid #fff";
+      markerEl.style.borderRadius = "50%";
+      markerEl.style.width = "24px";
+      markerEl.style.height = "24px";
+      markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+      markerEl.style.opacity = "0.7"; // Semi-transparent to indicate preview state
+      markerEl.style.cursor = "pointer";
+
+      // Add letter in the center
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.color = "#ffffff";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "bold";
+      markerEl.innerText = markerText;
+
+      // Create and add the marker
+      previewMarkerRef.current = new mapboxgl.Marker(markerEl)
+        .setLngLat([previewLocation.longitude, previewLocation.latitude])
+        .addTo(map.current);
+
+      // Add popup for the location address
+      if (previewLocation.address) {
+        const popupText = `${
+          previewLocation.type === "pickup"
+            ? "Pickup"
+            : previewLocation.type === "dropoff"
+            ? "Dropoff"
+            : "Stop"
+        }: ${previewLocation.address}`;
+
+        const popup = new mapboxgl.Popup({
+          offset: 25,
+          closeButton: false,
+          closeOnClick: false,
+        }).setText(popupText);
+
+        previewMarkerRef.current.setPopup(popup);
+        popup.addTo(map.current);
+      }
+
+      // Fly to the preview location
+      map.current.flyTo({
+        center: [previewLocation.longitude, previewLocation.latitude],
+        zoom: 15,
+        essential: true,
+      });
+    }
+  }, [previewLocation, mapLoaded]);
+
+  // Helper function to update pickup marker
+  const updatePickupMarker = useCallback(
+    (longitude: number, latitude: number) => {
+      if (!map.current || !mapLoaded) return;
+
+      // Remove existing pickup marker
+      if (pickupMarkerRef.current) {
+        pickupMarkerRef.current.remove();
+        pickupMarkerRef.current = null;
+      }
+
+      // Create new pickup marker
+      const markerEl = document.createElement("div");
+      markerEl.className = "pickup-marker";
+      markerEl.style.backgroundColor = "#10B981"; // Green color
+      markerEl.style.border = "2px solid #fff";
+      markerEl.style.borderRadius = "50%";
+      markerEl.style.width = "24px";
+      markerEl.style.height = "24px";
+      markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+      // Add a "P" in the center
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.color = "#ffffff";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "bold";
+      markerEl.innerText = "P";
+
+      pickupMarkerRef.current = new mapboxgl.Marker(markerEl)
+        .setLngLat([longitude, latitude])
+        .addTo(map.current);
+    },
+    [mapLoaded]
+  );
+
+  // Helper function to update dropoff marker
+  const updateDropoffMarker = useCallback(
+    (longitude: number, latitude: number) => {
+      if (!map.current || !mapLoaded) return;
+
+      // Remove existing dropoff marker
+      if (dropoffMarkerRef.current) {
+        dropoffMarkerRef.current.remove();
+        dropoffMarkerRef.current = null;
+      }
+
+      // Create new dropoff marker
+      const markerEl = document.createElement("div");
+      markerEl.className = "dropoff-marker";
+      markerEl.style.backgroundColor = "#EF4444"; // Red color
+      markerEl.style.border = "2px solid #fff";
+      markerEl.style.borderRadius = "50%";
+      markerEl.style.width = "24px";
+      markerEl.style.height = "24px";
+      markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+      // Add a "D" in the center
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.color = "#ffffff";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "bold";
+      markerEl.innerText = "D";
+
+      dropoffMarkerRef.current = new mapboxgl.Marker(markerEl)
+        .setLngLat([longitude, latitude])
+        .addTo(map.current);
+    },
+    [mapLoaded]
+  );
+
+  // Helper function to update stop markers
+  const updateStopMarkers = useCallback(
+    (newStops: Location[]) => {
+      if (!map.current || !mapLoaded) return;
+
+      // Remove existing stop markers
+      stopMarkersRef.current.forEach((marker) => marker.remove());
+      stopMarkersRef.current = [];
+
+      // Add new stop markers
+      newStops.forEach((stop, index) => {
+        const markerEl = document.createElement("div");
+        markerEl.className = "stop-marker";
+        markerEl.style.backgroundColor = "#000000"; // Black color for stops
+        markerEl.style.border = "2px solid #fff";
+        markerEl.style.borderRadius = "50%";
+        markerEl.style.width = "20px";
+        markerEl.style.height = "20px";
+        markerEl.style.boxShadow = "0 0 0 2px rgba(0,0,0,0.1)";
+
+        // Add stop number in the center
+        markerEl.style.display = "flex";
+        markerEl.style.alignItems = "center";
+        markerEl.style.justifyContent = "center";
+        markerEl.style.color = "#ffffff";
+        markerEl.style.fontSize = "12px";
+        markerEl.style.fontWeight = "bold";
+        markerEl.innerText = (index + 1).toString();
+
+        const marker = new mapboxgl.Marker(markerEl)
+          .setLngLat([stop.longitude, stop.latitude])
+          .addTo(map.current!);
+
+        stopMarkersRef.current.push(marker);
+      });
+    },
+    [mapLoaded]
+  );
+
+  // Helper function to fit the map to all markers
+  const fitMapToMarkers = useCallback(
+    (
+      pickup: Location | null,
+      dropoff: Location | null,
+      additionalStops: Location[] = [],
+      userLocation: Location | null = null
+    ) => {
+      if (!map.current || !mapLoaded) return;
+
+      const locations: Location[] = [];
+
+      if (pickup) locations.push(pickup);
+      if (dropoff) locations.push(dropoff);
+      locations.push(...additionalStops);
+      if (userLocation) locations.push(userLocation);
+
+      if (locations.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        locations.forEach((loc) => {
+          bounds.extend([loc.longitude, loc.latitude]);
+        });
+
+        // Add padding and fit bounds
+        map.current.fitBounds(bounds, {
+          padding: 60,
+          maxZoom: 15,
+          duration: 1000,
+        });
+      }
+    },
+    [mapLoaded]
+  );
+
+  // Helper function to check and create route source if needed
+  function checkAndCreateRouteSource() {
+    if (!map.current) return;
+
+    try {
+      // Check if source already exists
+      if (!map.current.getSource("route")) {
+        console.log("MapInterface: Route source does not exist, creating it");
+
+        // Create route source if it doesn't exist yet
+        map.current.addSource("route", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: [],
+            },
+          },
+        });
+
+        // Create route layer if it doesn't exist
+        map.current.addLayer({
+          id: "route-line",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#3B82F6", // Blue color
+            "line-width": 5,
+            "line-opacity": 0.9,
+            "line-dasharray": [0.5, 0], // Solid line for real routes
+          },
+        });
+
+        console.log("Route source and layer created successfully");
+      } else {
+        console.log("MapInterface: Route source already exists");
+      }
+    } catch (error) {
+      console.error("Error in checkAndCreateRouteSource:", error);
+    }
+  }
+
+  // Expose map methods to parent components
+  useEffect(() => {
+    if (map.current && mapLoaded && passMapRef) {
+      // Create an interface for external components to update the map
+      const mapInterface = {
+        updateLocations: (
+          newPickup: Location | null,
+          newDropoff: Location | null,
+          newStops: Location[] = []
+        ) => {
+          console.log(
+            "MapInterface.updateLocations called with:",
+            newPickup
+              ? `Pickup: ${newPickup.address || "no address"}`
+              : "No pickup",
+            newDropoff
+              ? `Dropoff: ${newDropoff.address || "no address"}`
+              : "No dropoff",
+            `Stops: ${newStops.length}`
+          );
+
+          // Process update IMMEDIATELY without waiting for next render cycle
+          try {
+            // Update markers without re-initializing the map
+            if (newPickup) {
+              updatePickupMarker(newPickup.longitude, newPickup.latitude);
+            } else if (pickupMarkerRef.current) {
+              pickupMarkerRef.current.remove();
+              pickupMarkerRef.current = null;
+            }
+
+            if (newDropoff) {
+              updateDropoffMarker(newDropoff.longitude, newDropoff.latitude);
+            } else if (dropoffMarkerRef.current) {
+              dropoffMarkerRef.current.remove();
+              dropoffMarkerRef.current = null;
+            }
+
+            // Update stop markers
+            updateStopMarkers(newStops);
+
+            // If we're missing pickup or dropoff, clear the route
+            if (!newPickup || !newDropoff) {
+              clearRoute();
+              console.log(
+                "MapInterface: Cleared route - missing pickup or dropoff"
+              );
+
+              // Fit bounds to remaining markers
+              fitMapToMarkers(
+                newPickup,
+                newDropoff,
+                newStops,
+                showCurrentLocation && lastUserCoords
+                  ? {
+                      longitude: lastUserCoords[0],
+                      latitude: lastUserCoords[1],
+                    }
+                  : null
+              );
+              return;
+            }
+
+            // IMPROVED: Draw route immediately if we have pickup and dropoff
+            if (newPickup && newDropoff && map.current) {
+              console.log(
+                "MapInterface: Starting IMMEDIATE route draw process"
+              );
+
+              // Don't wait for style to load - try immediately with retry logic
+              const tryDrawRoute = (attempt = 0) => {
+                if (!map.current) return;
+
+                // Check if style is loaded before proceeding
+                if (map.current.isStyleLoaded()) {
+                  try {
+                    console.log(
+                      "MapInterface: Style is loaded, updating route immediately"
+                    );
+
+                    // Start fetching directions right away while preparing the map
+                    fetchAndDrawRoute(newPickup, newDropoff, newStops);
+                  } catch (error) {
+                    console.error("Error updating route:", error);
+
+                    // Retry on error with shorter delay
+                    if (attempt < 3) {
+                      console.log(
+                        `MapInterface: Route update error, retry #${
+                          attempt + 1
+                        } immediately`
+                      );
+                      setTimeout(() => tryDrawRoute(attempt + 1), 100);
+                    }
+                  }
+                } else {
+                  console.log(
+                    `MapInterface: Style not loaded, attempt #${attempt + 1}`
+                  );
+
+                  // First attempt: Listen for style.load event AND set a timer
+                  if (attempt === 0) {
+                    map.current.once("style.load", () => {
+                      console.log(
+                        "MapInterface: Style load event triggered, drawing route"
+                      );
+                      fetchAndDrawRoute(newPickup, newDropoff, newStops);
+                    });
+                  }
+
+                  // Also set a timer as a backup with shorter delays
+                  if (attempt < 3) {
+                    console.log(
+                      `MapInterface: Scheduling retry #${attempt + 1} in ${
+                        100 * (attempt + 1)
+                      }ms`
+                    );
+                    setTimeout(
+                      () => tryDrawRoute(attempt + 1),
+                      100 * (attempt + 1)
+                    );
+                  }
+                }
+              };
+
+              // Start the route drawing process immediately
+              tryDrawRoute();
+            } else {
+              console.log(
+                "MapInterface: Not drawing route - missing pickup or dropoff"
+              );
+            }
+
+            // Fit bounds to markers
+            fitMapToMarkers(
+              newPickup,
+              newDropoff,
+              newStops,
+              showCurrentLocation && lastUserCoords
+                ? { longitude: lastUserCoords[0], latitude: lastUserCoords[1] }
+                : null
+            );
+          } catch (error) {
+            console.error("Error in updateLocations:", error);
+          }
+        },
+      };
+
+      // Helper function to fetch and draw a route more efficiently
+      function fetchAndDrawRoute(
+        pickup: Location,
+        dropoff: Location,
+        stops: Location[] = []
+      ) {
+        if (!map.current) return;
+
+        try {
+          // Ensure route source exists
+          checkAndCreateRouteSource();
+
+          // Create waypoints array with explicit typing
+          const waypoints: [number, number][] = [
+            [pickup.longitude, pickup.latitude] as [number, number],
+            ...stops.map(
+              (stop) => [stop.longitude, stop.latitude] as [number, number]
+            ),
+            [dropoff.longitude, dropoff.latitude] as [number, number],
+          ];
+
+          // Build directions URL
+          const waypointStr = waypoints
+            .map((point) => `${point[0]},${point[1]}`)
+            .join(";");
+          const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointStr}?geometries=geojson&access_token=${mapboxgl.accessToken}&overview=full`;
+
+          console.log("MapInterface: Fetching directions API");
+
+          // Fetch directions data
+          fetch(directionsUrl)
+            .then((response) => response.json())
+            .then((data) => {
+              if (!map.current) return;
+
+              if (data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+
+                try {
+                  // Get route source
+                  const routeSource = map.current.getSource(
+                    "route"
+                  ) as mapboxgl.GeoJSONSource;
+
+                  // Update source data
+                  routeSource.setData({
+                    type: "Feature",
+                    properties: {},
+                    geometry: route.geometry,
+                  });
+
+                  console.log("MapInterface: Route updated successfully");
+                } catch (error) {
+                  console.error("Error updating route source:", error);
+
+                  // If updating failed, try removing and recreating
+                  clearRoute();
+
+                  // Add source and layers again
+                  if (map.current.isStyleLoaded()) {
+                    try {
+                      map.current.addSource("route", {
+                        type: "geojson",
+                        data: {
+                          type: "Feature",
+                          properties: {},
+                          geometry: route.geometry,
+                        },
+                      });
+
+                      // Add outline
+                      map.current.addLayer({
+                        id: "route-outline",
+                        type: "line",
+                        source: "route",
+                        layout: {
+                          "line-join": "round",
+                          "line-cap": "round",
+                        },
+                        paint: {
+                          "line-color": "#000",
+                          "line-opacity": 0.8,
+                          "line-width": 7,
+                        },
+                      });
+
+                      // Add line
+                      map.current.addLayer({
+                        id: "route-line",
+                        type: "line",
+                        source: "route",
+                        layout: {
+                          "line-join": "round",
+                          "line-cap": "round",
+                        },
+                        paint: {
+                          "line-color": "#3B82F6",
+                          "line-width": 5,
+                          "line-opacity": 1,
+                          "line-dasharray": [0.5, 0],
+                        },
+                      });
+
+                      console.log("MapInterface: Route recreated successfully");
+                    } catch (e) {
+                      console.error("Failed to recreate route:", e);
+                    }
+                  }
+                }
+              }
+            })
+            .catch((error) => {
+              console.error("MapInterface: Error fetching directions:", error);
+            });
+        } catch (error) {
+          console.error("Error in fetchAndDrawRoute:", error);
+        }
+      }
+
+      // Helper function to clear the route from the map
+      function clearRoute() {
+        if (!map.current) return;
+
+        try {
+          // Remove dependent layers first
+          if (map.current.getLayer("route-line")) {
+            map.current.removeLayer("route-line");
+          }
+
+          if (map.current.getLayer("route-outline")) {
+            map.current.removeLayer("route-outline");
+          }
+
+          // Then remove the source
+          if (map.current.getSource("route")) {
+            map.current.removeSource("route");
+          }
+
+          console.log("MapInterface: Route layers and source removed");
+        } catch (error) {
+          console.error("Error removing route:", error);
+        }
+      }
+
+      // Pass the interface to the parent
+      passMapRef(mapInterface);
+    }
+  }, [
+    mapLoaded,
+    passMapRef,
+    updateRoute,
+    updatePickupMarker,
+    updateDropoffMarker,
+    updateStopMarkers,
+    fitMapToMarkers,
+    showCurrentLocation,
+    lastUserCoords,
+  ]);
+
+  return (
+    <div className={`map-container relative ${className}`}>
+      <div
+        ref={mapContainer}
+        className="w-full h-full rounded-lg overflow-hidden"
+      />
+      {error && (
+        <div className="absolute bottom-4 left-4 bg-white p-4 rounded-md shadow-md max-w-sm">
+          <p className="text-red-500 font-semibold mb-2">Location error</p>
+          <p className="text-sm mb-2">
+            {error === "PERMISSION_DENIED"
+              ? "Please enable location access in your browser settings."
+              : error === "POSITION_UNAVAILABLE"
+              ? "Unable to determine your position. Please try again."
+              : error === "TIMEOUT"
+              ? "Location request timed out. Please try again."
+              : "An error occurred while getting your location."}
+          </p>
+          <button
+            onClick={handleRetry}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MapComponent;
