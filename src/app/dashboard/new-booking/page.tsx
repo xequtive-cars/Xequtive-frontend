@@ -1042,7 +1042,7 @@ export default function NewBookingPage() {
               {/* Map Section - Width increased proportionally */}
               <div className="flex-1 md:w-[72%]">
                 {showMap ? (
-                  <div className="h-full rounded-lg overflow-hidden border shadow-sm">
+                  <div className="h-full max-h-[calc(100vh-6rem)] rounded-lg overflow-hidden border shadow-sm">
                     <StableMapComponent
                       className="h-full"
                       pickupLocation={pickupLocation}
@@ -1063,9 +1063,9 @@ export default function NewBookingPage() {
           ) : (
             <>
               {!showDetailsForm ? (
-                <div className="flex w-full h-full gap-3">
-                  {/* Left panel: Width reduced by 20% */}
-                  <div className="w-[28%] h-fit">
+                <div className="flex w-full h-full gap-4">
+                  {/* Left panel: Width increased by 30% */}
+                  <div className="w-[24%] h-fit">
                     <Card className="border shadow-sm">
                       <CardContent className="p-3 space-y-4">
                         <div className="flex justify-between items-center mb-2">
@@ -1200,33 +1200,65 @@ export default function NewBookingPage() {
                     </Card>
                   </div>
 
-                  {/* Middle panel: Vehicle selection - adjust width proportionally */}
-                  <div className="w-[40%] h-full overflow-hidden flex flex-col">
+                  {/* Middle panel: Vehicle selection - adjusted width */}
+                  <div className="w-[42%] h-full max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
                     <div className="p-3 border-b">
                       <h2 className="text-base font-semibold">
                         Select Vehicle
                       </h2>
                     </div>
-                    <div className="overflow-y-auto flex-1 p-3">
+                    <div className="overflow-y-auto flex-1 p-3 h-full">
                       {/* Add CSS to resize vehicle cards by 40% */}
                       <style jsx global>{`
-                        /* Make vehicle cards larger */
+                        /* Make vehicle cards larger and better designed */
                         .vehicle-card {
-                          height: 140px !important;
-                          max-height: 140px !important;
-                          margin-bottom: 0.75rem !important;
-                          padding: 0.75rem !important;
+                          height: 160px !important;
+                          max-height: 160px !important;
+                          margin-bottom: 1rem !important;
+                          padding: 1rem !important;
+                          border-radius: 0.5rem !important;
+                          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+                          border: 1px solid #e5e7eb !important;
+                          transition: all 0.2s ease-in-out !important;
+                          position: relative !important;
+                        }
+                        .vehicle-card:hover {
+                          transform: translateY(-2px) !important;
+                          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+                        }
+                        .vehicle-card.selected {
+                          border-color: #3b82f6 !important;
+                          background-color: #eff6ff !important;
+                        }
+                        .vehicle-card.selected:before {
+                          content: "✓" !important;
+                          position: absolute !important;
+                          top: -10px !important;
+                          right: -10px !important;
+                          width: 24px !important;
+                          height: 24px !important;
+                          background-color: #3b82f6 !important;
+                          color: white !important;
+                          border-radius: 50% !important;
+                          display: flex !important;
+                          align-items: center !important;
+                          justify-content: center !important;
+                          font-weight: bold !important;
+                          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+                          z-index: 10 !important;
+                          font-size: 12px !important;
                         }
                         /* Fix vehicle images */
                         .vehicle-image {
                           display: block !important;
                           position: relative !important;
-                          width: 60px !important;
-                          height: 40px !important;
+                          width: 80px !important;
+                          height: 50px !important;
+                          margin-right: 1rem !important;
                         }
                         .vehicle-image img {
                           object-fit: contain !important;
-                          max-height: 40px !important;
+                          max-height: 50px !important;
                         }
                         /* Adjust text sizes */
                         .vehicle-card h3 {
@@ -1239,7 +1271,16 @@ export default function NewBookingPage() {
                         }
                         /* Adjust vehicle card content spacing */
                         .vehicle-card-content {
-                          gap: 0.35rem !important;
+                          gap: 0.5rem !important;
+                          display: flex !important;
+                          flex-direction: column !important;
+                          justify-content: space-between !important;
+                          height: 100% !important;
+                        }
+                        .vehicle-card .vehicle-details {
+                          display: flex !important;
+                          justify-content: space-between !important;
+                          width: 100% !important;
                         }
                       `}</style>
 
@@ -1273,8 +1314,8 @@ export default function NewBookingPage() {
                     )}
                   </div>
 
-                  {/* Right panel: Map - adjust width */}
-                  <div className="w-[25%] h-full">
+                  {/* Right panel: Map - width reduced */}
+                  <div className="w-[30%] h-full max-h-[calc(100vh-6rem)]">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
                         <StableMapComponent
