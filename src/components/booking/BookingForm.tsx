@@ -92,10 +92,10 @@ export function BookingForm({
     <>
       {currentStep === "location" ? (
         <Card className="border border-border/60 rounded-md shadow-sm">
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 space-y-3">
             {/* Pickup field */}
-            <div className="space-y-2.5">
-              <label className="text-base font-medium text-foreground/90 block">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground/90 block">
                 Pickup Location
               </label>
               <UkLocationInput
@@ -107,13 +107,13 @@ export function BookingForm({
                 type="pickup"
                 initialSuggestionsTitle="Suggested pickup locations"
                 userLocation={userLocation}
-                className="text-base h-12 rounded-md bg-muted/40 !w-full [&>input]:h-12 [&>input]:text-base [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                className="text-sm h-10 rounded-md bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
               />
             </div>
 
             {/* Dropoff field */}
-            <div className="space-y-2.5">
-              <label className="text-base font-medium text-foreground/90 block">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground/90 block">
                 Dropoff Location
               </label>
               <UkLocationInput
@@ -125,17 +125,17 @@ export function BookingForm({
                 type="dropoff"
                 initialSuggestionsTitle="Suggested dropoff locations"
                 userLocation={userLocation}
-                className="text-base h-12 rounded-md bg-muted/40 !w-full [&>input]:h-12 [&>input]:text-base [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                className="text-sm h-10 rounded-md bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
               />
             </div>
 
             {/* Additional stops */}
             {stopAddresses.length > 0 && (
-              <div className="space-y-2.5">
-                <label className="text-base font-medium text-foreground/90 block">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground/90 block">
                   Additional Stops
                 </label>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {stopAddresses.map((address, index) => (
                     <div key={`stop-${index}`} className="relative">
                       <UkLocationInput
@@ -149,15 +149,15 @@ export function BookingForm({
                         type="stop"
                         initialSuggestionsTitle="Suggested stop locations"
                         userLocation={userLocation}
-                        className="text-base h-12 rounded-md pr-10 bg-muted/40 !w-full [&>input]:h-12 [&>input]:text-base [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                        className="text-sm h-10 rounded-md pr-10 bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
                       />
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => removeStop(index)}
-                        className="h-8 w-8 p-0 absolute right-2 top-1/2 -translate-y-1/2"
+                        className="h-7 w-7 p-0 absolute right-2 top-1/2 -translate-y-1/2"
                       >
-                        <X size={18} className="text-muted-foreground" />
+                        <X size={16} className="text-muted-foreground" />
                       </Button>
                     </div>
                   ))}
@@ -169,16 +169,16 @@ export function BookingForm({
             <Button
               variant="outline"
               size="sm"
-              className="w-full h-12 text-base font-medium rounded-md"
+              className="w-full h-9 text-sm font-medium rounded-md"
               onClick={addStop}
             >
-              <Plus size={18} className="mr-2" />
+              <Plus size={16} className="mr-2" />
               Add Stop
             </Button>
 
             {/* Date Picker - Consistent sizing */}
-            <div className="space-y-2.5">
-              <label className="text-base font-medium text-foreground/90 block">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground/90 block">
                 Date
               </label>
               <DatePicker
@@ -189,13 +189,13 @@ export function BookingForm({
                 }}
                 label=""
                 selectedTime={selectedTime}
-                className="h-12 text-base w-full [&>button]:h-12 [&>button]:text-base [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
+                className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
               />
             </div>
 
             {/* Time Picker - Consistent sizing */}
-            <div className="space-y-2.5">
-              <label className="text-base font-medium text-foreground/90 block">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground/90 block">
                 Time
               </label>
               <TimePicker
@@ -206,18 +206,18 @@ export function BookingForm({
                 }}
                 label=""
                 placeholder="Select time"
-                className="h-12 text-base w-full [&>button]:h-12 [&>button]:text-base [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
+                className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
               />
             </div>
 
             {/* Passengers & Luggage */}
-            <div className="space-y-2.5">
-              <label className="text-base font-medium text-foreground/90 block">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground/90 block">
                 Passengers & Luggage
               </label>
               <Button
                 variant="outline"
-                className="w-full h-12 text-base font-medium rounded-md flex justify-between items-center bg-muted/40"
+                className="w-full h-10 text-sm font-medium rounded-md flex justify-between items-center bg-muted/40"
                 onClick={() => setCurrentStep("luggage")}
               >
                 <span>{getPassengerLuggageSummary()}</span>
@@ -227,7 +227,7 @@ export function BookingForm({
 
             {/* Calculate fare button */}
             <Button
-              className="w-full h-12 text-base font-medium"
+              className="w-full h-10 text-sm font-medium mt-2"
               onClick={calculateFare}
               disabled={
                 !pickupLocation ||
@@ -242,7 +242,7 @@ export function BookingForm({
 
             {/* Display error message if any */}
             {fetchError && (
-              <div className="bg-destructive/10 text-destructive p-4 rounded-md text-base">
+              <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
                 {fetchError}
               </div>
             )}

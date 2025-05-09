@@ -986,21 +986,21 @@ export default function NewBookingPage() {
   const handleCloseSuccessDialog = () => {
     setBookingSuccess({ show: false, bookingId: "" });
 
-    // Reset form and navigate to my bookings page
+    // Reset form and navigate to dashboard page
     setShowVehicleOptions(false);
     setShowDetailsForm(false);
     setFareData(null);
     setSelectedVehicle(null);
 
-    // Use router to navigate to "my bookings" page
-    router.push("/dashboard/my-bookings");
+    // Use router to navigate to dashboard page
+    router.push("/dashboard");
   };
 
   return (
     <ProtectedRoute>
-      <div className="h-[calc(100vh-4.5rem)] w-full flex flex-col pt-2">
+      <div className="h-[100vh] w-full flex flex-col pt-2 overflow-hidden">
         {/* Main content area */}
-        <div className="flex-1 flex flex-col md:flex-row gap-2">
+        <div className="flex-1 flex flex-col md:flex-row gap-2 overflow-hidden">
           {!showVehicleOptions ? (
             <>
               {/* Booking Form - Width reduced by 20% */}
@@ -1064,8 +1064,8 @@ export default function NewBookingPage() {
             <>
               {!showDetailsForm ? (
                 <div className="flex w-full h-full gap-4">
-                  {/* Left panel: Width increased by 30% */}
-                  <div className="w-[24%] h-fit">
+                  {/* Left panel: Width increased */}
+                  <div className="w-[29%] h-fit">
                     <Card className="border shadow-sm">
                       <CardContent className="p-3 space-y-4">
                         <div className="flex justify-between items-center mb-2">
@@ -1200,7 +1200,7 @@ export default function NewBookingPage() {
                     </Card>
                   </div>
 
-                  {/* Middle panel: Vehicle selection - adjusted width */}
+                  {/* Middle panel: Vehicle selection */}
                   <div className="w-[42%] h-full max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
                     <div className="p-3 border-b">
                       <h2 className="text-base font-semibold">
@@ -1314,8 +1314,8 @@ export default function NewBookingPage() {
                     )}
                   </div>
 
-                  {/* Right panel: Map - width reduced */}
-                  <div className="w-[30%] h-full max-h-[calc(100vh-6rem)]">
+                  {/* Right panel: Map - width reduced by 10% */}
+                  <div className="w-[25%] h-full max-h-[calc(100vh-6rem)]">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
                         <StableMapComponent
@@ -1338,30 +1338,34 @@ export default function NewBookingPage() {
                   </div>
                 </div>
               ) : (
-                // Personal details form - increase size by 40%
-                <div className="flex flex-col md:flex-row w-full h-full gap-8">
-                  <div className="md:w-2/3">
+                // Personal details form - simplified layout
+                <div className="flex flex-col md:flex-row w-full h-full gap-4">
+                  <div className="md:w-2/3 h-full max-h-[calc(100vh-5rem)] relative">
                     {selectedVehicle && (
-                      <PersonalDetailsForm
-                        selectedVehicle={selectedVehicle}
-                        pickupLocation={pickupLocation}
-                        dropoffLocation={dropoffLocation}
-                        additionalStops={additionalStops}
-                        selectedDate={selectedDate}
-                        selectedTime={selectedTime}
-                        passengers={passengers}
-                        checkedLuggage={checkedLuggage}
-                        handLuggage={handLuggage}
-                        onBack={handleBackToVehicleSelection}
-                        onSubmit={handleSubmitBooking}
-                        isSubmitting={isCreatingBooking}
-                        error={bookingError}
-                      />
+                      <div className="h-full overflow-hidden flex flex-col">
+                        <div className="flex-1 overflow-y-auto pr-2 pb-4 relative">
+                          <PersonalDetailsForm
+                            selectedVehicle={selectedVehicle}
+                            pickupLocation={pickupLocation}
+                            dropoffLocation={dropoffLocation}
+                            additionalStops={additionalStops}
+                            selectedDate={selectedDate}
+                            selectedTime={selectedTime}
+                            passengers={passengers}
+                            checkedLuggage={checkedLuggage}
+                            handLuggage={handLuggage}
+                            onBack={handleBackToVehicleSelection}
+                            onSubmit={handleSubmitBooking}
+                            isSubmitting={isCreatingBooking}
+                            error={bookingError}
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  {/* Map display for context in personal details view */}
-                  <div className="md:w-1/3 h-full hidden md:block">
+                  {/* Map display - height matching second screen */}
+                  <div className="md:w-1/3 h-full max-h-[calc(100vh-6rem)]">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
                         <StableMapComponent
