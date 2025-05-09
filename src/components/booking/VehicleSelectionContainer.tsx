@@ -119,8 +119,33 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
                         height={128}
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full bg-muted/20 text-muted-foreground">
-                        <Users size={30} />
+                      <div className="flex items-center justify-center h-full">
+                        {vehicle.id.includes("executive") ? (
+                          <Image
+                            src="/images/vehicles/xequtive-3-removebg-preview.png"
+                            alt={vehicle.name}
+                            width={128}
+                            height={128}
+                            className="object-contain scale-125"
+                          />
+                        ) : vehicle.id.includes("mpv") ||
+                          vehicle.id.includes("van") ? (
+                          <Image
+                            src="/images/vehicles/xequtive-6-removebg-preview.png"
+                            alt={vehicle.name}
+                            width={128}
+                            height={128}
+                            className="object-contain scale-125"
+                          />
+                        ) : (
+                          <Image
+                            src="/images/vehicles/xequtive-9-removebg-preview.png"
+                            alt={vehicle.name}
+                            width={128}
+                            height={128}
+                            className="object-contain scale-125"
+                          />
+                        )}
                       </div>
                     )}
                   </div>

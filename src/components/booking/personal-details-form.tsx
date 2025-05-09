@@ -28,6 +28,7 @@ import {
 import { format } from "date-fns";
 import { Location } from "@/components/map/MapComponent";
 import { useAuth } from "@/contexts/AuthContext";
+import Image from "next/image";
 
 // Interfaces for booking data types
 export interface VerifiedFare {
@@ -514,23 +515,51 @@ export function PersonalDetailsForm({
 
                   {/* Vehicle & Price Section */}
                   <div className="bg-muted/40 p-4 rounded-md space-y-3 mt-auto">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <Car className="h-5 w-5 text-primary" />
+                    {/* Vehicle details with updated image */}
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex gap-4 items-center">
+                        <div className="w-40 h-40 flex items-center justify-center bg-primary/5 rounded">
+                          {selectedVehicle.id.includes("executive") ? (
+                            <Image
+                              src="/images/vehicles/xequtive-3-removebg-preview.png"
+                              alt={selectedVehicle.name}
+                              width={160}
+                              height={160}
+                              className="object-contain scale-125"
+                            />
+                          ) : selectedVehicle.id.includes("mpv") ||
+                            selectedVehicle.id.includes("van") ? (
+                            <Image
+                              src="/images/vehicles/xequtive-6-removebg-preview.png"
+                              alt={selectedVehicle.name}
+                              width={160}
+                              height={160}
+                              className="object-contain scale-125"
+                            />
+                          ) : (
+                            <Image
+                              src="/images/vehicles/xequtive-9-removebg-preview.png"
+                              alt={selectedVehicle.name}
+                              width={160}
+                              height={160}
+                              className="object-contain scale-125"
+                            />
+                          )}
+                        </div>
                         <div>
                           <p className="text-sm text-muted-foreground">
                             Vehicle
                           </p>
-                          <p className="text-base font-medium">
+                          <p className="text-lg font-medium">
                             {selectedVehicle.name}
                           </p>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground text-right">
-                          Price
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">
+                          Total Price
                         </p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-xl font-bold">
                           {selectedVehicle.price.currency}
                           {selectedVehicle.price.amount}
                         </p>

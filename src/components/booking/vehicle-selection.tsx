@@ -251,11 +251,11 @@ export default function VehicleSelection({
                 <CardContent className="p-2">
                   <div className="flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-1">
-                      {/* Vehicle Image - Updated with better 3D model images */}
+                      {/* Vehicle Image - Updated with xequtive images */}
                       <div className="relative w-12 h-8 flex-shrink-0 flex items-center justify-center">
                         {vehicle.id.includes("executive") ? (
                           <Image
-                            src="/images/vehicles/mercedes-s-class.png"
+                            src="/images/vehicles/xequtive-1-removebg-preview.png"
                             alt={vehicle.name}
                             width={48}
                             height={32}
@@ -264,7 +264,7 @@ export default function VehicleSelection({
                         ) : vehicle.id.includes("mpv") ||
                           vehicle.id.includes("van") ? (
                           <Image
-                            src="/images/vehicles/mercedes-v-class.png"
+                            src="/images/vehicles/xequtive-4-removebg-preview.png"
                             alt={vehicle.name}
                             width={48}
                             height={32}
@@ -272,7 +272,7 @@ export default function VehicleSelection({
                           />
                         ) : (
                           <Image
-                            src="/images/vehicles/bmw-sedan.png"
+                            src="/images/vehicles/xequtive-7-removebg-preview.png"
                             alt={vehicle.name}
                             width={48}
                             height={32}
@@ -378,7 +378,7 @@ export default function VehicleSelection({
               <div className="relative w-16 h-14 flex-shrink-0 flex items-center justify-center">
                 {vehicle.id.includes("executive") ? (
                   <Image
-                    src="/images/vehicles/mercedes-s-class.png"
+                    src="/images/vehicles/xequtive-2-removebg-preview.png"
                     alt={vehicle.name}
                     width={64}
                     height={42}
@@ -386,7 +386,7 @@ export default function VehicleSelection({
                   />
                 ) : vehicle.id.includes("mpv") || vehicle.id.includes("van") ? (
                   <Image
-                    src="/images/vehicles/mercedes-v-class.png"
+                    src="/images/vehicles/xequtive-5-removebg-preview.png"
                     alt={vehicle.name}
                     width={64}
                     height={42}
@@ -394,7 +394,7 @@ export default function VehicleSelection({
                   />
                 ) : (
                   <Image
-                    src="/images/vehicles/bmw-sedan.png"
+                    src="/images/vehicles/xequtive-8-removebg-preview.png"
                     alt={vehicle.name}
                     width={64}
                     height={42}
