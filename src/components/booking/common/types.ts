@@ -43,7 +43,7 @@ export interface FareResponse {
   currency: string;
   vehicleOptions: VehicleOption[];
   journey: {
-    distance_km: number;
+    distance_miles: number;
     duration_min: number;
   };
 }

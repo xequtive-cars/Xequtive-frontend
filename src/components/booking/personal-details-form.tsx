@@ -38,7 +38,7 @@ export interface VerifiedFare {
     amount: number;
     currency: string;
   };
-  distance_km: number;
+  distance_miles: number;
   duration_min: number;
 }
 

@@ -112,13 +112,13 @@ export default function VehicleSelection({
       distance = fareData.estimatedDistance;
     } else if (
       fareData &&
-      "distance_km" in fareData &&
-      typeof fareData.distance_km === "number"
+      "distance_miles" in fareData &&
+      typeof fareData.distance_miles === "number"
     ) {
-      distance = fareData.distance_km;
-    } else if (fareData?.fare?.baseFare) {
+      distance = fareData.distance_miles;
+    } else if (fareData?.baseFare) {
       // Fallback approximation based on fare
-      distance = Math.round(fareData.fare.baseFare / 3);
+      distance = Math.round(fareData.baseFare / 3);
     }
 
     // Extract duration with fallbacks
@@ -176,7 +176,7 @@ export default function VehicleSelection({
                 <span className="text-muted-foreground">Distance:</span>
                 <span className="font-medium">
                   {distance > 0
-                    ? `${distance.toFixed(1)} km`
+                    ? `${(distance * 0.621371).toFixed(1)} miles`
                     : "Calculating..."}
                 </span>
               </div>

@@ -30,8 +30,10 @@ export function middleware(request: NextRequest) {
   // Note: This will only work if we also set the auth-token as a cookie
   if (publicAuthRoutes.some((route) => path === route)) {
     if (authToken) {
-      // User is authenticated, redirect to dashboard
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      // User is authenticated, redirect to new booking page
+      return NextResponse.redirect(
+        new URL("/dashboard/new-booking", request.url)
+      );
     }
   }
 

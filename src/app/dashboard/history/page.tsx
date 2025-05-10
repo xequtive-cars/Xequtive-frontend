@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { RefreshCw, Clock } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import BookingCard from "@/components/booking/BookingCard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   bookingService,
   GetUserBookingsResponse,
@@ -26,7 +26,7 @@ export default function RideHistoryPage() {
   const { toast } = useToast();
 
   // Fetch booking history
-  const fetchBookingHistory = async () => {
+  const fetchBookingHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
       const response = await bookingService.getUserBookings(
@@ -45,7 +45,7 @@ export default function RideHistoryPage() {
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [toast]);
 
   // Open details modal
   const handleViewDetails = (booking: GetUserBookingsResponse["data"][0]) => {

@@ -68,7 +68,7 @@ export interface EnhancedBookingResponse {
         currency: string;
       };
       journey: {
-        distance_km: number;
+        distance_miles: number;
         duration_min: number;
       };
       status: string;
@@ -116,7 +116,7 @@ export interface ActiveBookingsResponse {
     price: number;
     status: string;
     journey: {
-      distance_km: number;
+      distance_miles: number;
       duration_min: number;
     };
     createdAt: string;
@@ -144,7 +144,7 @@ export interface BookingHistoryResponse {
     price: number;
     status: string;
     journey: {
-      distance_km: number;
+      distance_miles: number;
       duration_min: number;
     };
     createdAt: string;
@@ -186,7 +186,7 @@ export interface GetUserBookingsResponse {
     price: number;
     status: string;
     journey: {
-      distance_km: number;
+      distance_miles: number;
       duration_min: number;
     };
     createdAt: string;

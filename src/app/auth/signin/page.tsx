@@ -58,8 +58,8 @@ export default function SigninPage() {
   // Check if already authenticated - using auth context
   useEffect(() => {
     if (isAuthenticated) {
-      // User is already authenticated, redirect to dashboard
-      router.push("/dashboard");
+      // User is already authenticated, redirect to new booking page
+      router.push("/dashboard/new-booking");
     }
   }, [isAuthenticated, router]);
 
@@ -111,12 +111,12 @@ export default function SigninPage() {
         return;
       }
 
-      // Login successful - redirect to dashboard
-      console.log("Login successful, redirecting to dashboard");
+      // Login successful - redirect to new booking page
+      console.log("Login successful, redirecting to new booking page");
 
       // Force a hard redirect for the best compatibility with both
       // middleware and client-side auth context
-      window.location.href = "/dashboard";
+      window.location.href = "/dashboard/new-booking";
 
       // No need to reset loading state as we're doing a full page navigation
     } catch (err) {

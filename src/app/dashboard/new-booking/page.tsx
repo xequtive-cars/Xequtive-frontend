@@ -146,7 +146,7 @@ StableMapComponent.displayName = "StableMapComponent";
 // Extend FareResponse type to include API response variations
 declare module "@/components/booking" {
   interface FareResponse {
-    distance_km?: number;
+    distance_miles?: number;
     duration_min?: number;
   }
 }
@@ -1102,10 +1102,10 @@ export default function NewBookingPage() {
                                 Distance:
                               </span>
                               <span className="font-medium">
-                                {fareData && fareData.journey?.distance_km
-                                  ? `${fareData.journey.distance_km.toFixed(
+                                {fareData && fareData.journey?.distance_miles
+                                  ? `${fareData.journey.distance_miles.toFixed(
                                       1
-                                    )} km`
+                                    )} miles`
                                   : "Calculating..."}
                               </span>
                             </div>

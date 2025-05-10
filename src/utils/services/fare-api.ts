@@ -214,7 +214,7 @@ function createEmptyFareResponse(): FareResponse {
     currency: "GBP",
     vehicleOptions: [],
     journey: {
-      distance_km: 0,
+      distance_miles: 0,
       duration_min: 0,
     },
   };

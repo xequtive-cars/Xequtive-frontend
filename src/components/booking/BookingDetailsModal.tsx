@@ -72,7 +72,7 @@ interface BookingDetailsModalProps {
     price: number;
     status: string;
     journey: {
-      distance_km: number;
+      distance_miles: number;
       duration_min: number;
     };
     createdAt: string;
@@ -167,8 +167,14 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                 <div>
                   <div className="text-sm font-medium">Journey Details</div>
                   <div className="text-sm text-muted-foreground">
-                    {journey.distance_km} km • Approximately{" "}
-                    {journey.duration_min} minutes
+                    <span className="flex items-center gap-2 text-sm">
+                      <CarIcon className="h-4 w-4" />
+                      {journey.distance_miles &&
+                      typeof journey.distance_miles === "number"
+                        ? `${journey.distance_miles.toFixed(1)} miles`
+                        : "-- miles"}{" "}
+                      • Approximately {journey.duration_min} minutes
+                    </span>
                   </div>
                 </div>
               </div>

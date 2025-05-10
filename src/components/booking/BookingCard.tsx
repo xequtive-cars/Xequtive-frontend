@@ -69,7 +69,7 @@ interface BookingCardProps {
     price: number;
     status: string;
     journey: {
-      distance_km: number;
+      distance_miles: number;
       duration_min: number;
     };
     createdAt: string;
@@ -160,7 +160,11 @@ const BookingCard: React.FC<BookingCardProps> = ({
             <div className="flex gap-2 items-center">
               <CarIcon className="h-4 w-4" />
               <span className="text-sm">
-                {journey.distance_km} km • {journey.duration_min} min
+                {journey.distance_miles &&
+                typeof journey.distance_miles === "number"
+                  ? `${journey.distance_miles.toFixed(1)} miles`
+                  : "-- miles"}{" "}
+                • {journey.duration_min} min
               </span>
             </div>
             <div className="font-semibold">£{price.toFixed(2)}</div>

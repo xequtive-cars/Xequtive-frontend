@@ -234,7 +234,7 @@ export function UkLocationInput({
         selectionMadeRef.current = false;
       }, 500);
     }
-  }, []);
+  }, [value]);
 
   // Update valueRef when value changes
   useEffect(() => {
@@ -253,7 +253,7 @@ export function UkLocationInput({
 
   const calculateDistance = useCallback(
     (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-      const R = 6371; // Radius of the earth in km
+      const R = 3959; // Radius of the earth in miles
       const dLat = deg2rad(lat2 - lat1);
       const dLon = deg2rad(lon2 - lon1);
       const a =
@@ -263,7 +263,7 @@ export function UkLocationInput({
           Math.sin(dLon / 2) *
           Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = R * c; // Distance in km
+      const d = R * c; // Distance in miles
       return d;
     },
     [deg2rad]
@@ -767,8 +767,10 @@ export function UkLocationInput({
                       {suggestion.distance && (
                         <span className="text-xs text-muted-foreground">
                           {suggestion.distance < 1
-                            ? `${Math.round(suggestion.distance * 1000)}m away`
-                            : `${suggestion.distance.toFixed(1)}km away`}
+                            ? `${Math.round(
+                                suggestion.distance * 1609.34
+                              )}m away`
+                            : `${suggestion.distance.toFixed(1)} miles away`}
                         </span>
                       )}
                     </div>

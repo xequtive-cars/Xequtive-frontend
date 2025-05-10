@@ -45,7 +45,7 @@ export default function FareEstimationSection({
               <div className="bg-background rounded p-3 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Distance</p>
                 <p className="text-lg font-semibold">
-                  {(estimatedDistance / 1000).toFixed(1)} km
+                  {(estimatedDistance * 0.621371).toFixed(1)} miles
                 </p>
               </div>
             )}

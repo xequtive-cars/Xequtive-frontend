@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { RefreshCw, Car } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import BookingCard from "@/components/booking/BookingCard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   bookingService,
   GetUserBookingsResponse,
@@ -39,7 +39,7 @@ export default function ActiveBookingsPage() {
   const { toast } = useToast();
 
   // Fetch active bookings
-  const fetchActiveBookings = async () => {
+  const fetchActiveBookings = useCallback(async () => {
     setLoadingActive(true);
     try {
       const response = await bookingService.getUserBookings(
@@ -58,7 +58,7 @@ export default function ActiveBookingsPage() {
     } finally {
       setLoadingActive(false);
     }
-  };
+  }, [toast]);
 
   // Open cancel dialog
   const handleCancelClick = (bookingId: string) => {
