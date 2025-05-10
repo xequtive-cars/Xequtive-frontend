@@ -16,8 +16,13 @@
 8. [Form Components](#form-components)
 9. [State Management](#state-management)
 10. [Styling and UI](#styling-and-ui)
-11. [Deployment](#deployment)
-12. [Troubleshooting](#troubleshooting)
+11. [API Integration](#api-integration)
+    - [Authentication API](#authentication-api)
+    - [Fare Calculation API](#fare-calculation-api)
+    - [Booking API](#booking-api)
+    - [User Bookings API](#user-bookings-api)
+12. [Deployment](#deployment)
+13. [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -297,6 +302,132 @@ Xequtive uses a consistent styling approach:
 - Layout adjustments for different screen sizes
 - Touch-friendly controls for mobile users
 - Optimized map experience on smaller screens
+
+## API Integration
+
+Xequtive's frontend integrates with a robust backend API for authentication, fare calculation, and booking management. All API endpoints follow a RESTful design and use JSON for data exchange.
+
+### Authentication API
+
+The frontend integrates with Firebase Authentication for user management, but also communicates with the backend API for user registration and profile management.
+
+#### Register a New User
+
+- **URL**: `/auth/register`
+- **Method**: `POST`
+- **Description**: Creates a new user account and stores profile information
+- **Implementation**:
+  - The frontend collects user data (full name, email, phone, password)
+  - Sends data to the API which creates a Firebase Authentication account
+  - User profile information is stored in the database for use in booking forms
+
+#### Sign In
+
+- **URL**: `/auth/signin`
+- **Method**: `POST`
+- **Description**: Authenticates a user and returns a token
+- **Implementation**:
+  - User credentials are sent securely over HTTPS
+  - The backend verifies credentials with Firebase Authentication
+  - Returns a token used for subsequent authenticated requests
+
+### Fare Calculation API
+
+One of the core features of Xequtive is its accurate fare calculation system, which provides estimates for all vehicle types.
+
+#### Enhanced Fare Estimation
+
+- **URL**: `/fare-estimate/enhanced`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Description**: Returns fare estimates for all vehicle types
+- **Implementation**:
+  - Frontend collects journey details (locations, date/time, passengers/luggage)
+  - Sends authenticated request to the API
+  - Displays vehicle options with prices and capacity information
+
+#### Fare Calculation Logic
+
+The fare calculation system uses a sophisticated algorithm considering multiple factors:
+
+1. **Base Calculation**: Distance in kilometers × Base Rate per km
+2. **Time Adjustments**: Surcharges for peak hours, nights, weekends (multipliers applied)
+3. **Additional Charges**: Fees for extra stops (£5.00 per stop)
+4. **Minimum Fare**: Each vehicle type has a minimum fare that applies to short journeys
+5. **Final Adjustments**: Rounding to nearest £0.50
+
+#### Vehicle Types and Pricing
+
+The system supports various vehicle types with different capacities and pricing:
+
+1. **Standard Saloon**: 4 passengers, 2 luggage (£2.50/km, min £15.00)
+2. **Estate**: 4 passengers, 4 luggage (£3.00/km, min £18.00)
+3. **Large MPV**: 6 passengers, 4 luggage (£3.50/km, min £22.00)
+4. **Extra Large MPV**: 8 passengers, 8 luggage (£4.00/km, min £25.00)
+5. **Executive Saloon**: 3 passengers, 2 luggage (£4.50/km, min £30.00)
+6. **Executive Large MPV**: 7 passengers, 7 luggage (£5.50/km, min £40.00)
+7. **VIP**: 3 passengers, 2 luggage (£7.00/km, min £50.00)
+8. **VIP MPV**: 6 passengers, 6 luggage (£8.50/km, min £60.00)
+9. **Wheelchair Accessible Vehicle**: 4 passengers + wheelchair, 2 luggage (£3.50/km, min £25.00)
+
+### Booking API
+
+The booking API handles the creation and management of user bookings.
+
+#### Create Booking
+
+- **URL**: `/bookings/create-enhanced`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Description**: Creates a booking with server-side fare verification
+- **Implementation**:
+  - Frontend collects all booking details (customer info, journey details, vehicle selection)
+  - Sends authenticated request to create the booking
+  - Backend verifies the fare calculation to prevent manipulation
+  - Returns booking confirmation with details
+
+#### Booking Process Security
+
+To ensure fare integrity and prevent manipulation, the booking endpoint implements these security measures:
+
+1. **Server-side Fare Calculation**: All fares are recalculated on the server
+2. **Client Data Validation**: All input data is validated against strict schemas
+3. **Authentication Required**: All booking endpoints require valid user authentication
+
+### User Bookings API
+
+The API provides endpoints for users to manage their bookings.
+
+#### Get Active Bookings
+
+- **URL**: `/bookings/user/active`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Description**: Retrieves all active bookings for the authenticated user
+- **Implementation**:
+  - Frontend displays active bookings in the user dashboard
+  - Bookings are sorted by pickup date/time (ascending)
+
+#### Get Booking History
+
+- **URL**: `/bookings/user/history`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Description**: Retrieves past bookings for the authenticated user
+- **Implementation**:
+  - Frontend displays booking history in the user dashboard
+  - Bookings are sorted by pickup date/time (descending)
+
+#### Cancel Booking
+
+- **URL**: `/bookings/user/bookings/:id/cancel`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Description**: Cancels a booking for the authenticated user
+- **Implementation**:
+  - User provides cancellation reason
+  - Frontend sends cancellation request to the API
+  - API updates booking status to "cancelled"
 
 ## Deployment
 

@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
-  ArrowRight,
   CheckCircle2,
   ChevronRight,
   Shield,
@@ -27,6 +26,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { HeroSection } from "@/components/home/HeroSection";
 
 export default function Home() {
   const { isAuthenticated, signOut, user, isLoading } = useAuth();
@@ -181,73 +181,8 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="py-24 md:py-32 lg:py-40 px-4 md:px-6 space-y-10 md:space-y-20 flex flex-col items-center bg-gradient-to-b from-background to-muted/20 relative overflow-hidden">
-          <div className="absolute inset-0 z-0 opacity-5"></div>
-          <div className="text-center space-y-6 max-w-[800px] z-10">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">
-              Premium Executive Transport
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-              Premium Taxi Booking for Executives
-            </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground mx-auto max-w-[600px] leading-relaxed">
-              Experience luxury transportation with transparent pricing and
-              premium vehicle options.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-5 py-4 z-10">
-            {isAuthenticated ? (
-              // Show "Book a Ride" for authenticated users
-              <Link href="/dashboard/new-booking">
-                <Button
-                  size="lg"
-                  className="rounded-md px-8 shadow-sm font-medium h-12"
-                >
-                  Book a Ride <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            ) : (
-              // Show "Get Started" for unauthenticated
-              <Link href="/auth/signup">
-                <Button
-                  size="lg"
-                  className="rounded-md px-8 shadow-sm font-medium h-12"
-                >
-                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-
-            {/* Book Now button redirects based on auth state */}
-            <Link
-              href={isAuthenticated ? "/dashboard/new-booking" : "/auth/signin"}
-            >
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-md px-8 border-2 font-medium h-12"
-              >
-                Book Now
-              </Button>
-            </Link>
-          </div>
-
-          <div className="relative mt-10 md:mt-16 w-full max-w-5xl mx-auto aspect-[16/9] rounded-xl border shadow-md overflow-hidden z-10">
-            <Image
-              src="https://images.unsplash.com/photo-1546614042-7df3c24c9e5d?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              alt="Luxury executive car"
-              fill
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-8">
-              <div className="text-white text-xl font-medium">
-                Premium Transportation Experience
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Hero Section with Quick Booking Form */}
+        <HeroSection isAuthenticated={isAuthenticated} />
 
         {/* Features Section */}
         <section className="py-20 md:py-28 bg-muted/40 relative">
@@ -409,7 +344,8 @@ export default function Home() {
                 size="lg"
                 className="mt-4 rounded-md px-10 py-6 text-lg shadow-sm hover:shadow-md transition-shadow duration-300"
               >
-                Book Your Ride <Map className="ml-2 h-5 w-5" />
+                {isAuthenticated ? "Book a Ride" : "Get Started"}{" "}
+                <Map className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </div>

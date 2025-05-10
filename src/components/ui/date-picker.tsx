@@ -36,7 +36,7 @@ interface DatePickerProps {
   onDateChange: (date: Date | undefined) => void;
   label?: string;
   className?: string;
-  selectedTime?: string; // Add selectedTime prop
+  selectedTime?: string;
 }
 
 export function DatePicker({
@@ -50,54 +50,50 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false);
   const today = startOfToday();
   const now = new Date();
-  const minimumDate = addHours(now, 24); // 24 hours from now
+  const minimumDate = addHours(now, 24);
 
-  // Navigate to previous month
   const previousMonth = () => {
     setCurrentMonth((prev) => subMonths(prev, 1));
   };
 
-  // Navigate to next month
   const nextMonth = () => {
     setCurrentMonth((prev) => addMonths(prev, 1));
   };
 
-  // Disable dates based on 24-hour rule
   const isDateDisabled = (date: Date) => {
-    // If it's a future date (not today), it's always valid
     if (!isToday(date) && date > today) {
       return false;
     }
 
-    // If it's today, we need to check if the selected time is at least 24 hours from now
     if (isToday(date)) {
-      // If no time selected yet, disable today
       if (!selectedTime) {
         return true;
       }
 
-      // Parse the selected time and create a datetime
       try {
         const [hours, minutes] = selectedTime.split(":").map(Number);
         const selectedDateTime = new Date(date);
         selectedDateTime.setHours(hours, minutes, 0, 0);
 
-        // Check if the selected datetime is at least 24 hours from now
         return isBefore(selectedDateTime, minimumDate);
       } catch {
-        // If there's an error parsing the time, disable today to be safe
         return true;
       }
     }
 
-    // Disable dates in the past
     return date < today;
   };
 
-  // Add this function to handle date selection and close popover
   const handleDateSelect = (selectedDate: Date | undefined) => {
-    onDateChange(selectedDate);
-    setOpen(false); // Close the popover after selection
+    if (selectedDate) {
+      // Create a new date and set it to noon to avoid timezone issues
+      const newDate = new Date(selectedDate);
+      newDate.setHours(12, 0, 0, 0);
+      onDateChange(newDate);
+    } else {
+      onDateChange(undefined);
+    }
+    setOpen(false);
   };
 
   return (
@@ -118,7 +114,6 @@ export function DatePicker({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <div className="p-3">
-            {/* Custom Navigation */}
             <div className="flex items-center justify-between w-full pb-2 mb-2 border-b">
               <Button
                 variant="ghost"
@@ -146,23 +141,18 @@ export function DatePicker({
               </Button>
             </div>
 
-            {/* Today Button - Only show if today is valid (with time consideration) */}
             <div className="flex justify-center mb-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  // Only set to today if it's valid with the current time selection
                   const todayValid = !isDateDisabled(today);
                   if (todayValid) {
-                    onDateChange(today);
-                    setCurrentMonth(today);
+                    handleDateSelect(today);
                   } else {
-                    // If today is not valid, set to tomorrow
                     const tomorrow = new Date(today);
                     tomorrow.setDate(tomorrow.getDate() + 1);
-                    onDateChange(tomorrow);
-                    setCurrentMonth(tomorrow);
+                    handleDateSelect(tomorrow);
                   }
                 }}
                 className="h-7 px-3 text-xs font-medium bg-primary/5 text-primary hover:bg-primary/10 rounded-full"
@@ -191,24 +181,24 @@ export function DatePicker({
               classNames={{
                 months: "space-y-1",
                 month: "space-y-2",
-                caption: "hidden", // Hide default caption since we have our own
+                caption: "hidden",
                 table: "w-full border-collapse",
                 head_row: "flex",
                 head_cell:
                   "text-muted-foreground rounded-md w-8 font-medium text-[0.8rem] py-1.5",
                 row: "flex w-full mt-0.5",
                 cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent/40 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-accent/50 hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground rounded-md transition-colors",
+                day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-accent/50 hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground rounded-md transition-colors data-[disabled=true]:text-gray-500  data-[disabled=true]:cursor-not-allowed data-[disabled=true]:hover:text-gray-300",
                 day_selected:
                   "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                 day_outside: "text-muted-foreground/60 opacity-50",
                 day_disabled:
-                  "text-muted-foreground/50 opacity-40 cursor-not-allowed",
+                  "text-gray-300 bg-gray-50 cursor-not-allowed hover:bg-gray-50 hover:text-gray-300 pointer-events-none",
                 day_range_middle:
                   "aria-selected:bg-accent aria-selected:text-accent-foreground",
                 day_hidden: "invisible",
-                nav: "hidden", // Hide default navigation
-                nav_button: "hidden", // Hide default navigation buttons
+                nav: "hidden",
+                nav_button: "hidden",
               }}
             />
           </div>

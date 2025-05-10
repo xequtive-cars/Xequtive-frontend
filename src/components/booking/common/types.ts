@@ -37,14 +37,26 @@ export interface VehicleOption {
 
 // Fare response from API
 export interface FareResponse {
-  estimatedDistance: number;
+  baseFare: number;
+  totalDistance: number;
   estimatedTime: number;
-  fare: {
-    baseFare: number;
-    currency: string;
-    total: number;
-  };
+  currency: string;
   vehicleOptions: VehicleOption[];
+  journey: {
+    distance_km: number;
+    duration_min: number;
+  };
+}
+
+// API Response wrapper
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: string;
+  };
 }
 
 // Booking related types

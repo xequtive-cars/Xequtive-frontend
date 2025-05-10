@@ -68,9 +68,6 @@ const StableMapComponent = memo(
 
     // Update the ref values when props change, but don't trigger re-renders
     useEffect(() => {
-      console.log(
-        "StableMapComponent: Props changed, updating refs and map if available"
-      );
       propsRef.current = {
         pickupLocation,
         dropoffLocation,
@@ -79,9 +76,6 @@ const StableMapComponent = memo(
 
       // If map interface is available, update the locations without re-rendering
       if (mapRef.current) {
-        console.log(
-          "StableMapComponent: Updating map locations from ref update"
-        );
         mapRef.current.updateLocations(pickupLocation, dropoffLocation, stops);
       }
     }, [pickupLocation, dropoffLocation, stops]);
@@ -89,18 +83,15 @@ const StableMapComponent = memo(
     // Register the map reference - this callback should never change
     const handleMapRef = useCallback(
       (mapInstance: MapInterface) => {
-        console.log("StableMapComponent: Map instance received");
         mapRef.current = mapInstance;
 
         // Initial update of locations after getting map ref
         if (mapInstance) {
           const { pickupLocation, dropoffLocation, stops } = propsRef.current;
-          console.log("StableMapComponent: Initializing map with locations");
           mapInstance.updateLocations(pickupLocation, dropoffLocation, stops);
 
           // Pass the map instance to the parent component if passMapRef is provided
           if (passMapRef) {
-            console.log("StableMapComponent: Passing map instance to parent");
             passMapRef(mapInstance);
           }
         }
@@ -110,7 +101,6 @@ const StableMapComponent = memo(
 
     // Create a single map component instance that never rerenders
     const mapComponent = useMemo(() => {
-      console.log("Creating map component - this should only happen once");
       return (
         <MapComponent
           className={className}
@@ -245,8 +235,8 @@ export default function NewBookingPage() {
             });
             setPickupAddress(pickupData.address);
           }
-        } catch (e) {
-          console.error("Error parsing pickup location from URL:", e);
+        } catch {
+          // Error parsing pickup location
         }
       }
 
@@ -266,8 +256,8 @@ export default function NewBookingPage() {
             });
             setDropoffAddress(dropoffData.address);
           }
-        } catch (e) {
-          console.error("Error parsing dropoff location from URL:", e);
+        } catch {
+          // Error parsing dropoff location
         }
       }
 
@@ -282,8 +272,8 @@ export default function NewBookingPage() {
             setAdditionalStops(validStops);
             setStopAddresses(validStops.map((stop) => stop.address));
           }
-        } catch (e) {
-          console.error("Error parsing stops from URL:", e);
+        } catch {
+          // Error parsing stops
         }
       }
 
@@ -294,8 +284,8 @@ export default function NewBookingPage() {
           if (!isNaN(date.getTime())) {
             setSelectedDate(date);
           }
-        } catch (e) {
-          console.error("Error parsing date from URL:", e);
+        } catch {
+          // Error parsing date
         }
       }
 
@@ -326,8 +316,8 @@ export default function NewBookingPage() {
           setHandLuggage(hl);
         }
       }
-    } catch (error) {
-      console.error("Error restoring state from URL:", error);
+    } catch {
+      // Error restoring state from URL
     }
   }, [searchParams]);
 
@@ -453,14 +443,8 @@ export default function NewBookingPage() {
   useEffect(() => {
     // Force immediate route drawing whenever location props change
     if (mapInstanceRef.current && pickupLocation && dropoffLocation) {
-      console.log("IMMEDIATE UPDATE: Location changed - forcing route draw");
-
-      // Use setTimeout with 0ms to ensure this runs after React state updates
       setTimeout(() => {
         if (mapInstanceRef.current) {
-          console.log(
-            "IMMEDIATE UPDATE: Executing map update with current locations"
-          );
           mapInstanceRef.current.updateLocations(
             pickupLocation,
             dropoffLocation,
@@ -474,12 +458,10 @@ export default function NewBookingPage() {
   // Handler to capture the map interface reference
   const handleMapRef = useCallback(
     (mapInstance: MapInterface) => {
-      console.log("Map interface captured");
       mapInstanceRef.current = mapInstance;
 
       // If we already have locations loaded from URL parameters, draw the route
       if (mapInstance && pickupLocation && dropoffLocation) {
-        console.log("Drawing initial route from URL parameters");
         mapInstance.updateLocations(
           pickupLocation,
           dropoffLocation,
@@ -507,7 +489,6 @@ export default function NewBookingPage() {
 
       // Update map immediately
       if (mapInstanceRef.current) {
-        console.log("Updating map after clearing pickup location");
         mapInstanceRef.current.updateLocations(
           null,
           dropoffLocation,
@@ -532,7 +513,6 @@ export default function NewBookingPage() {
 
     // Update map immediately to draw route without waiting for other form fields
     if (mapInstanceRef.current) {
-      console.log("Updating map with new pickup location:", location.address);
       mapInstanceRef.current.updateLocations(
         newPickupLocation,
         dropoffLocation,
@@ -561,7 +541,6 @@ export default function NewBookingPage() {
 
       // Update map immediately
       if (mapInstanceRef.current) {
-        console.log("Updating map after clearing dropoff location");
         mapInstanceRef.current.updateLocations(
           pickupLocation,
           null,
@@ -586,7 +565,6 @@ export default function NewBookingPage() {
 
     // Update map immediately to draw route without waiting for other form fields
     if (mapInstanceRef.current) {
-      console.log("Updating map with new dropoff location:", location.address);
       mapInstanceRef.current.updateLocations(
         pickupLocation,
         newDropoffLocation,
@@ -619,7 +597,6 @@ export default function NewBookingPage() {
 
       // Update map immediately
       if (mapInstanceRef.current) {
-        console.log("Updating map after removing stop");
         mapInstanceRef.current.updateLocations(
           pickupLocation,
           dropoffLocation,
@@ -648,7 +625,6 @@ export default function NewBookingPage() {
 
     // Update map immediately to draw route without waiting for other form fields
     if (mapInstanceRef.current) {
-      console.log("Updating map with new stop location:", location.address);
       mapInstanceRef.current.updateLocations(
         pickupLocation,
         dropoffLocation,
@@ -677,7 +653,6 @@ export default function NewBookingPage() {
 
     // Update map immediately when a stop is removed
     if (mapInstanceRef.current) {
-      console.log("Updating map after removing stop at index:", index);
       mapInstanceRef.current.updateLocations(
         pickupLocation,
         dropoffLocation,
@@ -727,99 +702,84 @@ export default function NewBookingPage() {
 
   // Calculate fare and get vehicle options
   const calculateFare = async () => {
-    // Validate required fields
+    setIsFetching(true);
+    setFetchError(null);
+    setFareData(null);
+    setShowVehicleOptions(false);
+    setSelectedVehicle(null);
+    setShowDetailsForm(false);
+
+    // Check if we have the required location data
     if (!pickupLocation || !dropoffLocation) {
       setFetchError("Please specify pickup and dropoff locations");
+      setIsFetching(false);
       return;
     }
 
     if (!selectedDate || !selectedTime) {
       setFetchError("Please specify pickup date and time");
+      setIsFetching(false);
       return;
     }
 
-    setIsFetching(true);
-    setFetchError(null); // Clear previous errors
-    // Reset the form modified state since we're recalculating
-    setFormModified(false);
-
-    // Log data being sent for debugging
-    console.log(
-      "%c 🚀 CALCULATE FARE BUTTON CLICKED 🚀",
-      "background: #4CAF50; color: white; font-size: 20px; font-weight: bold; padding: 10px;"
-    );
-    console.log("Data being sent to getFareEstimate:");
-    console.log("Pickup:", pickupLocation);
-    console.log("Dropoff:", dropoffLocation);
-    console.log("Stops:", additionalStops);
-    console.log("Date:", selectedDate);
-    console.log("Time:", selectedTime);
-    console.log("Passengers:", passengers);
-    console.log("Checked Luggage:", checkedLuggage);
-    console.log("Hand Luggage:", handLuggage);
-
     try {
-      console.log("🔍 About to call getFareEstimate function...");
-      const fareResponse = await getFareEstimate(
-        pickupLocation,
-        dropoffLocation,
-        additionalStops,
-        selectedDate,
-        selectedTime,
-        passengers,
-        checkedLuggage,
-        handLuggage
-      );
+      // Create a properly formatted request for getFareEstimate
+      const formattedRequest = {
+        locations: {
+          pickup: {
+            address: pickupLocation.address || "",
+            coordinates: {
+              lat: pickupLocation.latitude,
+              lng: pickupLocation.longitude,
+            },
+          },
+          dropoff: {
+            address: dropoffLocation.address || "",
+            coordinates: {
+              lat: dropoffLocation.latitude,
+              lng: dropoffLocation.longitude,
+            },
+          },
+          additionalStops: additionalStops.map((stop) => ({
+            address: stop.address || "",
+            coordinates: {
+              lat: stop.latitude,
+              lng: stop.longitude,
+            },
+          })),
+        },
+        datetime: {
+          date: selectedDate,
+          time: selectedTime,
+        },
+        passengers: {
+          count: passengers || 1,
+          checkedLuggage: checkedLuggage || 0,
+          handLuggage: handLuggage || 0,
+        },
+      };
 
-      console.log("✅ getFareEstimate returned with data:", {
-        responseReceived: !!fareResponse,
-        responseType: typeof fareResponse,
-        isObject: fareResponse && typeof fareResponse === "object",
-        hasVehicleOptions: fareResponse && "vehicleOptions" in fareResponse,
-        vehicleOptionsCount: fareResponse?.vehicleOptions?.length || 0,
-        vehicleOptionsSample: fareResponse?.vehicleOptions?.[0]
-          ? {
-              id: fareResponse.vehicleOptions[0].id,
-              name: fareResponse.vehicleOptions[0].name,
-              price: fareResponse.vehicleOptions[0].price,
-            }
-          : null,
-        fullResponse: fareResponse,
-      });
+      const fareResponse = await getFareEstimate(formattedRequest);
 
       // Make sure we have valid data before proceeding
       if (
         !fareResponse ||
-        !fareResponse.vehicleOptions ||
-        fareResponse.vehicleOptions.length === 0
+        !fareResponse.success ||
+        !fareResponse.data ||
+        !fareResponse.data.fare ||
+        !fareResponse.data.fare.vehicleOptions ||
+        fareResponse.data.fare.vehicleOptions.length === 0
       ) {
-        console.error("Invalid fare response received:", fareResponse);
         setFetchError(
           "Received invalid fare data from server. Please try again."
         );
         return;
       }
 
-      // Log the fare data we're about to use
-      console.log(
-        "Setting fare data in state:",
-        JSON.stringify(fareResponse, null, 2)
-      );
-
-      // The API response structure has the fare data inside data.fare
-      // Transform it to match our expected structure if needed
-      const formattedFareData: FareResponse = {
-        estimatedDistance: fareResponse.estimatedDistance || 0,
-        estimatedTime: fareResponse.estimatedTime || 0,
-        fare: fareResponse.fare || { baseFare: 0, currency: "£", total: 0 },
-        vehicleOptions: fareResponse.vehicleOptions || [],
-      };
-
-      setFareData(formattedFareData);
+      // Set the fare data directly from the API response
+      setFareData(fareResponse.data.fare);
       setShowVehicleOptions(true);
     } catch (error: unknown) {
-      console.error("❌ Error fetching fare estimates:", error);
-
       // Handle axios error with response data
       if (error && typeof error === "object" && "response" in error) {
         const axiosError = error as {
@@ -933,8 +893,6 @@ export default function NewBookingPage() {
     setIsCreatingBooking(true);
 
     try {
-      console.log("Submitting booking...");
-
       // Step 1: Submit booking for verification
       const verificationDetails = await bookingService.createBooking(
         personalDetails,
@@ -951,27 +909,18 @@ export default function NewBookingPage() {
         }
       );
 
-      console.log("Booking verification received:", verificationDetails);
-
-      // Step 2: Confirm booking with verification token
-      const confirmationResponse = await bookingService.confirmBooking(
-        verificationDetails
-      );
-
-      console.log("Booking confirmed:", confirmationResponse);
+      // The booking is created in one step now - no confirmation needed
 
       // Show success message
-      if (confirmationResponse.success && confirmationResponse.data) {
+      if (verificationDetails.bookingId) {
         setBookingSuccess({
           show: true,
-          bookingId: confirmationResponse.data.bookingId,
+          bookingId: verificationDetails.bookingId,
         });
       } else {
-        throw new Error("Booking confirmation failed");
+        throw new Error("Booking creation failed");
       }
     } catch (error) {
-      console.error("Error creating booking:", error);
-
       setBookingError(
         error instanceof Error
           ? error.message
@@ -1153,12 +1102,10 @@ export default function NewBookingPage() {
                                 Distance:
                               </span>
                               <span className="font-medium">
-                                {fareData && fareData.estimatedDistance
-                                  ? `${fareData.estimatedDistance.toFixed(
+                                {fareData && fareData.journey?.distance_km
+                                  ? `${fareData.journey.distance_km.toFixed(
                                       1
                                     )} km`
-                                  : fareData && fareData.distance_km
-                                  ? `${fareData.distance_km.toFixed(1)} km`
                                   : "Calculating..."}
                               </span>
                             </div>
@@ -1167,11 +1114,9 @@ export default function NewBookingPage() {
                                 Duration:
                               </span>
                               <span className="font-medium">
-                                {fareData && fareData.estimatedTime
-                                  ? `${fareData.estimatedTime} min`
-                                  : fareData && fareData.duration_min
-                                  ? `${fareData.duration_min} min`
-                                  : "~30 min"}
+                                {fareData && fareData.journey?.duration_min
+                                  ? `${fareData.journey.duration_min} min`
+                                  : "Calculating..."}
                               </span>
                             </div>
                           </div>

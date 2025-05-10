@@ -1,117 +1,95 @@
 import { Middleware } from "@reduxjs/toolkit";
+import { RootState } from "..";
 
-// Disable eslint rule for this specific file due to typing complexities
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+// Synchronize with localStorage middleware
 const persistenceMiddleware: Middleware = (store) => (next) => (action) => {
-  // Process the action first
   const result = next(action);
 
-  // Check if action is an object with a type property
-  if (typeof action === "object" && action !== null && "type" in action) {
-    const actionType = action.type as string;
-    const state = store.getState() as any;
+  // Only save actions that modify booking data
+  if (
+    typeof action === "object" &&
+    action !== null &&
+    "type" in action &&
+    ((action.type as string).includes("booking/") ||
+      (action.type as string).includes("api/calculateFare") ||
+      action.type === "api/submitBooking/fulfilled")
+  ) {
+    // Get current state after the action is processed
+    const currentState = store.getState() as RootState;
 
-    // Only persist specific actions
-    if (
-      actionType.startsWith("booking/") ||
-      (actionType.startsWith("api/") && actionType.includes("fulfilled"))
-    ) {
-      try {
-        // Don't save on booking submission success - user is done with this booking
-        if (actionType === "api/submitBooking/fulfilled") {
-          localStorage.removeItem("bookingData");
-          localStorage.removeItem("fareData");
-          return result;
-        }
+    // Save booking data to localStorage for persistence
+    try {
+      localStorage.setItem(
+        "booking-data",
+        JSON.stringify(currentState.booking)
+      );
 
-        // Serialize and save booking data
-        const bookingData = state.booking;
-
-        if (bookingData) {
-          // Handle Date objects
-          const serializedBookingData = {
-            ...bookingData,
-            selectedDate: bookingData.selectedDate
-              ? bookingData.selectedDate.toISOString()
-              : null,
-          };
-
-          localStorage.setItem(
-            "bookingData",
-            JSON.stringify(serializedBookingData)
-          );
-        }
-
-        // Save fare data if it exists
-        if (state.api && state.api.fareData) {
-          localStorage.setItem("fareData", JSON.stringify(state.api.fareData));
-        }
-      } catch (err) {
-        console.error("Failed to save state to localStorage:", err);
+      // Also save fare data if available
+      if (currentState.api.fareData) {
+        localStorage.setItem("fare-data", JSON.stringify(currentState.api));
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
+      // Failed to save state to localStorage
     }
   }
 
   return result;
 };
 
-// Load persisted state from localStorage
-export const loadPersistedState = () => {
-  // Check if we're in a browser environment
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
+// Load state from localStorage during application startup
+export const loadPersistedState = ():
+  | Partial<{
+      booking: unknown;
+      api: unknown;
+    }>
+  | undefined => {
   try {
-    // Load booking data
-    const bookingDataString = localStorage.getItem("bookingData");
-    let bookingData = null;
+    // Only run in browser environment
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    // Load booking state
+    const bookingDataString = localStorage.getItem("booking-data");
+    let bookingData = undefined;
 
     if (bookingDataString) {
       try {
         const parsedData = JSON.parse(bookingDataString);
 
-        // Convert ISO date strings back to Date objects
+        // Handle date serialization/deserialization
         if (parsedData.selectedDate) {
           parsedData.selectedDate = new Date(parsedData.selectedDate);
         }
 
         bookingData = parsedData;
-      } catch (error) {
-        console.error("Error parsing booking data from localStorage:", error);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_) {
+        // Error parsing booking data from localStorage
       }
     }
 
     // Load fare data
-    const fareDataString = localStorage.getItem("fareData");
-    let fareData = null;
+    const fareDataString = localStorage.getItem("fare-data");
+    let fareData = undefined;
 
     if (fareDataString) {
       try {
         fareData = JSON.parse(fareDataString);
-      } catch (error) {
-        console.error("Error parsing fare data from localStorage:", error);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_) {
+        // Error parsing fare data from localStorage
       }
     }
 
-    // Return combined state
     return {
-      booking: bookingData ? bookingData : undefined,
-      api: {
-        fareData: fareData || null,
-        isFetching: false,
-        error: null,
-        bookingId: null,
-        success: false,
-      },
-      validation: {
-        errors: {},
-        isValid: true,
-      },
+      booking: bookingData,
+      api: fareData,
     };
-  } catch (error) {
-    console.error("Failed to load state from localStorage:", error);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_) {
+    // Failed to load state from localStorage
     return undefined;
   }
 };

@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getFareEstimate } from "@/utils/services/fare-api";
+import {
+  getFareEstimate,
+  locationToLocationData,
+} from "@/utils/services/fare-api";
 import { bookingService } from "@/utils/services/booking-service";
 import { FareResponse } from "@/components/booking/common/types";
+import { Location } from "@/components/map/MapComponent";
 import { RootState } from "..";
 
 // Disable eslint rules for this specific file due to typing complexities
@@ -62,112 +66,54 @@ export const calculateFare = createAsyncThunk<
   }
 
   try {
-    // Log data being sent for debugging
-    console.log(
-      "%c 🚀 CALCULATE FARE BUTTON CLICKED 🚀",
-      "background: #4CAF50; color: white; font-size: 20px; font-weight: bold; padding: 10px;"
-    );
-    console.log("Data being sent to getFareEstimate:");
-    console.log("Pickup:", pickupLocation);
-    console.log("Dropoff:", dropoffLocation);
-    console.log("Stops:", additionalStops);
-    console.log("Date:", selectedDate);
-    console.log("Time:", selectedTime);
-    console.log("Passengers:", passengers);
-    console.log("Checked Luggage:", checkedLuggage);
-    console.log("Hand Luggage:", handLuggage);
-
-    const fareResponse = await getFareEstimate(
-      pickupLocation,
-      dropoffLocation,
-      additionalStops,
-      selectedDate,
-      selectedTime,
-      passengers,
-      checkedLuggage,
-      handLuggage
-    );
-
-    // Log the fare data received
-    console.log("✅ getFareEstimate returned with data:", {
-      responseReceived: !!fareResponse,
-      responseType: typeof fareResponse,
-      isObject: fareResponse && typeof fareResponse === "object",
-      hasVehicleOptions: fareResponse && "vehicleOptions" in fareResponse,
-      vehicleOptionsCount: fareResponse?.vehicleOptions?.length || 0,
-      vehicleOptionsSample: fareResponse?.vehicleOptions?.[0]
-        ? {
-            id: fareResponse.vehicleOptions[0].id,
-            name: fareResponse.vehicleOptions[0].name,
-            price: fareResponse.vehicleOptions[0].price,
-          }
-        : null,
-      fullResponse: fareResponse,
-    });
-
-    // Make sure we have valid data before proceeding
-    if (
-      !fareResponse ||
-      !fareResponse.vehicleOptions ||
-      fareResponse.vehicleOptions.length === 0
-    ) {
+    // Make sure we have valid locations before proceeding
+    if (!pickupLocation.address || !dropoffLocation.address) {
       return rejectWithValue(
-        "Received invalid fare data from server. Please try again."
+        "Valid pickup and dropoff locations with addresses are required"
       );
     }
 
-    // Return the successful response
-    return fareResponse;
-  } catch (error: unknown) {
-    console.error("❌ Error fetching fare estimates:", error);
+    // Format locations for the new API structure using the helper function
+    const formattedRequest = {
+      locations: {
+        pickup: locationToLocationData(pickupLocation),
+        dropoff: locationToLocationData(dropoffLocation),
+        additionalStops:
+          additionalStops && additionalStops.length > 0
+            ? additionalStops.map((stop: Location) =>
+                locationToLocationData(stop)
+              )
+            : [],
+      },
+      datetime: {
+        date:
+          selectedDate instanceof Date ? selectedDate : new Date(selectedDate), // Ensure we have a Date object
+        time: selectedTime,
+      },
+      passengers: {
+        count: passengers || 1,
+        checkedLuggage: checkedLuggage || 0,
+        handLuggage: handLuggage || 0,
+      },
+    };
 
-    // Handle axios error with response data
-    if (error && typeof error === "object" && "response" in error) {
-      const axiosError = error as {
-        response?: {
-          data?: {
-            error?: {
-              code?: string;
-              message?: string;
-            };
-          };
-        };
-      };
+    // Call the fare estimation API
+    const response = await getFareEstimate(formattedRequest);
 
-      if (axiosError.response?.data?.error) {
-        const apiError = axiosError.response.data.error;
-
-        // Handle specific error codes from the API
-        switch (apiError.code) {
-          case "VALIDATION_ERROR":
-            return rejectWithValue(
-              `Validation Error: ${apiError.message || "Invalid data provided"}`
-            );
-          case "INVALID_LOCATION":
-            return rejectWithValue(
-              `Location Error: ${apiError.message || "Invalid locations"}`
-            );
-          case "FARE_CALCULATION_ERROR":
-            return rejectWithValue(
-              `Calculation Error: ${
-                apiError.message || "Could not calculate fare"
-              }`
-            );
-          default:
-            return rejectWithValue(
-              apiError.message || "Failed to retrieve fare estimates"
-            );
-        }
-      }
-    } else if (error && typeof error === "object" && "message" in error) {
-      // Handle error objects with message property
-      return rejectWithValue((error as { message: string }).message);
+    // Ensure the API responded with a success status
+    if (!response.success) {
+      const errorMessage = response.error?.message || "Failed to estimate fare";
+      return rejectWithValue(errorMessage);
     }
 
-    // Default error message
-    return rejectWithValue(
-      "Failed to retrieve fare estimates. Please try again."
-    );
+    // Return the fare data
+    return response.data.fare;
+  } catch (error) {
+    if (error instanceof Error) {
+      return rejectWithValue(error.message);
+    }
+
+    return rejectWithValue("An error occurred while estimating fare");
   }
 });
 
@@ -223,10 +169,8 @@ export const submitBooking = createAsyncThunk<
     }
 
     try {
-      console.log("Submitting booking...");
-
-      // Step 1: Submit booking for verification
-      const verificationDetails = await bookingService.createBooking(
+      // Call enhanced booking endpoint that handles verification and creation in one step
+      const bookingResponse = await bookingService.createBooking(
         personalDetails,
         {
           pickupLocation,
@@ -241,26 +185,10 @@ export const submitBooking = createAsyncThunk<
         }
       );
 
-      console.log("Booking verification received:", verificationDetails);
-
-      // Step 2: Auto-confirm booking with verification token
-      const confirmationResponse = await bookingService.confirmBooking(
-        verificationDetails
-      );
-
-      console.log("Booking confirmed:", confirmationResponse);
-
-      // Check if confirmation was successful
-      if (confirmationResponse.success && confirmationResponse.data) {
-        return {
-          bookingId: confirmationResponse.data.bookingId,
-        };
-      } else {
-        return rejectWithValue("Booking confirmation failed");
-      }
+      return {
+        bookingId: bookingResponse.bookingId,
+      };
     } catch (error) {
-      console.error("Error creating booking:", error);
-
       if (error instanceof Error) {
         return rejectWithValue(error.message);
       }

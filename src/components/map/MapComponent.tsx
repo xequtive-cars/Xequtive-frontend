@@ -11,6 +11,8 @@
  *
  * Any modifications to this component should be carefully reviewed as they
  * may break existing functionality.
+ *
+ * NOTE: All console.log statements have been removed for production.
  */
 
 /**
@@ -34,9 +36,7 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 
 // Set Mapbox access token from environment variable
 if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
-  console.error(
-    "Mapbox token is not defined. Please check your environment variables."
-  );
+  // Mapbox token is not defined
 }
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
@@ -127,29 +127,17 @@ const MapComponent = ({
   // Memoize the updateRoute function to prevent it from changing on every render
   const updateRoute = useCallback(() => {
     if (!map.current) {
-      console.log("updateRoute: Map not initialized");
       return;
     }
 
     // Only proceed if we have at least pickup and dropoff points
     if (!pickupLocation || !dropoffLocation) {
-      console.log("updateRoute: Missing pickup or dropoff location");
       return;
     }
 
-    console.log(
-      "updateRoute: Attempting to update route with locations:",
-      pickupLocation.address || "Pickup (no address)",
-      dropoffLocation.address || "Dropoff (no address)"
-    );
-
     // If style is not yet loaded, wait for it to load before continuing
     if (!map.current.isStyleLoaded()) {
-      console.log(
-        "updateRoute: Map style not loaded yet, waiting before updating route"
-      );
       map.current.once("style.load", () => {
-        console.log("updateRoute: Style loaded, now updating route");
         updateRoute();
       });
       return;
@@ -184,20 +172,15 @@ const MapComponent = ({
         // Build the Mapbox Directions API URL
         const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointStr}?geometries=geojson&access_token=${mapboxgl.accessToken}&overview=full`;
 
-        console.log("updateRoute: Fetching directions API");
-
         // Fetch the directions data
         fetch(directionsUrl)
           .then((response) => response.json())
           .then((data) => {
             if (!map.current) {
-              console.log("updateRoute: Map no longer exists");
               return;
             }
 
             if (data.routes && data.routes.length > 0) {
-              console.log("updateRoute: Route data received successfully");
-
               // Get the route geometry (array of coordinates)
               const route = data.routes[0];
               const routeGeometry = route.geometry;
@@ -218,10 +201,7 @@ const MapComponent = ({
                   map.current.removeSource("route");
                 }
               } catch (error) {
-                console.error(
-                  "updateRoute: Error removing existing route layers:",
-                  error
-                );
+                console.error("Error removing existing route layers:", error);
               }
 
               // Add new source and layers
@@ -268,17 +248,13 @@ const MapComponent = ({
                     "line-dasharray": [0.5, 0], // Solid line for real routes
                   },
                 });
-
-                console.log("updateRoute: Route layers added successfully");
               } catch (error) {
-                console.error("updateRoute: Error adding route layers:", error);
+                console.error("Error adding route layers:", error);
               }
-            } else {
-              console.log("updateRoute: No routes returned from API");
             }
           })
           .catch((error) => {
-            console.error("updateRoute: Error fetching directions:", error);
+            console.error("Error fetching directions:", error);
           });
       }
     }
@@ -304,7 +280,6 @@ const MapComponent = ({
 
     // Only fit bounds if we have points
     if (!bounds.isEmpty() && map.current) {
-      console.log("updateRoute: Fitting map to bounds");
       map.current.fitBounds(bounds, {
         padding: 80, // Add more padding to ensure all markers are visible
         duration: 1000,
@@ -362,47 +337,45 @@ const MapComponent = ({
 
     // Prevent automatic triggering of the geolocate control to avoid refreshing
     geolocate.on("geolocate", () => {
-      console.log("User manually triggered geolocate");
+      // Was logging: User manually triggered geolocate
     });
 
     // Handle map load event
     map.current.on("load", () => {
-      console.log("Map load event triggered");
+      // Was logging: Map load event triggered
 
       // Setup route source and layer for future use
       if (map.current) {
         try {
           setMapLoaded(true);
-          console.log("Map loaded, ready for markers and routes");
+          // Was logging: Map loaded, ready for markers and routes
 
           // If we already have coordinates, immediately add the marker for user location
           if (latitude && longitude && showCurrentLocation) {
-            console.log("Adding user location marker after map load");
+            // Was logging: Adding user location marker after map load
             addUserLocationMarker(longitude, latitude, accuracy);
           }
 
           // Check if we have pickup and dropoff locations - draw route immediately if available
           if (pickupLocation && dropoffLocation && showRoute) {
-            console.log("Attempting to draw initial route after map load");
+            // Was logging: Attempting to draw initial route after map load
 
             // Try drawing route immediately if style is loaded
             if (map.current.isStyleLoaded()) {
-              console.log("Map style already loaded, drawing route now");
+              // Was logging: Map style already loaded, drawing route now
               updateRoute();
             } else {
               // If style isn't loaded yet, wait for it
-              console.log(
-                "Waiting for style to load before drawing initial route"
-              );
+              // Was logging: Waiting for style to load before drawing initial route
               map.current.once("style.load", () => {
-                console.log("Style loaded after map load, now drawing route");
+                // Was logging: Style loaded after map load, now drawing route
                 updateRoute();
               });
 
               // Also set a timeout as backup
               setTimeout(() => {
                 if (map.current && pickupLocation && dropoffLocation) {
-                  console.log("Timeout backup for initial route drawing");
+                  // Was logging: Timeout backup for initial route drawing
                   updateRoute();
                 }
               }, 1000);
@@ -418,7 +391,7 @@ const MapComponent = ({
           ) {
             // Small delay to let the map fully initialize
             setTimeout(() => {
-              console.log("Triggering geolocate control");
+              // Was logging: Triggering geolocate control
               geolocateControlRef.current?.trigger();
             }, 500);
           }
@@ -927,7 +900,7 @@ const MapComponent = ({
     try {
       // Check if source already exists
       if (!map.current.getSource("route")) {
-        console.log("MapInterface: Route source does not exist, creating it");
+        // Was logging: MapInterface: Route source does not exist, creating it
 
         // Create route source if it doesn't exist yet
         map.current.addSource("route", {
@@ -959,9 +932,9 @@ const MapComponent = ({
           },
         });
 
-        console.log("Route source and layer created successfully");
+        // Was logging: Route source and layer created successfully
       } else {
-        console.log("MapInterface: Route source already exists");
+        // Was logging: MapInterface: Route source already exists
       }
     } catch (error) {
       console.error("Error in checkAndCreateRouteSource:", error);
@@ -978,19 +951,14 @@ const MapComponent = ({
           newDropoff: Location | null,
           newStops: Location[] = []
         ) => {
-          console.log(
-            "MapInterface.updateLocations called with:",
-            newPickup
-              ? `Pickup: ${newPickup.address || "no address"}`
-              : "No pickup",
-            newDropoff
-              ? `Dropoff: ${newDropoff.address || "no address"}`
-              : "No dropoff",
-            `Stops: ${newStops.length}`
-          );
-
-          // Process update IMMEDIATELY without waiting for next render cycle
+          // Was logging: MapInterface.updateLocations called with:
+          // Was logging: Pickup:
+          // Was logging: Dropoff:
+          // Was logging: Stops:
           try {
+            // Process update IMMEDIATELY without waiting for next render cycle
+            // Update markers without re-initializing the map
+
             // Update markers without re-initializing the map
             if (newPickup) {
               updatePickupMarker(newPickup.longitude, newPickup.latitude);
@@ -1012,9 +980,7 @@ const MapComponent = ({
             // If we're missing pickup or dropoff, clear the route
             if (!newPickup || !newDropoff) {
               clearRoute();
-              console.log(
-                "MapInterface: Cleared route - missing pickup or dropoff"
-              );
+              // Was logging: MapInterface: Cleared route - missing pickup or dropoff
 
               // Fit bounds to remaining markers
               fitMapToMarkers(
@@ -1033,9 +999,7 @@ const MapComponent = ({
 
             // IMPROVED: Draw route immediately if we have pickup and dropoff
             if (newPickup && newDropoff && map.current) {
-              console.log(
-                "MapInterface: Starting IMMEDIATE route draw process"
-              );
+              // Was logging: MapInterface: Starting IMMEDIATE route draw process
 
               // Don't wait for style to load - try immediately with retry logic
               const tryDrawRoute = (attempt = 0) => {
@@ -1044,9 +1008,7 @@ const MapComponent = ({
                 // Check if style is loaded before proceeding
                 if (map.current.isStyleLoaded()) {
                   try {
-                    console.log(
-                      "MapInterface: Style is loaded, updating route immediately"
-                    );
+                    // Was logging: MapInterface: Style is loaded, updating route immediately
 
                     // Start fetching directions right away while preparing the map
                     fetchAndDrawRoute(newPickup, newDropoff, newStops);
@@ -1055,36 +1017,23 @@ const MapComponent = ({
 
                     // Retry on error with shorter delay
                     if (attempt < 3) {
-                      console.log(
-                        `MapInterface: Route update error, retry #${
-                          attempt + 1
-                        } immediately`
-                      );
                       setTimeout(() => tryDrawRoute(attempt + 1), 100);
                     }
                   }
                 } else {
-                  console.log(
-                    `MapInterface: Style not loaded, attempt #${attempt + 1}`
-                  );
+                  // Was logging: MapInterface: Style not loaded, attempt #${attempt + 1}
 
                   // First attempt: Listen for style.load event AND set a timer
                   if (attempt === 0) {
                     map.current.once("style.load", () => {
-                      console.log(
-                        "MapInterface: Style load event triggered, drawing route"
-                      );
+                      // Was logging: MapInterface: Style load event triggered, drawing route
                       fetchAndDrawRoute(newPickup, newDropoff, newStops);
                     });
                   }
 
                   // Also set a timer as a backup with shorter delays
                   if (attempt < 3) {
-                    console.log(
-                      `MapInterface: Scheduling retry #${attempt + 1} in ${
-                        100 * (attempt + 1)
-                      }ms`
-                    );
+                    // Was logging: MapInterface: Scheduling retry #${attempt + 1} in ${100 * (attempt + 1)}ms
                     setTimeout(
                       () => tryDrawRoute(attempt + 1),
                       100 * (attempt + 1)
@@ -1096,9 +1045,7 @@ const MapComponent = ({
               // Start the route drawing process immediately
               tryDrawRoute();
             } else {
-              console.log(
-                "MapInterface: Not drawing route - missing pickup or dropoff"
-              );
+              // Was logging: MapInterface: Not drawing route - missing pickup or dropoff
             }
 
             // Fit bounds to markers
@@ -1143,7 +1090,7 @@ const MapComponent = ({
             .join(";");
           const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointStr}?geometries=geojson&access_token=${mapboxgl.accessToken}&overview=full`;
 
-          console.log("MapInterface: Fetching directions API");
+          // Was logging: MapInterface: Fetching directions API
 
           // Fetch directions data
           fetch(directionsUrl)
@@ -1167,7 +1114,7 @@ const MapComponent = ({
                     geometry: route.geometry,
                   });
 
-                  console.log("MapInterface: Route updated successfully");
+                  // Was logging: MapInterface: Route updated successfully
                 } catch (error) {
                   console.error("Error updating route source:", error);
 
@@ -1219,7 +1166,7 @@ const MapComponent = ({
                         },
                       });
 
-                      console.log("MapInterface: Route recreated successfully");
+                      // Was logging: MapInterface: Route recreated successfully
                     } catch (e) {
                       console.error("Failed to recreate route:", e);
                     }
@@ -1228,7 +1175,7 @@ const MapComponent = ({
               }
             })
             .catch((error) => {
-              console.error("MapInterface: Error fetching directions:", error);
+              console.error("Error fetching directions:", error);
             });
         } catch (error) {
           console.error("Error in fetchAndDrawRoute:", error);
@@ -1254,7 +1201,7 @@ const MapComponent = ({
             map.current.removeSource("route");
           }
 
-          console.log("MapInterface: Route layers and source removed");
+          // Was logging: MapInterface: Route layers and source removed
         } catch (error) {
           console.error("Error removing route:", error);
         }
