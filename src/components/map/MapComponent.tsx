@@ -73,6 +73,12 @@ interface MapComponentProps {
   onLocationError?: (error: string | null) => void;
 }
 
+// Service area boundaries for UK
+const UK_SERVICE_BOUNDARIES = {
+  southwest: { lat: 49.9, lng: -8.65 },
+  northeast: { lat: 58.7, lng: 1.76 },
+};
+
 const MapComponent = ({
   className = "",
   mapZoom = 12,
@@ -94,8 +100,10 @@ const MapComponent = ({
   const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const stopMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const popupsRef = useRef<mapboxgl.Popup[]>([]);
   const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
   const mapInitializedRef = useRef(false);
+  const routeRef = useRef<mapboxgl.GeoJSONSource | null>(null);
 
   // State for user coordinates
   const [lastUserCoords, setLastUserCoords] = useState<[number, number] | null>(
@@ -1314,6 +1322,487 @@ const MapComponent = ({
     showCurrentLocation,
     lastUserCoords,
   ]);
+
+  // Cleanup function to remove all markers and popups
+  const cleanupMap = useCallback(() => {
+    // Remove all markers
+    stopMarkersRef.current.forEach((marker) => marker.remove());
+    stopMarkersRef.current = [];
+
+    // Remove user location marker if it exists
+    if (userLocationMarkerRef.current) {
+      userLocationMarkerRef.current.remove();
+      userLocationMarkerRef.current = null;
+    }
+
+    // Remove all popups
+    popupsRef.current.forEach((popup) => popup.remove());
+    popupsRef.current = [];
+  }, []);
+
+  // Initialize map when component mounts
+  useEffect(() => {
+    if (!mapboxgl.supported()) {
+      onLocationError?.("Your browser does not support Mapbox GL");
+      return;
+    }
+
+    if (!map.current && mapContainer.current) {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [-0.118092, 51.509865], // Starting position [lng, lat] - London
+        zoom: 11,
+      });
+
+      const loadedMap = map.current;
+
+      loadedMap.on("load", () => {
+        // Add route source and layer when map loads
+        loadedMap.addSource("route", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: [],
+            },
+          },
+        });
+
+        loadedMap.addLayer({
+          id: "route",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#3b82f6",
+            "line-width": 4,
+            "line-opacity": 0.8,
+          },
+        });
+
+        // Get route source for later updates
+        routeRef.current = loadedMap.getSource(
+          "route"
+        ) as mapboxgl.GeoJSONSource;
+
+        // Add UK service area boundaries
+        loadedMap.addSource("uk-service-area", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [
+                    UK_SERVICE_BOUNDARIES.southwest.lng,
+                    UK_SERVICE_BOUNDARIES.southwest.lat,
+                  ],
+                  [
+                    UK_SERVICE_BOUNDARIES.northeast.lng,
+                    UK_SERVICE_BOUNDARIES.southwest.lat,
+                  ],
+                  [
+                    UK_SERVICE_BOUNDARIES.northeast.lng,
+                    UK_SERVICE_BOUNDARIES.northeast.lat,
+                  ],
+                  [
+                    UK_SERVICE_BOUNDARIES.southwest.lng,
+                    UK_SERVICE_BOUNDARIES.northeast.lat,
+                  ],
+                  [
+                    UK_SERVICE_BOUNDARIES.southwest.lng,
+                    UK_SERVICE_BOUNDARIES.southwest.lat,
+                  ],
+                ],
+              ],
+            },
+          },
+        });
+
+        // Add a border for the service area
+        loadedMap.addLayer({
+          id: "uk-service-area-border",
+          type: "line",
+          source: "uk-service-area",
+          paint: {
+            "line-color": "#3b82f6",
+            "line-width": 2,
+            "line-dasharray": [2, 2],
+          },
+        });
+
+        // Add a fill for the service area with low opacity
+        loadedMap.addLayer({
+          id: "uk-service-area-fill",
+          type: "fill",
+          source: "uk-service-area",
+          paint: {
+            "fill-color": "#3b82f6",
+            "fill-opacity": 0.05,
+          },
+        });
+
+        // Add excluded areas (simplified for example)
+        loadedMap.addSource("excluded-areas", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [
+              // Northern Scottish Highlands (simplified)
+              {
+                type: "Feature",
+                properties: { name: "Northern Scottish Highlands" },
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [
+                    [
+                      [-5.5, 57.5],
+                      [-3.0, 57.5],
+                      [-3.0, 58.7],
+                      [-5.5, 58.7],
+                      [-5.5, 57.5],
+                    ],
+                  ],
+                },
+              },
+              // Outer Hebrides (simplified)
+              {
+                type: "Feature",
+                properties: { name: "Outer Hebrides" },
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [
+                    [
+                      [-7.5, 57.5],
+                      [-6.5, 57.5],
+                      [-6.5, 58.5],
+                      [-7.5, 58.5],
+                      [-7.5, 57.5],
+                    ],
+                  ],
+                },
+              },
+            ],
+          },
+        });
+
+        // Add excluded areas with striped pattern
+        loadedMap.addLayer({
+          id: "excluded-areas",
+          type: "fill",
+          source: "excluded-areas",
+          paint: {
+            "fill-color": "#ef4444",
+            "fill-opacity": 0.2,
+            "fill-pattern": "hatch",
+          },
+        });
+
+        // Add labels for excluded areas
+        loadedMap.addLayer({
+          id: "excluded-area-labels",
+          type: "symbol",
+          source: "excluded-areas",
+          layout: {
+            "text-field": ["get", "name"],
+            "text-size": 12,
+            "text-font": ["Open Sans Regular"],
+            "text-max-width": 10,
+            "text-allow-overlap": false,
+          },
+          paint: {
+            "text-color": "#ef4444",
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 1,
+          },
+        });
+
+        // Add service area info popup
+        const serviceAreaInfoPopup = new mapboxgl.Popup({
+          closeButton: true,
+          closeOnClick: false,
+          className: "service-area-info-popup",
+        })
+          .setLngLat([-4.5, 54.5])
+          .setHTML(
+            `
+            <div class="p-2">
+              <h3 class="font-bold text-sm mb-1">Service Area Information</h3>
+              <p class="text-xs mb-1">We service the UK mainland, Isle of Wight, and Anglesey.</p>
+              <p class="text-xs mb-1">Maximum journey: 300 miles</p>
+              <p class="text-xs text-red-500">Red areas are not serviced</p>
+            </div>
+          `
+          )
+          .addTo(loadedMap);
+
+        popupsRef.current.push(serviceAreaInfoPopup);
+
+        setTimeout(() => {
+          serviceAreaInfoPopup.remove();
+        }, 8000);
+      });
+
+      // Handle user location if enabled
+      if (showCurrentLocation) {
+        // Add the control to the map
+        const geolocateControl = new mapboxgl.GeolocateControl({
+          positionOptions: {
+            enableHighAccuracy: true,
+          },
+          trackUserLocation: true,
+          showUserHeading: true,
+        });
+
+        // Add geolocate control to top-right corner of map
+        loadedMap.addControl(geolocateControl, "top-right");
+
+        loadedMap.on("load", () => {
+          // Try to get location immediately if requested
+          geolocateControl.trigger();
+        });
+
+        // Add geolocate event handling
+        loadedMap.on("geolocate", (e: mapboxgl.MapboxEvent) => {
+          // Create a properly typed interface for the geolocate event data
+          interface GeolocateData {
+            detail: {
+              data: {
+                coords: {
+                  latitude: number;
+                  longitude: number;
+                };
+              };
+            };
+          }
+
+          const geolocateEvent = e as unknown as GeolocateData;
+          const position = geolocateEvent.detail.data;
+          const userLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          onUserLocationChange?.(userLocation);
+        });
+
+        // Add error handling for geolocation
+        loadedMap.on("error", (e: mapboxgl.ErrorEvent) => {
+          // Create a properly typed interface for the location error
+          interface LocationErrorEvent {
+            error: {
+              code: string;
+            };
+          }
+
+          const locationError = e as unknown as LocationErrorEvent;
+          if (
+            locationError.error &&
+            locationError.error.code === "LOCATION_PERMISSION_DENIED"
+          ) {
+            onLocationError?.("PERMISSION_DENIED");
+          }
+        });
+      }
+
+      // Pass map reference to parent component if requested
+      if (passMapRef) {
+        passMapRef({
+          updateLocations: (
+            newPickup: Location | null,
+            newDropoff: Location | null,
+            newStops?: Location[]
+          ) => {
+            // This function will be called by the parent to update markers and route
+            updateMapElements(
+              newPickup,
+              newDropoff,
+              newStops || [],
+              showRoute,
+              loadedMap
+            );
+          },
+        });
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (map.current) {
+        cleanupMap();
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, [
+    showCurrentLocation,
+    cleanupMap,
+    passMapRef,
+    onUserLocationChange,
+    onLocationError,
+    showRoute,
+  ]);
+
+  // Update map elements when locations change
+  const updateMapElements = useCallback(
+    (
+      pickup: Location | null,
+      dropoff: Location | null,
+      stopsList: Location[],
+      showRouteLines: boolean,
+      mapInstance: mapboxgl.Map
+    ) => {
+      // First, clean up existing markers
+      cleanupMap();
+
+      // Define all points to fit bounds
+      const points: [number, number][] = [];
+
+      // Add pickup marker if available
+      if (pickup && pickup.latitude && pickup.longitude) {
+        const pickupMarker = new mapboxgl.Marker({ color: "#22c55e" })
+          .setLngLat([pickup.longitude, pickup.latitude])
+          .addTo(mapInstance);
+
+        // Add popup with address
+        if (pickup.address) {
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+            `<strong>Pickup:</strong> ${pickup.address}`
+          );
+          pickupMarker.setPopup(popup);
+          popupsRef.current.push(popup);
+        }
+
+        points.push([pickup.longitude, pickup.latitude]);
+      }
+
+      // Add markers for each stop
+      stopsList.forEach((stop, index) => {
+        if (stop && stop.latitude && stop.longitude) {
+          const stopMarker = new mapboxgl.Marker({ color: "#f59e0b" })
+            .setLngLat([stop.longitude, stop.latitude])
+            .addTo(mapInstance);
+
+          // Create stop element with number
+          const el = document.createElement("div");
+          el.className = "stop-marker";
+          el.innerHTML = `<div class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">${
+            index + 1
+          }</div>`;
+
+          // Add popup with address
+          if (stop.address) {
+            const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+              `<strong>Stop ${index + 1}:</strong> ${stop.address}`
+            );
+            stopMarker.setPopup(popup);
+            popupsRef.current.push(popup);
+          }
+
+          points.push([stop.longitude, stop.latitude]);
+        }
+      });
+
+      // Add dropoff marker if available
+      if (dropoff && dropoff.latitude && dropoff.longitude) {
+        const dropoffMarker = new mapboxgl.Marker({ color: "#ef4444" })
+          .setLngLat([dropoff.longitude, dropoff.latitude])
+          .addTo(mapInstance);
+
+        // Add popup with address
+        if (dropoff.address) {
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+            `<strong>Dropoff:</strong> ${dropoff.address}`
+          );
+          dropoffMarker.setPopup(popup);
+          popupsRef.current.push(popup);
+        }
+
+        points.push([dropoff.longitude, dropoff.latitude]);
+      }
+
+      // Fit map to bounds of all points if there are points
+      if (points.length > 0) {
+        const bounds = points.reduce(
+          (bound, coord) => bound.extend(coord as [number, number]),
+          new mapboxgl.LngLatBounds(points[0], points[0])
+        );
+
+        mapInstance.fitBounds(bounds, {
+          padding: { top: 50, bottom: 50, left: 50, right: 50 },
+          maxZoom: 15,
+        });
+      }
+
+      // Get route if there are at least pickup and dropoff
+      if (
+        showRouteLines &&
+        routeRef.current &&
+        pickup &&
+        pickup.latitude &&
+        pickup.longitude &&
+        dropoff &&
+        dropoff.latitude &&
+        dropoff.longitude
+      ) {
+        // Build waypoints including pickup, all stops, and dropoff
+        const waypoints = [
+          [pickup.longitude, pickup.latitude],
+          ...stopsList.map((stop) => [stop.longitude, stop.latitude]),
+          [dropoff.longitude, dropoff.latitude],
+        ];
+
+        // Fetch route from Mapbox Directions API with all waypoints
+        const getDirections = async () => {
+          try {
+            const waypointsString = waypoints
+              .map((wp) => wp.join(","))
+              .join(";");
+
+            const response = await fetch(
+              `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointsString}?geometries=geojson&access_token=${mapboxgl.accessToken}`
+            );
+
+            const data = await response.json();
+
+            if (data.routes && data.routes.length > 0 && routeRef.current) {
+              // Update route on map
+              routeRef.current.setData({
+                type: "Feature",
+                properties: {},
+                geometry: data.routes[0].geometry,
+              });
+            }
+          } catch {
+            // Silent fail for route fetching
+          }
+        };
+
+        getDirections();
+      }
+    },
+    [cleanupMap]
+  );
+
+  // Update map when locations change
+  useEffect(() => {
+    if (map.current) {
+      updateMapElements(
+        pickupLocation,
+        dropoffLocation,
+        stops,
+        showRoute,
+        map.current
+      );
+    }
+  }, [pickupLocation, dropoffLocation, stops, showRoute, updateMapElements]);
 
   return (
     <div className={`map-container relative ${className}`}>

@@ -236,8 +236,6 @@ export const authService = {
     confirmPassword: string,
     phoneNumber: string = ""
   ): Promise<AuthResponse> {
-    console.log("Registering user via API...");
-
     try {
       // Validate password match
       if (password !== confirmPassword) {
@@ -256,12 +254,6 @@ export const authService = {
         confirmPassword,
       };
 
-      // Log the request body for debugging
-      console.log(
-        "Registration request body:",
-        JSON.stringify(requestBody, null, 2)
-      );
-
       // URL includes /api prefix
       const fullUrl = `${apiUrl}/api/auth/register`;
 
@@ -271,9 +263,6 @@ export const authService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-
-      // Log response status for debugging
-      console.log(`Registration API response status: ${response.status}`);
 
       // Handle 404 specifically
       if (response.status === 404) {
@@ -288,9 +277,6 @@ export const authService = {
       }
 
       const data = await response.json();
-
-      // Log response data for debugging
-      console.log("Registration API response data:", data);
 
       if (!response.ok || !data.success) {
         return {

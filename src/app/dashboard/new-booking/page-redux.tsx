@@ -22,6 +22,7 @@ import {
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { VehicleSelectionContainer } from "@/components/booking";
 import { PersonalDetailsForm } from "@/components/booking/personal-details-form";
+import { VehicleOption } from "@/components/booking/common/types";
 
 // Import actions from Redux slices
 import {
@@ -38,6 +39,7 @@ import {
   handlePickupLocationSelect as handlePickupLocationSelectAction,
   handleDropoffLocationSelect as handleDropoffLocationSelectAction,
   handleStopLocationSelect as handleStopLocationSelectAction,
+  setSelectedVehicle as setSelectedVehicleAction,
 } from "@/store/slices/bookingSlice";
 
 import {
@@ -226,6 +228,11 @@ export default function NewBookingPageRedux() {
         agree,
       })
     );
+  };
+
+  // Handle vehicle selection
+  const handleVehicleSelect = (vehicle: VehicleOption) => {
+    dispatch(setSelectedVehicleAction(vehicle));
   };
 
   return (
@@ -443,7 +450,7 @@ export default function NewBookingPageRedux() {
                   handLuggage={handLuggage}
                   onBack={() => dispatch(handleBackToForm())}
                   onSelectVehicle={(vehicle) => {
-                    console.log("Selected vehicle:", vehicle);
+                    handleVehicleSelect(vehicle);
                     continueToBooking();
                   }}
                   selectedVehicle={selectedVehicle}

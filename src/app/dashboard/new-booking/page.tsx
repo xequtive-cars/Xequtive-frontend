@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { authService } from "@/lib/auth";
+import { toast } from "@/components/ui/use-toast";
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -34,6 +35,42 @@ interface MapInterface {
     newDropoff: Location | null,
     newStops?: Location[]
   ) => void;
+}
+
+// Define the FareRequest interface for type safety
+interface FareRequest {
+  locations: {
+    pickup: {
+      address: string;
+      coordinates: {
+        lat: number;
+        lng: number;
+      };
+    };
+    dropoff: {
+      address: string;
+      coordinates: {
+        lat: number;
+        lng: number;
+      };
+    };
+    additionalStops: Array<{
+      address: string;
+      coordinates: {
+        lat: number;
+        lng: number;
+      };
+    }>;
+  };
+  datetime: {
+    date: string;
+    time: string;
+  };
+  passengers: {
+    count: number;
+    checkedLuggage: number;
+    handLuggage: number;
+  };
 }
 
 // Create a truly stable memoized version of MapComponent to prevent refreshes
@@ -154,6 +191,11 @@ declare module "@/components/booking" {
   }
 }
 
+// Helper function to format date to YYYY-MM-DD
+const formatDate = (date: Date): string => {
+  return date.toISOString().split("T")[0];
+};
+
 export default function NewBookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -208,10 +250,8 @@ export default function NewBookingPage() {
     notifications: [],
   });
 
-  // Form modified state
+  // UI states
   const [formModified, setFormModified] = useState<boolean>(false);
-
-  // Location permission state
   const [locationPermission, setLocationPermission] = useState<{
     denied: boolean;
     error: string | null;
@@ -717,31 +757,25 @@ export default function NewBookingPage() {
     return parts.join(" with ");
   };
 
-  // Calculate fare and get vehicle options
-  const calculateFare = async () => {
-    setIsFetching(true);
-    setFetchError(null);
-    setFareData(null);
-    setShowVehicleOptions(false);
-    setSelectedVehicle(null);
-    setShowDetailsForm(false);
-
-    // Check if we have the required location data
-    if (!pickupLocation || !dropoffLocation) {
-      setFetchError("Please specify pickup and dropoff locations");
-      setIsFetching(false);
-      return;
-    }
-
-    if (!selectedDate || !selectedTime) {
-      setFetchError("Please specify pickup date and time");
-      setIsFetching(false);
-      return;
-    }
-
+  // Handle calculate fare button
+  const handleCalculateFare = async () => {
     try {
-      // Create a properly formatted request for getFareEstimate
-      const formattedRequest = {
+      setIsFetching(true);
+      setFetchError(null);
+
+      // Check if we have the required location data
+      if (!pickupLocation || !dropoffLocation) {
+        toast({
+          title: "Missing location information",
+          description: "Please provide both pickup and dropoff locations.",
+          variant: "destructive",
+        });
+        setIsFetching(false);
+        return;
+      }
+
+      // Create a properly formatted request
+      const formattedRequest: FareRequest = {
         locations: {
           pickup: {
             address: pickupLocation.address || "",
@@ -766,8 +800,8 @@ export default function NewBookingPage() {
           })),
         },
         datetime: {
-          date: selectedDate,
-          time: selectedTime,
+          date: selectedDate ? formatDate(selectedDate) : "",
+          time: selectedTime || "",
         },
         passengers: {
           count: passengers || 1,
@@ -776,109 +810,81 @@ export default function NewBookingPage() {
         },
       };
 
+      // Get fare estimate
       const fareResponse = await getFareEstimate(formattedRequest);
 
-      // Check for authentication errors
       if (
         !fareResponse.success &&
         fareResponse.error &&
         (fareResponse.error.code === "AUTH_ERROR" ||
           fareResponse.error.code === "AUTH_REFRESH_REQUIRED")
       ) {
-        console.error("Authentication error:", fareResponse.error.message);
         // Clear any existing session data
         authService.clearAuthData();
-        // Show error message
-        setFetchError(`${fareResponse.error.message} Redirecting to login...`);
-        // Redirect to login page after a short delay
+        // Set error toast
+        toast({
+          title: "Session expired",
+          description: "Please sign in again to continue.",
+          variant: "destructive",
+        });
+
+        setIsFetching(false);
+
+        // Redirect after a short delay
         setTimeout(() => {
           router.push("/auth/signin");
-        }, 2000);
+        }, 1000);
         return;
       }
 
-      // First check if we have a valid fare response at all
+      // Handle service area restriction errors
       if (
-        !fareResponse ||
-        !fareResponse.success ||
-        !fareResponse.data ||
-        !fareResponse.data.fare
+        !fareResponse.success &&
+        fareResponse.error?.code === "LOCATION_NOT_SERVICEABLE"
       ) {
+        // Service area restriction error
         setFetchError(
-          "Received invalid fare data from server. Please try again."
+          fareResponse.error?.details ||
+            "This journey is outside our service area. We currently only service locations within the UK mainland, Isle of Wight, and Anglesey, with journeys up to 300 miles."
         );
+
+        toast({
+          title: "Location not serviceable",
+          description:
+            fareResponse.error?.details ||
+            "This journey is outside our service area.",
+          variant: "destructive",
+        });
+
+        setIsFetching(false);
         return;
       }
 
-      // Set the journey data regardless of vehicle options
-      setFareData(fareResponse.data.fare);
+      if (!fareResponse.success) {
+        setFetchError(
+          fareResponse.error?.message ||
+            "Unable to calculate fare. Please try again."
+        );
+        setIsFetching(false);
+        return;
+      }
 
-      // Check specifically for vehicle options only when attempting to show the vehicle selection screen
       if (
-        !fareResponse.data.fare.vehicleOptions ||
-        fareResponse.data.fare.vehicleOptions.length === 0
+        fareResponse &&
+        fareResponse.success &&
+        fareResponse.data &&
+        fareResponse.data.fare
       ) {
-        setFetchError(
-          "No vehicle options available for this journey. Please try again or contact customer support."
-        );
-        return;
-      }
-
-      // If we have vehicle options, show the vehicle selection screen
-      setShowVehicleOptions(true);
-    } catch (error: unknown) {
-      // Handle axios error with response data
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as {
-          response?: {
-            data?: {
-              error?: {
-                code?: string;
-                message?: string;
-              };
-            };
-          };
-        };
-
-        if (axiosError.response?.data?.error) {
-          const apiError = axiosError.response.data.error;
-
-          // Handle specific error codes from the API
-          switch (apiError.code) {
-            case "VALIDATION_ERROR":
-              setFetchError(
-                `Validation Error: ${
-                  apiError.message || "Invalid data provided"
-                }`
-              );
-              break;
-            case "INVALID_LOCATION":
-              setFetchError(
-                `Location Error: ${apiError.message || "Invalid locations"}`
-              );
-              break;
-            case "FARE_CALCULATION_ERROR":
-              setFetchError(
-                `Calculation Error: ${
-                  apiError.message || "Could not calculate fare"
-                }`
-              );
-              break;
-            default:
-              setFetchError(
-                apiError.message || "Failed to retrieve fare estimates"
-              );
-              break;
-          }
-        }
-      } else if (error && typeof error === "object" && "message" in error) {
-        // Handle error objects with message property
-        setFetchError((error as { message: string }).message);
+        setFareData(fareResponse.data.fare);
+        setShowVehicleOptions(true);
       } else {
-        // Default error message
-        setFetchError("Failed to retrieve fare estimates. Please try again.");
+        setFetchError("Unable to calculate fare. Please try again.");
       }
-    } finally {
+
+      setIsFetching(false);
+    } catch (error) {
+      console.error("Fare calculation error:", error);
+      setFetchError("An unexpected error occurred. Please try again.");
       setIsFetching(false);
     }
   };
@@ -1001,163 +1007,6 @@ export default function NewBookingPage() {
     // Use router to navigate to dashboard page
     router.push("/dashboard");
   };
-
-  // Auto-calculate fare when all required information is available
-  useEffect(() => {
-    // Check if we have the required data and we're not already fetching
-    if (
-      pickupLocation &&
-      dropoffLocation &&
-      selectedDate &&
-      selectedTime &&
-      !isFetching &&
-      !fareData &&
-      !showVehicleOptions &&
-      !showDetailsForm
-    ) {
-      // Create a lightweight version of the fare calculation that only updates journey info
-      const autoCalculateJourneyInfo = async () => {
-        try {
-          console.log("Auto-calculating journey info...");
-          console.log("Using pickup:", pickupLocation?.address);
-          console.log("Using dropoff:", dropoffLocation?.address);
-          console.log("Auth token exists:", !!authService.getToken());
-
-          // Create request without triggering loading state
-          const formattedRequest = {
-            locations: {
-              pickup: {
-                address: pickupLocation.address || "",
-                coordinates: {
-                  lat: pickupLocation.latitude,
-                  lng: pickupLocation.longitude,
-                },
-              },
-              dropoff: {
-                address: dropoffLocation.address || "",
-                coordinates: {
-                  lat: dropoffLocation.latitude,
-                  lng: dropoffLocation.longitude,
-                },
-              },
-              additionalStops: additionalStops.map((stop) => ({
-                address: stop.address || "",
-                coordinates: {
-                  lat: stop.latitude,
-                  lng: stop.longitude,
-                },
-              })),
-            },
-            datetime: {
-              date: selectedDate,
-              time: selectedTime,
-            },
-            passengers: {
-              count: passengers || 1,
-              checkedLuggage: checkedLuggage || 0,
-              handLuggage: handLuggage || 0,
-            },
-          };
-
-          console.log(
-            "Auto-calculation request:",
-            JSON.stringify(formattedRequest, null, 2)
-          );
-
-          // Silently get fare estimate for journey info only
-          try {
-            const fareResponse = await getFareEstimate(formattedRequest);
-
-            // Check for authentication errors
-            if (
-              !fareResponse.success &&
-              fareResponse.error &&
-              (fareResponse.error.code === "AUTH_ERROR" ||
-                fareResponse.error.code === "AUTH_REFRESH_REQUIRED")
-            ) {
-              console.error(
-                "Authentication error during auto-calculation:",
-                fareResponse.error.message
-              );
-              // Don't show error - this is a silent calculation
-              // But do redirect after a short delay
-              setTimeout(() => {
-                router.push("/auth/signin");
-              }, 500);
-              return;
-            }
-
-            console.log(
-              "Auto-calculation response received:",
-              fareResponse.success ? "SUCCESS" : "FAILED"
-            );
-
-            if (fareResponse?.success) {
-              console.log(
-                "Journey data:",
-                fareResponse.data?.fare?.journey?.distance_miles,
-                fareResponse.data?.fare?.journey?.duration_minutes
-              );
-            } else {
-              console.log("Error in response:", fareResponse.error);
-            }
-
-            // Update only the journey info without showing vehicle options
-            if (
-              fareResponse &&
-              fareResponse.success &&
-              fareResponse.data &&
-              fareResponse.data.fare
-            ) {
-              // Just update fare data for journey info display
-              console.log(
-                "Auto-calculation successful, updating journey info:",
-                fareResponse.data.fare.journey?.distance_miles,
-                fareResponse.data.fare.journey?.duration_minutes
-              );
-
-              // Create a copy of the fare data for display
-              const displayFareData = { ...fareResponse.data.fare };
-
-              // Make sure journey data exists, add it if not
-              if (!displayFareData.journey) {
-                displayFareData.journey = {
-                  distance_miles: 0,
-                  duration_minutes: 0,
-                };
-              }
-
-              // Update the journey info
-              setFareData(displayFareData);
-            } else {
-              console.warn("Auto-calculation response missing fare data");
-            }
-          } catch (apiError) {
-            console.error("API call error:", apiError);
-          }
-        } catch (error) {
-          // Silently fail - we don't want to show errors for auto-calculation
-          console.error("Auto-calculation failed:", error);
-        }
-      };
-
-      // Run the auto-calculation
-      autoCalculateJourneyInfo();
-    }
-  }, [
-    pickupLocation,
-    dropoffLocation,
-    selectedDate,
-    selectedTime,
-    isFetching,
-    fareData,
-    showVehicleOptions,
-    showDetailsForm,
-    additionalStops,
-    passengers,
-    checkedLuggage,
-    handLuggage,
-  ]);
 
   // Handle location permission errors from the MapComponent
   const handleLocationError = useCallback((error: string | null) => {
@@ -1299,7 +1148,7 @@ export default function NewBookingPage() {
                   updateStopAddress={updateStopAddress}
                   addStop={addStop}
                   removeStop={removeStop}
-                  calculateFare={calculateFare}
+                  calculateFare={handleCalculateFare}
                   getPassengerLuggageSummary={getPassengerLuggageSummary}
                   disabled={locationPermission.denied}
                 />
@@ -1507,7 +1356,7 @@ export default function NewBookingPage() {
                           className="w-full text-sm h-10"
                           onClick={() => {
                             if (formModified) {
-                              calculateFare();
+                              handleCalculateFare();
                             } else {
                               handleBackToForm();
                             }

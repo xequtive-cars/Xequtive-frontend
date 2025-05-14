@@ -284,9 +284,6 @@ class BookingService {
         },
       };
 
-      console.log("Sending booking request to:", endpoint);
-      console.log("Request data:", JSON.stringify(requestData, null, 2));
-
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -297,7 +294,6 @@ class BookingService {
       });
 
       const data = await response.json();
-      console.log("Booking response:", JSON.stringify(data, null, 2));
 
       if (!response.ok) {
         console.error(
@@ -325,7 +321,6 @@ class BookingService {
 
       // Add notification handling for any important messages returned with the booking
       if (data.data.notifications && data.data.notifications.length > 0) {
-        console.log("Booking notifications:", data.data.notifications);
         // You could store these notifications in state or display them to the user
       }
 
@@ -435,10 +430,8 @@ class BookingService {
       // Ensure we're using the correct URL format with /api prefix
       // If NEXT_PUBLIC_API_URL doesn't include /api, we need to add it
       const url = `${apiUrl}/api/bookings/user/bookings/${bookingId}/cancel`;
-      console.log("Sending cancellation request to:", url);
 
       const body = JSON.stringify({ cancellationReason: reason });
-      console.log("Cancellation request body:", body);
 
       const response = await fetch(url, {
         method: "POST",
@@ -449,20 +442,7 @@ class BookingService {
         body,
       });
 
-      // Check for non-JSON responses (like HTML error pages)
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error(
-          "Received non-JSON response:",
-          await response.text().catch(() => "Could not read response text")
-        );
-        throw new Error(
-          `Server returned invalid response (${response.status}: ${response.statusText}). Please try again later.`
-        );
-      }
-
       const data = await response.json();
-      console.log("Cancellation response:", JSON.stringify(data, null, 2));
 
       if (!response.ok) {
         console.error(

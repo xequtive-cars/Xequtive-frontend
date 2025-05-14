@@ -159,8 +159,6 @@ export const getFareEstimate = async (
 
     // Check if token should be refreshed before calling API
     if (authService.shouldRefreshToken()) {
-      console.log("Auth token needs refreshing, please sign in again");
-
       // Instead of immediately clearing, just warn the user with an appropriate message
       return {
         success: false,

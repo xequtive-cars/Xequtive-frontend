@@ -55,12 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Initialize Firebase auth listener
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      // Just log the auth state change - we'll primarily use our custom auth system
-      console.log(
-        "Firebase auth state changed:",
-        firebaseUser ? "logged in" : "logged out"
-      );
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      // We're now using our custom auth system, so we don't need to do anything here
     });
 
     const initializeAuth = async () => {
@@ -97,8 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkInterval = setInterval(() => {
       // Check if token should be refreshed first
       if (authService.shouldRefreshToken()) {
-        console.log("Token needs refreshing - attempting to refresh");
-
         // Try to refresh the token silently if possible
         // Note: This requires the user to be logged in with Firebase
         const refreshUser = async () => {
@@ -108,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // Get a fresh token using our helper function
               const token = await getIdToken(currentUser);
               if (token) {
-                console.log("Successfully refreshed token");
                 // Update token in storage
                 const userData = authService.getUserData();
                 if (userData) {
@@ -122,7 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // If we couldn't refresh, check if the token is still valid
             const isStillValid = authService.isAuthenticated();
             if (!isStillValid && isAuthenticated) {
-              console.log("Token is no longer valid - clearing auth data");
               authService.clearAuthData();
               setUser(null);
               setIsAuthenticated(false);
@@ -132,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Check if still valid anyway
             const isStillValid = authService.isAuthenticated();
             if (!isStillValid && isAuthenticated) {
-              console.log("Token is no longer valid - clearing auth data");
               authService.clearAuthData();
               setUser(null);
               setIsAuthenticated(false);
@@ -145,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Just check if the token is still valid
         const isStillValid = authService.isAuthenticated();
         if (!isStillValid && isAuthenticated) {
-          console.log("Token is no longer valid - clearing auth data");
           authService.clearAuthData();
           setUser(null);
           setIsAuthenticated(false);

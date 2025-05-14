@@ -74,54 +74,33 @@ export default function SigninPage() {
 
   // Handle form submission
   const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
     setError(null);
-
-    console.log("Signing in with:", data.email);
+    setIsLoading(true);
 
     try {
-      // Use our authentication service to sign in
-      console.log("Calling authService.signIn");
-      const response = await authService.signIn(data.email, data.password);
-      console.log(
-        "Auth response received:",
-        JSON.stringify({
-          success: response.success,
-          hasData: !!response.data,
-          hasError: !!response.error,
-          errorMessage: response.error?.message,
-        })
-      );
-
-      if (!response.success) {
-        // Format error message for display
-        let errorMessage = response.error?.message || "Login failed";
-
-        // Check for common errors
-        if (
-          errorMessage.includes("user-not-found") ||
-          errorMessage.includes("invalid-credential") ||
-          errorMessage.includes("wrong-password")
-        ) {
-          errorMessage = "Invalid email or password. Please try again.";
-        }
-
-        setError(errorMessage);
+      if (!data.email || !data.password) {
+        setError("Email and password are required");
         setIsLoading(false);
         return;
       }
 
-      // Login successful - redirect to new booking page
-      console.log("Login successful, redirecting to new booking page");
+      const result = await authService.signIn(data.email, data.password);
 
-      // Force a hard redirect for the best compatibility with both
-      // middleware and client-side auth context
-      window.location.href = "/dashboard/new-booking";
+      if (!result.success) {
+        setError(result.error?.message || "Failed to sign in");
+        setIsLoading(false);
+        return;
+      }
 
-      // No need to reset loading state as we're doing a full page navigation
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(err instanceof Error ? err.message : "Login failed");
+      // Check for return URL in the query string
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnUrl = searchParams.get("returnUrl");
+
+      // Navigate to the requested return URL or to the new booking page
+      router.push(returnUrl ? returnUrl : "/dashboard/new-booking");
+    } catch (error) {
+      console.error("Login error:", error);
+      setError(error instanceof Error ? error.message : "Failed to sign in");
       setIsLoading(false);
     }
   };
