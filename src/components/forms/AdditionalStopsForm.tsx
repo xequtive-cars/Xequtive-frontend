@@ -1,8 +1,65 @@
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
-import MapComponent from "@/components/map/MapComponent";
+import MapComponent, {
+  Location as MapLocation,
+} from "@/components/map/MapComponent";
 import { Location } from "@/types/form";
 import { v4 as uuidv4 } from "uuid";
+import { useState, useCallback } from "react";
+
+// Create a LocationSearch component to handle location selection
+interface LocationSearchProps {
+  onLocationSelect: (location: Location) => void;
+  initialAddress?: string;
+}
+
+function LocationSearch({
+  onLocationSelect,
+  initialAddress,
+}: LocationSearchProps) {
+  const [searchLocation, setSearchLocation] = useState<MapLocation | null>(
+    initialAddress
+      ? {
+          latitude: 0,
+          longitude: 0,
+          address: initialAddress,
+        }
+      : null
+  );
+
+  const handleUserLocationChange = useCallback(
+    (location: { latitude: number; longitude: number } | null) => {
+      if (location) {
+        setSearchLocation((prev) => ({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: prev?.address || "",
+        }));
+
+        const newLocation: Location = {
+          address: searchLocation?.address || "",
+          coordinates: {
+            lat: location.latitude,
+            lng: location.longitude,
+          },
+        };
+        onLocationSelect(newLocation);
+      }
+    },
+    [onLocationSelect, searchLocation]
+  );
+
+  return (
+    <div className="h-full">
+      <MapComponent
+        pickupLocation={searchLocation}
+        showCurrentLocation={true}
+        onUserLocationChange={handleUserLocationChange}
+        className="h-full"
+      />
+    </div>
+  );
+}
 
 interface AdditionalStopsFormProps {
   additionalStops: Location[];
@@ -62,7 +119,7 @@ export default function AdditionalStopsForm({
                 </div>
               </div>
               <div className="h-[250px] border rounded-md overflow-hidden">
-                <MapComponent
+                <LocationSearch
                   onLocationSelect={(location) => {
                     const newStops = [...additionalStops];
                     newStops[index] = {
@@ -71,8 +128,6 @@ export default function AdditionalStopsForm({
                     };
                     setAdditionalStops(newStops);
                   }}
-                  placeholder={`Enter stop ${index + 1} address`}
-                  key={stop.id || `stop-${index}-${uuidv4()}`}
                   initialAddress={stop.address}
                 />
               </div>

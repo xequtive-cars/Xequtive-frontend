@@ -33,9 +33,9 @@ export default function CustomDatePicker({
         <FormControl>
           <DatePicker
             date={selectedDate ? new Date(selectedDate) : undefined}
-            setDate={handleDateChange}
+            onDateChange={handleDateChange}
             placeholder={placeholder}
-            disabledDates={(date) => date < new Date()}
+            disabled={false}
           />
         </FormControl>
       </div>

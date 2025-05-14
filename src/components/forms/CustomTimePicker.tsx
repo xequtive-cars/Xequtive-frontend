@@ -29,7 +29,7 @@ export default function CustomTimePicker({
         <FormControl>
           <TimePicker
             time={time}
-            setTime={handleTimeChange}
+            onTimeChange={handleTimeChange}
             placeholder={placeholder}
           />
         </FormControl>

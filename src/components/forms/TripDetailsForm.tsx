@@ -1,19 +1,73 @@
 import { useFormContext } from "react-hook-form";
 import { FormField } from "@/components/ui/form";
-import MapComponent from "@/components/map/MapComponent";
+import MapComponent, {
+  Location as MapLocation,
+} from "@/components/map/MapComponent";
 import CustomDatePicker from "./CustomDatePicker";
 import CustomTimePicker from "./CustomTimePicker";
 import { FormData, Location } from "@/types/form";
+import React, { useState, useCallback } from "react";
+
+// Create a LocationSearch component to handle location selection
+interface LocationSearchProps {
+  onLocationSelect: (location: Location) => void;
+  initialAddress?: string;
+}
+
+function LocationSearch({
+  onLocationSelect,
+  initialAddress,
+}: LocationSearchProps) {
+  const [searchLocation, setSearchLocation] = useState<MapLocation | null>(
+    initialAddress
+      ? {
+          latitude: 0,
+          longitude: 0,
+          address: initialAddress,
+        }
+      : null
+  );
+
+  const handleUserLocationChange = useCallback(
+    (location: { latitude: number; longitude: number } | null) => {
+      if (location) {
+        setSearchLocation((prev) => ({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: prev?.address || "",
+        }));
+
+        const newLocation: Location = {
+          address: searchLocation?.address || "",
+          coordinates: {
+            lat: location.latitude,
+            lng: location.longitude,
+          },
+        };
+        onLocationSelect(newLocation);
+      }
+    },
+    [onLocationSelect, searchLocation]
+  );
+
+  return (
+    <div className="h-full">
+      <MapComponent
+        pickupLocation={searchLocation}
+        showCurrentLocation={true}
+        onUserLocationChange={handleUserLocationChange}
+        className="h-full"
+      />
+      {/* We're not using the placeholder directly since MapComponent doesn't have a placeholder prop */}
+    </div>
+  );
+}
 
 interface TripDetailsFormProps {
   pickupLocation: Location | null;
   setPickupLocation: (location: Location) => void;
   dropoffLocation: Location | null;
   setDropoffLocation: (location: Location) => void;
-  mapKeys: {
-    pickup: string;
-    dropoff: string;
-  };
 }
 
 export default function TripDetailsForm({
@@ -21,7 +75,6 @@ export default function TripDetailsForm({
   setPickupLocation,
   dropoffLocation,
   setDropoffLocation,
-  mapKeys,
 }: TripDetailsFormProps) {
   const form = useFormContext<FormData>();
 
@@ -73,10 +126,9 @@ export default function TripDetailsForm({
               </div>
             </div>
             <div className="h-[300px] border rounded-md overflow-hidden mb-2">
-              <MapComponent
-                onLocationSelect={(location) => setPickupLocation(location)}
-                placeholder="Enter pickup address"
-                key={mapKeys.pickup}
+              <LocationSearch
+                onLocationSelect={setPickupLocation}
+                initialAddress={pickupLocation?.address}
               />
             </div>
           </div>
@@ -97,10 +149,9 @@ export default function TripDetailsForm({
               </div>
             </div>
             <div className="h-[300px] border rounded-md overflow-hidden mb-2">
-              <MapComponent
-                onLocationSelect={(location) => setDropoffLocation(location)}
-                placeholder="Enter dropoff address"
-                key={mapKeys.dropoff}
+              <LocationSearch
+                onLocationSelect={setDropoffLocation}
+                initialAddress={dropoffLocation?.address}
               />
             </div>
           </div>
