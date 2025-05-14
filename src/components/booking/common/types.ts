@@ -28,6 +28,14 @@ export interface VehicleOption {
   price: {
     amount: number;
     currency: string;
+    breakdown?: {
+      baseFare: number;
+      distanceCharge: number;
+      additionalStopFee: number;
+      timeMultiplier: number;
+      specialLocationFees: number;
+      waitingCharge: number;
+    };
   };
   eta?: number;
   imageUrl?: string;
@@ -44,8 +52,9 @@ export interface FareResponse {
   vehicleOptions: VehicleOption[];
   journey: {
     distance_miles: number;
-    duration_min: number;
+    duration_minutes: number;
   };
+  notifications?: string[]; // Notifications about automatically added fees
 }
 
 // API Response wrapper

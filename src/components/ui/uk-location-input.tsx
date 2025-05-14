@@ -189,6 +189,7 @@ interface UkLocationInputProps {
   type?: "pickup" | "dropoff" | "stop";
   initialSuggestionsTitle?: string;
   userLocation?: { latitude: number; longitude: number } | null;
+  disabled?: boolean;
 }
 
 export function UkLocationInput({
@@ -201,6 +202,7 @@ export function UkLocationInput({
   type = "pickup",
   initialSuggestionsTitle = "Suggested locations",
   userLocation = null,
+  disabled = false,
 }: UkLocationInputProps) {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [initialSuggestions, setInitialSuggestions] = useState<
@@ -253,7 +255,7 @@ export function UkLocationInput({
 
   const calculateDistance = useCallback(
     (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-      const R = 3959; // Radius of the earth in miles
+      const R = 6371; // Radius of the earth in kilometers
       const dLat = deg2rad(lat2 - lat1);
       const dLon = deg2rad(lon2 - lon1);
       const a =
@@ -263,7 +265,7 @@ export function UkLocationInput({
           Math.sin(dLon / 2) *
           Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = R * c; // Distance in miles
+      const d = R * c; // Distance in kilometers
       return d;
     },
     [deg2rad]
@@ -407,15 +409,12 @@ export function UkLocationInput({
 
   // Fetch location suggestions from Mapbox
   useEffect(() => {
-    // Skip API call if a selection was just made or if this value was previously selected
-    if (
-      selectionMadeRef.current ||
-      (value && selectedLocationsCache.has(value))
-    ) {
-      return;
-    }
-
     const fetchSuggestions = async () => {
+      // If a selection was just made, don't fetch suggestions
+      if (selectionMadeRef.current) {
+        return;
+      }
+
       if (value.trim().length < 2) {
         setSuggestions([]);
         setHoveredIndex(null);
@@ -499,11 +498,7 @@ export function UkLocationInput({
           }
 
           setSuggestions(mapboxResults);
-
-          // Only show suggestions if the input is focused and wasn't previously selected
-          if (!selectedLocationsCache.has(value)) {
-            setShowSuggestions(true);
-          }
+          setShowSuggestions(true);
         }
       } catch (error) {
         console.error("Error fetching location suggestions:", error);
@@ -514,11 +509,14 @@ export function UkLocationInput({
 
     // Debounce requests
     const timeoutId = setTimeout(() => {
-      fetchSuggestions();
+      // Skip fetching if a selection was just made
+      if (!selectionMadeRef.current) {
+        fetchSuggestions();
+      }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [value, showInitialSuggestions, userLocation, calculateDistance]);
+  }, [value, calculateDistance]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -577,21 +575,24 @@ export function UkLocationInput({
       return;
     }
 
+    // First hide all dropdowns immediately
+    setShowSuggestions(false);
+    setShowInitial(false);
+    setHoveredIndex(null);
+    setSuggestions([]);
+
+    // Then update the selected location
     onLocationSelect({
       address: suggestion.place_name,
       longitude: suggestion.center[0],
       latitude: suggestion.center[1],
     });
     onChange(suggestion.place_name);
-    setShowSuggestions(false);
-    setShowInitial(false);
-    setHoveredIndex(null);
-    setSuggestions([]);
 
-    // Reset selection flag after a short delay
+    // Reset selection flag after a longer delay
     setTimeout(() => {
       selectionMadeRef.current = false;
-    }, 500);
+    }, 1000);
   };
 
   // Clear input handler
@@ -627,18 +628,32 @@ export function UkLocationInput({
         placeholder={placeholder}
         value={value}
         onChange={(e) => {
-          // Skip if a selection was just made
-          if (!selectionMadeRef.current) {
-            // If the user is typing something new, remove the cached status
-            if (value && e.target.value !== value) {
-              selectedLocationsCache.delete(value);
-            }
-            onChange(e.target.value);
+          // If the dropdown is visible and user is typing, don't trigger new searches while typing
+          if ((showSuggestions || showInitial) && e.target.value !== value) {
+            // Temporarily mark as selection made to prevent immediate search
+            selectionMadeRef.current = true;
+
+            // Reset after a short delay
+            setTimeout(() => {
+              selectionMadeRef.current = false;
+            }, 500);
+          }
+
+          onChange(e.target.value);
+          // If the user is typing something new, remove the cached status
+          if (value && e.target.value !== value) {
+            selectedLocationsCache.delete(value);
           }
         }}
         onFocus={() => {
-          // Intentionally leave both showInitial and showSuggestions false on focus
-          // They will only be shown when the user clicks the input or types
+          // If empty and we have initial suggestions, show them
+          if (
+            value.trim() === "" &&
+            showInitialSuggestions &&
+            initialSuggestions.length > 0
+          ) {
+            setShowInitial(true);
+          }
         }}
         onClick={() => {
           // Show initial suggestions when the field is empty and clicked
@@ -652,16 +667,13 @@ export function UkLocationInput({
           }
 
           // Show typed suggestions when clicked if content exists
-          if (
-            !selectionMadeRef.current &&
-            value.trim().length >= 2 &&
-            suggestions.length > 0 &&
-            !selectedLocationsCache.has(value)
-          ) {
+          if (value.trim().length >= 2 && suggestions.length > 0) {
             setShowSuggestions(true);
           }
         }}
-        className="focus-visible:ring-2 focus-visible:ring-offset-0"
+        className={cn("w-full pr-14", className)}
+        autoComplete="off"
+        disabled={disabled}
       />
 
       {/* Loading indicator */}
@@ -766,11 +778,11 @@ export function UkLocationInput({
                       </span>
                       {suggestion.distance && (
                         <span className="text-xs text-muted-foreground">
-                          {suggestion.distance < 1
-                            ? `${Math.round(
-                                suggestion.distance * 1609.34
-                              )}m away`
-                            : `${suggestion.distance.toFixed(1)} miles away`}
+                          {suggestion.distance < 0.621371
+                            ? `${Math.round(suggestion.distance * 1000)}m away`
+                            : `${(suggestion.distance * 0.621371).toFixed(
+                                1
+                              )} miles away`}
                         </span>
                       )}
                     </div>

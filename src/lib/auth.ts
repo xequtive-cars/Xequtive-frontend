@@ -131,9 +131,31 @@ export const authService = {
       const expiryTime = localStorage.getItem("token-expiry");
       if (expiryTime) {
         const expiryTimestamp = parseInt(expiryTime);
-        if (isNaN(expiryTimestamp) || expiryTimestamp < Date.now()) {
+        // Consider token invalid if it's expired or within 5 minutes of expiration
+        const fiveMinutesInMs = 5 * 60 * 1000;
+        if (
+          isNaN(expiryTimestamp) ||
+          expiryTimestamp < Date.now() + fiveMinutesInMs
+        ) {
+          console.warn("Auth token expired or about to expire");
           authService.clearAuthData();
           return false;
+        }
+      } else {
+        // If we don't have an expiry time but we have a token, check if it was created
+        // more than 4 days ago (assuming 5-day tokens)
+        const lastAuth = localStorage.getItem("last-auth");
+        if (lastAuth) {
+          const lastAuthTime = parseInt(lastAuth);
+          const fourDaysInMs = 4 * 24 * 60 * 60 * 1000;
+          if (
+            !isNaN(lastAuthTime) &&
+            Date.now() - lastAuthTime > fourDaysInMs
+          ) {
+            console.warn("Auth token potentially expired (older than 4 days)");
+            authService.clearAuthData();
+            return false;
+          }
         }
       }
 
@@ -143,6 +165,67 @@ export const authService = {
       authService.clearAuthData();
       return false;
     }
+  },
+
+  // Check if auth token needs refreshing (within 30 minutes of expiration)
+  shouldRefreshToken: (): boolean => {
+    if (!isBrowser) return false;
+
+    try {
+      // First check if we're authenticated at all
+      if (!authService.isAuthenticated()) {
+        return false;
+      }
+
+      // Get token expiry
+      const expiryTime = localStorage.getItem("token-expiry");
+      if (expiryTime) {
+        const expiryTimestamp = parseInt(expiryTime);
+        // If token expires within 30 minutes, we should refresh it
+        const thirtyMinutesInMs = 30 * 60 * 1000;
+        if (
+          !isNaN(expiryTimestamp) &&
+          expiryTimestamp < Date.now() + thirtyMinutesInMs
+        ) {
+          return true;
+        }
+      } else {
+        // If we don't have an expiry time but we have a token, check if it was created
+        // more than 4 days ago (assuming 5-day tokens)
+        const lastAuth = localStorage.getItem("last-auth");
+        if (lastAuth) {
+          const lastAuthTime = parseInt(lastAuth);
+          const threeDaysInMs = 3.5 * 24 * 60 * 60 * 1000;
+          if (
+            !isNaN(lastAuthTime) &&
+            Date.now() - lastAuthTime > threeDaysInMs
+          ) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  // Handle 401 Unauthorized response from API
+  handleAuthError: (status: number): boolean => {
+    // If we receive a 401, clear auth data and return true to indicate auth error
+    if (status === 401) {
+      console.warn("Received 401 Unauthorized response from API");
+      authService.clearAuthData();
+
+      // Notify auth change
+      if (isBrowser) {
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      return true;
+    }
+    return false;
   },
 
   // Register a new user

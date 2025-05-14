@@ -7,9 +7,8 @@ import {
   useState,
   useEffect,
 } from "react";
-import { auth, getIdToken, db } from "./config";
+import { auth, getIdToken } from "./config";
 import { authService } from "@/lib/auth";
-import { doc, getDoc } from "firebase/firestore";
 
 // Check if we're in the browser environment
 const isBrowser = typeof window !== "undefined";
@@ -55,6 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Initialize Firebase auth listener
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      // Just log the auth state change - we'll primarily use our custom auth system
+      console.log(
+        "Firebase auth state changed:",
+        firebaseUser ? "logged in" : "logged out"
+      );
+    });
+
     const initializeAuth = async () => {
       // Get stored credentials from localStorage
       const storedUser = authService.getUserData();
@@ -87,66 +95,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Use a simple interval to periodically check token expiration
     const checkInterval = setInterval(() => {
-      const isStillValid = authService.isAuthenticated();
-      if (!isStillValid && isAuthenticated) {
-        // Token expired, update state
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    }, 60000); // Check every minute
+      // Check if token should be refreshed first
+      if (authService.shouldRefreshToken()) {
+        console.log("Token needs refreshing - attempting to refresh");
 
-    // Set up firebase auth listener as a backup
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      // If Firebase signs out but we have a token, let the token remain valid
-      // If we don't have a valid token but Firebase says we're logged in, still
-      // consider the user as logged out since the API needs the token
-      if (firebaseUser && !isAuthenticated) {
-        try {
-          // Get the user profile from Firestore to get the phone number
-          const userRef = doc(db, "users", firebaseUser.uid);
-          const userDoc = await getDoc(userRef);
+        // Try to refresh the token silently if possible
+        // Note: This requires the user to be logged in with Firebase
+        const refreshUser = async () => {
+          try {
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+              // Get a fresh token using our helper function
+              const token = await getIdToken(currentUser);
+              if (token) {
+                console.log("Successfully refreshed token");
+                // Update token in storage
+                const userData = authService.getUserData();
+                if (userData) {
+                  authService.saveAuthData(token, userData, "432000"); // 5 days in seconds
+                  // No need to update state as storage event will trigger
+                }
+                return;
+              }
+            }
 
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-
-            // Set user with data from Firestore, including phone number
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              role: userData.role || "user",
-              phoneNumber: userData.phoneNumber || "",
-            });
-            setIsAuthenticated(true);
-          } else {
-            // If no user document exists, still set basic user data
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              role: "user",
-            });
-            setIsAuthenticated(true);
+            // If we couldn't refresh, check if the token is still valid
+            const isStillValid = authService.isAuthenticated();
+            if (!isStillValid && isAuthenticated) {
+              console.log("Token is no longer valid - clearing auth data");
+              authService.clearAuthData();
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } catch (error) {
+            console.error("Error refreshing token:", error);
+            // Check if still valid anyway
+            const isStillValid = authService.isAuthenticated();
+            if (!isStillValid && isAuthenticated) {
+              console.log("Token is no longer valid - clearing auth data");
+              authService.clearAuthData();
+              setUser(null);
+              setIsAuthenticated(false);
+            }
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      } else if (!firebaseUser && isAuthenticated) {
+        };
+
+        refreshUser();
+      } else {
+        // Just check if the token is still valid
         const isStillValid = authService.isAuthenticated();
-        if (!isStillValid) {
+        if (!isStillValid && isAuthenticated) {
+          console.log("Token is no longer valid - clearing auth data");
           authService.clearAuthData();
           setUser(null);
           setIsAuthenticated(false);
         }
       }
-    });
+    }, 60000); // Check every minute
 
+    // Cleanup function
     return () => {
+      window.removeEventListener("storage", handleStorageChange);
       clearInterval(checkInterval);
       unsubscribe();
-      window.removeEventListener("storage", handleStorageChange);
     };
-  }, []); // Run only once on mount
+  }, [isAuthenticated]);
 
   // Get Firebase ID token for API requests
   const getFirebaseToken = async (): Promise<string | null> => {

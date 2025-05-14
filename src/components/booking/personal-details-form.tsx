@@ -39,7 +39,7 @@ export interface VerifiedFare {
     currency: string;
   };
   distance_miles: number;
-  duration_min: number;
+  duration_minutes: number;
 }
 
 export interface BookingVerification {

@@ -62,16 +62,26 @@ export interface EnhancedBookingResponse {
       pickupTime: string;
       pickupLocation: string;
       dropoffLocation: string;
+      additionalStops?: string[];
       vehicle: string;
       price: {
         amount: number;
         currency: string;
+        breakdown?: {
+          baseFare: number;
+          distanceCharge: number;
+          additionalStopFee: number;
+          timeMultiplier: number;
+          specialLocationFees: number;
+          waitingCharge: number;
+        };
       };
       journey: {
         distance_miles: number;
-        duration_min: number;
+        duration_minutes: number;
       };
       status: string;
+      notifications?: string[];
     };
   };
   error?: {
@@ -117,7 +127,7 @@ export interface ActiveBookingsResponse {
     status: string;
     journey: {
       distance_miles: number;
-      duration_min: number;
+      duration_minutes: number;
     };
     createdAt: string;
   }[];
@@ -145,7 +155,7 @@ export interface BookingHistoryResponse {
     status: string;
     journey: {
       distance_miles: number;
-      duration_min: number;
+      duration_minutes: number;
     };
     createdAt: string;
   }[];
@@ -187,7 +197,7 @@ export interface GetUserBookingsResponse {
     status: string;
     journey: {
       distance_miles: number;
-      duration_min: number;
+      duration_minutes: number;
     };
     createdAt: string;
   }[];
@@ -295,6 +305,14 @@ class BookingService {
           data.error?.message || response.statusText
         );
 
+        // Handle rate limiting errors specifically
+        if (response.status === 429) {
+          console.error("Rate limit exceeded:", data.error?.message);
+          throw new Error(
+            data.error?.message || "Too many requests, please try again later"
+          );
+        }
+
         // Extract detailed error information from the API response
         if (data.error) {
           const message = data.error.message || "Failed to create booking";
@@ -303,6 +321,12 @@ class BookingService {
         }
 
         throw new Error(response.statusText || "Failed to create booking");
+      }
+
+      // Add notification handling for any important messages returned with the booking
+      if (data.data.notifications && data.data.notifications.length > 0) {
+        console.log("Booking notifications:", data.data.notifications);
+        // You could store these notifications in state or display them to the user
       }
 
       return data.data;
@@ -348,6 +372,14 @@ class BookingService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle rate limiting errors specifically
+        if (response.status === 429) {
+          console.error("Rate limit exceeded:", data.error?.message);
+          throw new Error(
+            data.error?.message || "Too many requests, please try again later"
+          );
+        }
+
         throw new Error(data.error?.message || "Failed to fetch user bookings");
       }
 
@@ -400,9 +432,8 @@ class BookingService {
         throw new Error("Authentication required");
       }
 
-      // The documentation has an inconsistency between examples and specification
-      // Our working endpoint is: `/api/bookings/user/bookings/${bookingId}/cancel`
-      // which aligns with the text description in the documentation
+      // Ensure we're using the correct URL format with /api prefix
+      // If NEXT_PUBLIC_API_URL doesn't include /api, we need to add it
       const url = `${apiUrl}/api/bookings/user/bookings/${bookingId}/cancel`;
       console.log("Sending cancellation request to:", url);
 
@@ -418,6 +449,18 @@ class BookingService {
         body,
       });
 
+      // Check for non-JSON responses (like HTML error pages)
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error(
+          "Received non-JSON response:",
+          await response.text().catch(() => "Could not read response text")
+        );
+        throw new Error(
+          `Server returned invalid response (${response.status}: ${response.statusText}). Please try again later.`
+        );
+      }
+
       const data = await response.json();
       console.log("Cancellation response:", JSON.stringify(data, null, 2));
 
@@ -426,6 +469,21 @@ class BookingService {
           "Booking cancellation failed:",
           data.error?.message || response.statusText
         );
+
+        // Handle rate limiting errors specifically
+        if (response.status === 429) {
+          console.error("Rate limit exceeded:", data.error?.message);
+          throw new Error(
+            data.error?.message || "Too many requests, please try again later"
+          );
+        }
+
+        // Handle 404 errors specifically
+        if (response.status === 404) {
+          throw new Error(
+            "The booking could not be found or the cancellation endpoint is unavailable. Please refresh and try again."
+          );
+        }
 
         // Extract detailed error information from the API response
         if (data.error) {
@@ -440,6 +498,17 @@ class BookingService {
       return data;
     } catch (error) {
       console.error("Error cancelling booking:", error);
+
+      // Check for specific SyntaxError that indicates HTML response
+      if (
+        error instanceof SyntaxError &&
+        error.message.includes("Unexpected token")
+      ) {
+        throw new Error(
+          "Received invalid response from server. The cancellation service may be unavailable."
+        );
+      }
+
       throw new Error(
         error instanceof Error
           ? error.message

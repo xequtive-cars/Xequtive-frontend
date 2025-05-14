@@ -31,12 +31,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface DatePickerProps {
-  date: Date | undefined;
+export interface DatePickerProps {
+  date?: Date;
   onDateChange: (date: Date | undefined) => void;
   label?: string;
   className?: string;
   selectedTime?: string;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 export function DatePicker({
@@ -44,7 +46,9 @@ export function DatePicker({
   onDateChange,
   label,
   className,
-  selectedTime = "",
+  selectedTime,
+  placeholder = "Select date",
+  disabled = false,
 }: DatePickerProps) {
   const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date());
   const [open, setOpen] = React.useState(false);
@@ -102,13 +106,15 @@ export function DatePicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            type="button"
+            variant={"outline"}
             className={cn(
-              "w-full justify-between h-11 hover:bg-accent/10 bg-background/50 border-input/50 font-normal",
+              "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
+            disabled={disabled}
           >
-            <span>{date ? format(date, "PPP") : "Select date"}</span>
+            <span>{date ? format(date, "PPP") : placeholder}</span>
             <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>

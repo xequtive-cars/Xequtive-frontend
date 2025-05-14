@@ -157,6 +157,22 @@ export const getFareEstimate = async (
       };
     }
 
+    // Check if token should be refreshed before calling API
+    if (authService.shouldRefreshToken()) {
+      console.log("Auth token needs refreshing, please sign in again");
+
+      // Instead of immediately clearing, just warn the user with an appropriate message
+      return {
+        success: false,
+        data: { fare: createEmptyFareResponse() },
+        error: {
+          code: "AUTH_REFRESH_REQUIRED",
+          message:
+            "Your session has expired. Please sign in again to continue.",
+        },
+      };
+    }
+
     // Call API endpoint - Make sure we're using the exact format from the docs
     const endpoint = `${apiUrl}/api/fare-estimate/enhanced`;
 
@@ -171,6 +187,22 @@ export const getFareEstimate = async (
       cache: "no-store",
       credentials: "include",
     });
+
+    // Check for 401 Unauthorized responses
+    if (response.status === 401) {
+      // Use auth service to handle the 401 error (clears auth data)
+      authService.handleAuthError(response.status);
+
+      return {
+        success: false,
+        data: { fare: createEmptyFareResponse() },
+        error: {
+          code: "AUTH_ERROR",
+          message:
+            "Your session has expired. Please sign in again to continue.",
+        },
+      };
+    }
 
     const data = await response.json();
 
@@ -215,7 +247,8 @@ function createEmptyFareResponse(): FareResponse {
     vehicleOptions: [],
     journey: {
       distance_miles: 0,
-      duration_min: 0,
+      duration_minutes: 0,
     },
+    notifications: [],
   };
 }

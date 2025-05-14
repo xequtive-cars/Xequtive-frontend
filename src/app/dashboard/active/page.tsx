@@ -79,13 +79,15 @@ export default function ActiveBookingsPage() {
       );
 
       if (response.success) {
+        // Immediately remove the booking from the list without refresh
+        setActiveBookings((current) =>
+          current.filter((booking) => booking.id !== bookingToCancel)
+        );
+
         toast({
           title: "Success",
           description: "Your booking has been cancelled",
         });
-
-        // Refresh bookings after cancellation
-        fetchActiveBookings();
       }
     } catch (error) {
       console.error("Failed to cancel booking:", error);

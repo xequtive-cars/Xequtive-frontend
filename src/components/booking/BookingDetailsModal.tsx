@@ -19,6 +19,11 @@ import {
 import { format, parseISO } from "date-fns";
 import { Badge } from "../ui/badge";
 
+interface Journey {
+  distance_miles: number;
+  duration_minutes: number;
+}
+
 // Status color mapping based on documentation
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -71,10 +76,7 @@ interface BookingDetailsModalProps {
     vehicleType: string;
     price: number;
     status: string;
-    journey: {
-      distance_miles: number;
-      duration_min: number;
-    };
+    journey: Journey;
     createdAt: string;
   } | null;
 }
@@ -173,7 +175,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                       typeof journey.distance_miles === "number"
                         ? `${journey.distance_miles.toFixed(1)} miles`
                         : "-- miles"}{" "}
-                      • Approximately {journey.duration_min} minutes
+                      • Approximately {journey.duration_minutes} minutes
                     </span>
                   </div>
                 </div>

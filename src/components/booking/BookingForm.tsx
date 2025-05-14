@@ -50,6 +50,7 @@ interface BookingFormProps {
   removeStop: (index: number) => void;
   calculateFare: () => void;
   getPassengerLuggageSummary: () => string;
+  disabled?: boolean;
 }
 
 export function BookingForm({
@@ -83,6 +84,7 @@ export function BookingForm({
   removeStop,
   calculateFare,
   getPassengerLuggageSummary,
+  disabled,
 }: BookingFormProps) {
   const [currentStep, setCurrentStep] = useState<"location" | "luggage">(
     "location"
@@ -108,6 +110,7 @@ export function BookingForm({
                 initialSuggestionsTitle="Suggested pickup locations"
                 userLocation={userLocation}
                 className="text-sm h-10 rounded-md bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                disabled={disabled || isFetching}
               />
             </div>
 
@@ -126,6 +129,7 @@ export function BookingForm({
                 initialSuggestionsTitle="Suggested dropoff locations"
                 userLocation={userLocation}
                 className="text-sm h-10 rounded-md bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                disabled={disabled || isFetching}
               />
             </div>
 
@@ -150,6 +154,7 @@ export function BookingForm({
                         initialSuggestionsTitle="Suggested stop locations"
                         userLocation={userLocation}
                         className="text-sm h-10 rounded-md pr-10 bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                        disabled={disabled || isFetching}
                       />
                       <Button
                         size="sm"
@@ -171,6 +176,7 @@ export function BookingForm({
               size="sm"
               className="w-full h-9 text-sm font-medium rounded-md"
               onClick={addStop}
+              disabled={disabled || isFetching}
             >
               <Plus size={16} className="mr-2" />
               Add Stop
@@ -190,6 +196,7 @@ export function BookingForm({
                 label=""
                 selectedTime={selectedTime}
                 className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
+                disabled={disabled || isFetching}
               />
             </div>
 
@@ -207,6 +214,7 @@ export function BookingForm({
                 label=""
                 placeholder="Select time"
                 className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
+                disabled={disabled || isFetching}
               />
             </div>
 
@@ -219,6 +227,7 @@ export function BookingForm({
                 variant="outline"
                 className="w-full h-10 text-sm font-medium rounded-md flex justify-between items-center bg-muted/40"
                 onClick={() => setCurrentStep("luggage")}
+                disabled={disabled || isFetching}
               >
                 <span>{getPassengerLuggageSummary()}</span>
                 <span className="text-primary">Edit</span>
@@ -234,6 +243,7 @@ export function BookingForm({
                 !dropoffLocation ||
                 !selectedDate ||
                 !selectedTime ||
+                disabled ||
                 isFetching
               }
             >
@@ -251,11 +261,12 @@ export function BookingForm({
       ) : (
         <PassengerLuggageForm
           passengers={passengers}
-          setPassengers={setPassengers}
           checkedLuggage={checkedLuggage}
-          setCheckedLuggage={setCheckedLuggage}
           handLuggage={handLuggage}
-          setHandLuggage={setHandLuggage}
+          onPassengersChange={setPassengers}
+          onCheckedLuggageChange={setCheckedLuggage}
+          onHandLuggageChange={setHandLuggage}
+          disabled={disabled || isFetching}
           onBack={() => setCurrentStep("location")}
           className="h-fit"
         />

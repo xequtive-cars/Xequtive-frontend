@@ -70,6 +70,7 @@ interface MapComponentProps {
     location: { latitude: number; longitude: number } | null
   ) => void;
   passMapRef?: (mapInstance: MapInterface) => void;
+  onLocationError?: (error: string | null) => void;
 }
 
 const MapComponent = ({
@@ -83,6 +84,7 @@ const MapComponent = ({
   showCurrentLocation = true,
   onUserLocationChange,
   passMapRef,
+  onLocationError,
 }: MapComponentProps) => {
   // Refs for managing the map and markers
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -105,6 +107,13 @@ const MapComponent = ({
   const { error, latitude, longitude, accuracy, getCurrentPosition } =
     useGeolocation();
 
+  // Call onLocationError when error changes
+  useEffect(() => {
+    if (onLocationError) {
+      onLocationError(error);
+    }
+  }, [error, onLocationError]);
+
   // Store last known user coordinates and notify parent component
   useEffect(() => {
     if (latitude && longitude) {
@@ -116,6 +125,52 @@ const MapComponent = ({
       }
     }
   }, [latitude, longitude, onUserLocationChange]);
+
+  // Update the useEffect for geolocation to prompt browser permission
+  useEffect(() => {
+    if (showCurrentLocation) {
+      // Request the geolocation permission explicitly
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            // Success callback - permission granted
+            // Update user location with the position data
+            if (onUserLocationChange) {
+              onUserLocationChange({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              });
+            }
+          },
+          (error) => {
+            // Error callback - handle permission denied
+            if (error.code === 1) {
+              if (onLocationError) {
+                onLocationError("PERMISSION_DENIED");
+              }
+            } else if (error.code === 2) {
+              if (onLocationError) {
+                onLocationError("POSITION_UNAVAILABLE");
+              }
+            } else if (error.code === 3) {
+              if (onLocationError) {
+                onLocationError("TIMEOUT");
+              }
+            } else {
+              if (onLocationError) {
+                onLocationError("UNKNOWN_ERROR");
+              }
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
+      }
+    }
+  }, [showCurrentLocation, onLocationError, onUserLocationChange]);
 
   // Attempt to get user location as soon as component mounts
   useEffect(() => {
@@ -655,9 +710,47 @@ const MapComponent = ({
     }
   }, [showRoute, mapLoaded, updateRoute]);
 
-  // Handle location errors
+  // Update the handleRetry function
   const handleRetry = () => {
-    getCurrentPosition();
+    // Clear any previous errors
+    if (onLocationError) {
+      onLocationError(null);
+    }
+
+    // Request permission again with the browser's native dialog
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          // Success - location permission granted
+          getCurrentPosition();
+        },
+        (error) => {
+          // Error handling - check if permission is denied
+          if (error.code === 1) {
+            if (onLocationError) {
+              onLocationError("PERMISSION_DENIED");
+            }
+          } else if (error.code === 2) {
+            if (onLocationError) {
+              onLocationError("POSITION_UNAVAILABLE");
+            }
+          } else if (error.code === 3) {
+            if (onLocationError) {
+              onLocationError("TIMEOUT");
+            }
+          } else {
+            if (onLocationError) {
+              onLocationError("UNKNOWN_ERROR");
+            }
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
+    }
   };
 
   // Add new effect for handling preview location

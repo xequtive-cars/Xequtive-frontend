@@ -106,16 +106,17 @@ export default function VehicleSelection({
     let distance = 0;
     if (
       fareData &&
-      "estimatedDistance" in fareData &&
-      typeof fareData.estimatedDistance === "number"
+      "journey" in fareData &&
+      fareData.journey &&
+      typeof fareData.journey.distance_miles === "number"
     ) {
-      distance = fareData.estimatedDistance;
+      distance = fareData.journey.distance_miles;
     } else if (
       fareData &&
-      "distance_miles" in fareData &&
-      typeof fareData.distance_miles === "number"
+      "totalDistance" in fareData &&
+      typeof fareData.totalDistance === "number"
     ) {
-      distance = fareData.distance_miles;
+      distance = fareData.totalDistance;
     } else if (fareData?.baseFare) {
       // Fallback approximation based on fare
       distance = Math.round(fareData.baseFare / 3);
@@ -125,16 +126,17 @@ export default function VehicleSelection({
     let duration = 30; // Default to 30 minutes
     if (
       fareData &&
+      "journey" in fareData &&
+      fareData.journey &&
+      typeof fareData.journey.duration_minutes === "number"
+    ) {
+      duration = fareData.journey.duration_minutes;
+    } else if (
+      fareData &&
       "estimatedTime" in fareData &&
       typeof fareData.estimatedTime === "number"
     ) {
       duration = fareData.estimatedTime;
-    } else if (
-      fareData &&
-      "duration_min" in fareData &&
-      typeof fareData.duration_min === "number"
-    ) {
-      duration = fareData.duration_min;
     }
 
     // Display journey summary
@@ -176,7 +178,7 @@ export default function VehicleSelection({
                 <span className="text-muted-foreground">Distance:</span>
                 <span className="font-medium">
                   {distance > 0
-                    ? `${(distance * 0.621371).toFixed(1)} miles`
+                    ? `${distance.toFixed(1)} miles`
                     : "Calculating..."}
                 </span>
               </div>
@@ -190,6 +192,23 @@ export default function VehicleSelection({
                   {getPassengerLuggageSummary()}
                 </span>
               </div>
+
+              {/* Display fee notifications if any */}
+              {fareData.notifications && fareData.notifications.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-border/30">
+                  <span className="text-muted-foreground font-medium block mb-1">
+                    Additional Fees:
+                  </span>
+                  <ul className="text-xs space-y-1 text-amber-700">
+                    {fareData.notifications.map((notification, index) => (
+                      <li key={index} className="flex items-start gap-1.5">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5"></span>
+                        <span>{notification}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         )}

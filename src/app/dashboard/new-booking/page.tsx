@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, memo, useRef, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import MapComponent from "@/components/map/MapComponent";
 import { Location } from "@/components/map/MapComponent";
-import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { format } from "date-fns";
+import { Check, MapPin } from "lucide-react";
 import {
   PersonalDetailsForm,
   VehicleSelection,
@@ -25,7 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useRouter, useSearchParams } from "next/navigation";
+import { authService } from "@/lib/auth";
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -46,6 +46,7 @@ const StableMapComponent = memo(
     onUserLocationChange,
     className,
     passMapRef,
+    onLocationError,
   }: {
     pickupLocation: Location | null;
     dropoffLocation: Location | null;
@@ -57,6 +58,7 @@ const StableMapComponent = memo(
     ) => void;
     className?: string;
     passMapRef: (mapInstance: MapInterface) => void;
+    onLocationError: (error: string | null) => void;
   }) => {
     // Use ref to store the map interface and latest props to prevent re-renders
     const mapRef = useRef<MapInterface | null>(null);
@@ -111,6 +113,7 @@ const StableMapComponent = memo(
           showCurrentLocation={showCurrentLocation}
           onUserLocationChange={onUserLocationChange}
           passMapRef={handleMapRef}
+          onLocationError={onLocationError}
         />
       );
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +150,7 @@ StableMapComponent.displayName = "StableMapComponent";
 declare module "@/components/booking" {
   interface FareResponse {
     distance_miles?: number;
-    duration_min?: number;
+    duration_minutes?: number;
   }
 }
 
@@ -198,10 +201,24 @@ export default function NewBookingPage() {
   const [bookingSuccess, setBookingSuccess] = useState<{
     show: boolean;
     bookingId: string;
-  }>({ show: false, bookingId: "" });
+    notifications: string[];
+  }>({
+    show: false,
+    bookingId: "",
+    notifications: [],
+  });
 
   // Form modified state
   const [formModified, setFormModified] = useState<boolean>(false);
+
+  // Location permission state
+  const [locationPermission, setLocationPermission] = useState<{
+    denied: boolean;
+    error: string | null;
+  }>({
+    denied: false,
+    error: null,
+  });
 
   // Load state from query parameters on initial load
   useEffect(() => {
@@ -761,14 +778,31 @@ export default function NewBookingPage() {
 
       const fareResponse = await getFareEstimate(formattedRequest);
 
-      // Make sure we have valid data before proceeding
+      // Check for authentication errors
+      if (
+        !fareResponse.success &&
+        fareResponse.error &&
+        (fareResponse.error.code === "AUTH_ERROR" ||
+          fareResponse.error.code === "AUTH_REFRESH_REQUIRED")
+      ) {
+        console.error("Authentication error:", fareResponse.error.message);
+        // Clear any existing session data
+        authService.clearAuthData();
+        // Show error message
+        setFetchError(`${fareResponse.error.message} Redirecting to login...`);
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          router.push("/auth/signin");
+        }, 2000);
+        return;
+      }
+
+      // First check if we have a valid fare response at all
       if (
         !fareResponse ||
         !fareResponse.success ||
         !fareResponse.data ||
-        !fareResponse.data.fare ||
-        !fareResponse.data.fare.vehicleOptions ||
-        fareResponse.data.fare.vehicleOptions.length === 0
+        !fareResponse.data.fare
       ) {
         setFetchError(
           "Received invalid fare data from server. Please try again."
@@ -776,8 +810,21 @@ export default function NewBookingPage() {
         return;
       }
 
-      // Set the fare data directly from the API response
+      // Set the journey data regardless of vehicle options
       setFareData(fareResponse.data.fare);
+
+      // Check specifically for vehicle options only when attempting to show the vehicle selection screen
+      if (
+        !fareResponse.data.fare.vehicleOptions ||
+        fareResponse.data.fare.vehicleOptions.length === 0
+      ) {
+        setFetchError(
+          "No vehicle options available for this journey. Please try again or contact customer support."
+        );
+        return;
+      }
+
+      // If we have vehicle options, show the vehicle selection screen
       setShowVehicleOptions(true);
     } catch (error: unknown) {
       // Handle axios error with response data
@@ -861,7 +908,7 @@ export default function NewBookingPage() {
     }
   };
 
-  // Handle creating booking
+  // Handle booking submission
   const handleSubmitBooking = async (
     personalDetails: {
       fullName: string;
@@ -876,7 +923,6 @@ export default function NewBookingPage() {
       return;
     }
 
-    // Check if we have all required booking information
     if (
       !pickupLocation ||
       !dropoffLocation ||
@@ -888,13 +934,12 @@ export default function NewBookingPage() {
       return;
     }
 
-    // Clear previous errors
-    setBookingError(null);
     setIsCreatingBooking(true);
+    setBookingError(null);
 
     try {
-      // Step 1: Submit booking for verification
-      const verificationDetails = await bookingService.createBooking(
+      // Call booking API
+      const bookingResponse = await bookingService.createBooking(
         personalDetails,
         {
           pickupLocation,
@@ -909,18 +954,30 @@ export default function NewBookingPage() {
         }
       );
 
-      // The booking is created in one step now - no confirmation needed
+      // Update success state with the booking ID and notifications if any
+      setBookingSuccess({
+        show: true,
+        bookingId: bookingResponse.bookingId,
+        notifications: bookingResponse.details?.notifications || [],
+      });
 
-      // Show success message
-      if (verificationDetails.bookingId) {
-        setBookingSuccess({
-          show: true,
-          bookingId: verificationDetails.bookingId,
-        });
-      } else {
-        throw new Error("Booking creation failed");
-      }
+      // Clear form fields by resetting state
+      setPickupLocation(null);
+      setDropoffLocation(null);
+      setAdditionalStops([]);
+      setPickupAddress("");
+      setDropoffAddress("");
+      setStopAddresses([]);
+      setSelectedDate(undefined);
+      setSelectedTime("");
+      setPassengers(1);
+      setCheckedLuggage(0);
+      setHandLuggage(0);
+      setSelectedVehicle(null);
+      setShowVehicleOptions(false);
+      setShowDetailsForm(false);
     } catch (error) {
+      console.error("Error creating booking:", error);
       setBookingError(
         error instanceof Error
           ? error.message
@@ -933,7 +990,7 @@ export default function NewBookingPage() {
 
   // Close success dialog and reset form
   const handleCloseSuccessDialog = () => {
-    setBookingSuccess({ show: false, bookingId: "" });
+    setBookingSuccess({ show: false, bookingId: "", notifications: [] });
 
     // Reset form and navigate to dashboard page
     setShowVehicleOptions(false);
@@ -945,9 +1002,268 @@ export default function NewBookingPage() {
     router.push("/dashboard");
   };
 
+  // Auto-calculate fare when all required information is available
+  useEffect(() => {
+    // Check if we have the required data and we're not already fetching
+    if (
+      pickupLocation &&
+      dropoffLocation &&
+      selectedDate &&
+      selectedTime &&
+      !isFetching &&
+      !fareData &&
+      !showVehicleOptions &&
+      !showDetailsForm
+    ) {
+      // Create a lightweight version of the fare calculation that only updates journey info
+      const autoCalculateJourneyInfo = async () => {
+        try {
+          console.log("Auto-calculating journey info...");
+          console.log("Using pickup:", pickupLocation?.address);
+          console.log("Using dropoff:", dropoffLocation?.address);
+          console.log("Auth token exists:", !!authService.getToken());
+
+          // Create request without triggering loading state
+          const formattedRequest = {
+            locations: {
+              pickup: {
+                address: pickupLocation.address || "",
+                coordinates: {
+                  lat: pickupLocation.latitude,
+                  lng: pickupLocation.longitude,
+                },
+              },
+              dropoff: {
+                address: dropoffLocation.address || "",
+                coordinates: {
+                  lat: dropoffLocation.latitude,
+                  lng: dropoffLocation.longitude,
+                },
+              },
+              additionalStops: additionalStops.map((stop) => ({
+                address: stop.address || "",
+                coordinates: {
+                  lat: stop.latitude,
+                  lng: stop.longitude,
+                },
+              })),
+            },
+            datetime: {
+              date: selectedDate,
+              time: selectedTime,
+            },
+            passengers: {
+              count: passengers || 1,
+              checkedLuggage: checkedLuggage || 0,
+              handLuggage: handLuggage || 0,
+            },
+          };
+
+          console.log(
+            "Auto-calculation request:",
+            JSON.stringify(formattedRequest, null, 2)
+          );
+
+          // Silently get fare estimate for journey info only
+          try {
+            const fareResponse = await getFareEstimate(formattedRequest);
+
+            // Check for authentication errors
+            if (
+              !fareResponse.success &&
+              fareResponse.error &&
+              (fareResponse.error.code === "AUTH_ERROR" ||
+                fareResponse.error.code === "AUTH_REFRESH_REQUIRED")
+            ) {
+              console.error(
+                "Authentication error during auto-calculation:",
+                fareResponse.error.message
+              );
+              // Don't show error - this is a silent calculation
+              // But do redirect after a short delay
+              setTimeout(() => {
+                router.push("/auth/signin");
+              }, 500);
+              return;
+            }
+
+            console.log(
+              "Auto-calculation response received:",
+              fareResponse.success ? "SUCCESS" : "FAILED"
+            );
+
+            if (fareResponse?.success) {
+              console.log(
+                "Journey data:",
+                fareResponse.data?.fare?.journey?.distance_miles,
+                fareResponse.data?.fare?.journey?.duration_minutes
+              );
+            } else {
+              console.log("Error in response:", fareResponse.error);
+            }
+
+            // Update only the journey info without showing vehicle options
+            if (
+              fareResponse &&
+              fareResponse.success &&
+              fareResponse.data &&
+              fareResponse.data.fare
+            ) {
+              // Just update fare data for journey info display
+              console.log(
+                "Auto-calculation successful, updating journey info:",
+                fareResponse.data.fare.journey?.distance_miles,
+                fareResponse.data.fare.journey?.duration_minutes
+              );
+
+              // Create a copy of the fare data for display
+              const displayFareData = { ...fareResponse.data.fare };
+
+              // Make sure journey data exists, add it if not
+              if (!displayFareData.journey) {
+                displayFareData.journey = {
+                  distance_miles: 0,
+                  duration_minutes: 0,
+                };
+              }
+
+              // Update the journey info
+              setFareData(displayFareData);
+            } else {
+              console.warn("Auto-calculation response missing fare data");
+            }
+          } catch (apiError) {
+            console.error("API call error:", apiError);
+          }
+        } catch (error) {
+          // Silently fail - we don't want to show errors for auto-calculation
+          console.error("Auto-calculation failed:", error);
+        }
+      };
+
+      // Run the auto-calculation
+      autoCalculateJourneyInfo();
+    }
+  }, [
+    pickupLocation,
+    dropoffLocation,
+    selectedDate,
+    selectedTime,
+    isFetching,
+    fareData,
+    showVehicleOptions,
+    showDetailsForm,
+    additionalStops,
+    passengers,
+    checkedLuggage,
+    handLuggage,
+  ]);
+
+  // Handle location permission errors from the MapComponent
+  const handleLocationError = useCallback((error: string | null) => {
+    if (error === "PERMISSION_DENIED") {
+      setLocationPermission({
+        denied: true,
+        error: "Location permission denied",
+      });
+    } else if (error === "POSITION_UNAVAILABLE") {
+      setLocationPermission({
+        denied: false,
+        error: "Unable to determine your position",
+      });
+    } else if (error === "TIMEOUT") {
+      setLocationPermission({
+        denied: false,
+        error: "Location request timed out",
+      });
+    } else if (error) {
+      setLocationPermission({
+        denied: false,
+        error,
+      });
+    } else {
+      setLocationPermission({
+        denied: false,
+        error: null,
+      });
+    }
+  }, []);
+
+  // Function to request location permission again
+  const requestLocationPermission = () => {
+    if (navigator.geolocation) {
+      // This will trigger the browser's native permission dialog
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          // Success - reset permission state
+          setLocationPermission({
+            denied: false,
+            error: null,
+          });
+        },
+        (error) => {
+          // Error handling - check if permission is denied
+          if (error.code === 1) {
+            setLocationPermission({
+              denied: true,
+              error: "Location permission denied",
+            });
+          } else if (error.code === 2) {
+            setLocationPermission({
+              denied: false,
+              error: "Unable to determine your position",
+            });
+          } else if (error.code === 3) {
+            setLocationPermission({
+              denied: false,
+              error: "Location request timed out",
+            });
+          } else {
+            setLocationPermission({
+              denied: false,
+              error: "An error occurred while getting your location",
+            });
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="h-[100vh] w-full flex flex-col pt-2 overflow-hidden">
+        {/* Location Permission Banner */}
+        {locationPermission.denied && (
+          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 mx-2">
+            <div className="flex items-start">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-amber-800">
+                  Location Access Required
+                </h3>
+                <div className="mt-1 text-sm text-amber-700">
+                  <p>
+                    Please enable location access in your browser settings to
+                    use the booking system effectively.
+                  </p>
+                  <div className="mt-2">
+                    <button
+                      onClick={requestLocationPermission}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                    >
+                      Enable Location Access
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main content area */}
         <div className="flex-1 flex flex-col md:flex-row gap-2 overflow-hidden">
           {!showVehicleOptions ? (
@@ -985,36 +1301,57 @@ export default function NewBookingPage() {
                   removeStop={removeStop}
                   calculateFare={calculateFare}
                   getPassengerLuggageSummary={getPassengerLuggageSummary}
+                  disabled={locationPermission.denied}
                 />
               </div>
 
               {/* Map Section - Width increased proportionally */}
               <div className="flex-1 md:w-[72%]">
                 {showMap ? (
-                  <div className="h-full max-h-[calc(100vh-6rem)] rounded-lg overflow-hidden border shadow-sm">
-                    <StableMapComponent
-                      className="h-full"
-                      pickupLocation={pickupLocation}
-                      dropoffLocation={dropoffLocation}
-                      stops={additionalStops}
-                      showCurrentLocation={true}
-                      onUserLocationChange={setUserLocation}
-                      passMapRef={handleMapRef}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-full rounded-lg overflow-hidden border shadow-sm flex items-center justify-center">
-                    <div className="text-muted-foreground">Loading map...</div>
-                  </div>
-                )}
+                  locationPermission.denied ? (
+                    <div className="h-full max-h-[calc(100vh-6rem)] rounded-lg overflow-hidden border shadow-sm flex items-center justify-center bg-muted/20">
+                      <div className="flex flex-col items-center justify-center p-8 text-center">
+                        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                          <MapPin className="h-8 w-8 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-medium mb-2">
+                          Location Access Required
+                        </h3>
+                        <p className="text-muted-foreground mb-4 max-w-md">
+                          To use the map and see your current location, please
+                          enable location services in your browser.
+                        </p>
+                        <Button
+                          onClick={requestLocationPermission}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          Enable Location Access
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full max-h-[calc(100vh-6rem)] rounded-lg overflow-hidden border shadow-sm">
+                      <StableMapComponent
+                        className="h-full"
+                        pickupLocation={pickupLocation}
+                        dropoffLocation={dropoffLocation}
+                        stops={additionalStops}
+                        showCurrentLocation={true}
+                        onUserLocationChange={setUserLocation}
+                        passMapRef={handleMapRef}
+                        onLocationError={handleLocationError}
+                      />
+                    </div>
+                  )
+                ) : null}
               </div>
             </>
           ) : (
             <>
               {!showDetailsForm ? (
-                <div className="flex w-full h-full gap-4">
+                <div className="flex w-full h-full flex-col lg:flex-row gap-4">
                   {/* Left panel: Width increased */}
-                  <div className="w-[29%] h-fit">
+                  <div className="w-full lg:w-[29%]">
                     <Card className="border shadow-sm">
                       <CardContent className="p-3 space-y-4">
                         <div className="flex justify-between items-center mb-2">
@@ -1068,16 +1405,32 @@ export default function NewBookingPage() {
                           </div>
                         )}
 
-                        {/* Date & Time */}
-                        <div>
-                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
-                            Date & Time
-                          </label>
-                          <div className="p-2 bg-muted/40 rounded-md text-sm">
-                            {selectedDate
-                              ? format(selectedDate, "EEE, MMM dd, yyyy")
-                              : ""}{" "}
-                            at {selectedTime}
+                        {/* Date and time */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                              Date
+                            </label>
+                            <p className="text-sm">
+                              {selectedDate
+                                ? new Date(selectedDate).toLocaleDateString(
+                                    "en-GB",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    }
+                                  )
+                                : "Not selected"}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                              Time
+                            </label>
+                            <p className="text-sm">
+                              {selectedTime || "Not selected"}
+                            </p>
                           </div>
                         </div>
 
@@ -1091,9 +1444,9 @@ export default function NewBookingPage() {
                           </div>
                         </div>
 
-                        {/* Distance & Duration */}
-                        <div>
-                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                        {/* Journey details */}
+                        <div className="mb-3">
+                          <label className="text-xs font-medium mb-1 block text-muted-foreground">
                             Journey Info
                           </label>
                           <div className="p-2 bg-muted/40 rounded-md text-sm">
@@ -1102,11 +1455,11 @@ export default function NewBookingPage() {
                                 Distance:
                               </span>
                               <span className="font-medium">
-                                {fareData && fareData.journey?.distance_miles
+                                {fareData?.journey?.distance_miles
                                   ? `${fareData.journey.distance_miles.toFixed(
                                       1
                                     )} miles`
-                                  : "Calculating..."}
+                                  : "Not available"}
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -1114,11 +1467,37 @@ export default function NewBookingPage() {
                                 Duration:
                               </span>
                               <span className="font-medium">
-                                {fareData && fareData.journey?.duration_min
-                                  ? `${fareData.journey.duration_min} min`
-                                  : "Calculating..."}
+                                {fareData?.journey?.duration_minutes
+                                  ? `${fareData.journey.duration_minutes} min`
+                                  : "Not available"}
                               </span>
                             </div>
+
+                            {/* Fare Notifications */}
+                            {fareData &&
+                              fareData.notifications &&
+                              fareData.notifications.length > 0 && (
+                                <div className="mt-2 border-t pt-2 border-border/40">
+                                  <div className="text-muted-foreground mb-1 text-xs font-medium">
+                                    Special Conditions:
+                                  </div>
+                                  <ul className="space-y-1">
+                                    {fareData.notifications.map(
+                                      (notification, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-xs flex items-start"
+                                        >
+                                          <span className="bg-blue-100 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center mr-1.5 mt-0.5 flex-shrink-0">
+                                            i
+                                          </span>
+                                          <span>{notification}</span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
                           </div>
                         </div>
 
@@ -1146,7 +1525,7 @@ export default function NewBookingPage() {
                   </div>
 
                   {/* Middle panel: Vehicle selection */}
-                  <div className="w-[42%] h-full max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
+                  <div className="w-full lg:w-[42%] max-h-[calc(70vh + 70px)] lg:max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
                     <div className="p-3 border-b">
                       <h2 className="text-base font-semibold">
                         Select Vehicle
@@ -1260,7 +1639,7 @@ export default function NewBookingPage() {
                   </div>
 
                   {/* Right panel: Map - width reduced by 10% */}
-                  <div className="w-[25%] h-full max-h-[calc(100vh-6rem)]">
+                  <div className="w-full lg:w-[25%] h-[40vh] lg:h-full lg:max-h-[calc(100vh-6rem)] hidden lg:block">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
                         <StableMapComponent
@@ -1271,6 +1650,7 @@ export default function NewBookingPage() {
                           showCurrentLocation={true}
                           onUserLocationChange={setUserLocation}
                           passMapRef={handleMapRef}
+                          onLocationError={handleLocationError}
                         />
                       </div>
                     ) : (
@@ -1284,8 +1664,8 @@ export default function NewBookingPage() {
                 </div>
               ) : (
                 // Personal details form - simplified layout
-                <div className="flex flex-col md:flex-row w-full h-full gap-4">
-                  <div className="md:w-2/3 h-full max-h-[calc(100vh-5rem)] relative">
+                <div className="flex flex-col lg:flex-row w-full h-full gap-4">
+                  <div className="w-full lg:w-2/3 max-h-[calc(100vh-5rem)] relative">
                     {selectedVehicle && (
                       <div className="h-full overflow-hidden flex flex-col">
                         <div className="flex-1 overflow-y-auto pr-2 pb-4 relative">
@@ -1310,7 +1690,7 @@ export default function NewBookingPage() {
                   </div>
 
                   {/* Map display - height matching second screen */}
-                  <div className="md:w-1/3 h-full max-h-[calc(100vh-6rem)]">
+                  <div className="w-full lg:w-1/3 h-[40vh] lg:h-full lg:max-h-[calc(100vh-6rem)] hidden lg:block">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
                         <StableMapComponent
@@ -1321,6 +1701,7 @@ export default function NewBookingPage() {
                           showCurrentLocation={true}
                           onUserLocationChange={setUserLocation}
                           passMapRef={handleMapRef}
+                          onLocationError={handleLocationError}
                         />
                       </div>
                     ) : (
@@ -1342,24 +1723,56 @@ export default function NewBookingPage() {
           open={bookingSuccess.show}
           onOpenChange={(open) => !open && handleCloseSuccessDialog()}
         >
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
-                <div className="bg-primary/20 rounded-full p-1">
-                  <Check className="h-5 w-5 text-primary" />
+                <div className="bg-emerald-100 rounded-full p-1.5">
+                  <Check className="h-6 w-6 text-emerald-600" />
                 </div>
                 Booking Confirmed
               </DialogTitle>
-              <DialogDescription>
-                Your booking has been successfully created
+              <DialogDescription className="text-base">
+                Your booking has been successfully created and is now being
+                processed
               </DialogDescription>
             </DialogHeader>
 
             <div className="py-4">
-              <p className="mb-2 text-sm">Booking Reference:</p>
-              <div className="text-lg font-bold font-mono bg-primary/10 py-3 px-4 rounded-md text-center">
+              <p className="mb-2 text-sm font-medium">Booking Reference:</p>
+              <div className="text-lg font-bold font-mono bg-primary/10 py-3 px-4 rounded-md text-center mb-4">
                 {bookingSuccess.bookingId}
               </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-md p-4 mb-4">
+                <h4 className="font-medium text-slate-800 mb-2">
+                  What happens next?
+                </h4>
+                <p className="text-sm text-slate-700">
+                  One of our agents will contact you shortly to confirm your
+                  booking details. Please keep your phone available.
+                </p>
+              </div>
+
+              {/* Display notifications if any */}
+              {bookingSuccess.notifications &&
+                bookingSuccess.notifications.length > 0 && (
+                  <div className="mt-4 p-3 rounded-md bg-amber-50 border border-amber-200">
+                    <p className="text-sm font-medium text-amber-800 mb-2">
+                      Important Information:
+                    </p>
+                    <ul className="text-sm space-y-1 text-amber-700">
+                      {bookingSuccess.notifications.map(
+                        (notification, index) => (
+                          <li key={index} className="flex items-start gap-1.5">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5"></span>
+                            <span>{notification}</span>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                )}
+
               <p className="mt-4 text-sm text-muted-foreground">
                 A confirmation email has been sent to your email address with
                 all the booking details.
@@ -1368,7 +1781,7 @@ export default function NewBookingPage() {
 
             <DialogFooter>
               <Button onClick={handleCloseSuccessDialog} className="w-full">
-                Close
+                Return to Dashboard
               </Button>
             </DialogFooter>
           </DialogContent>

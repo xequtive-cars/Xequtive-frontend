@@ -20,12 +20,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface TimePickerProps {
+export interface TimePickerProps {
   time: string;
   onTimeChange: (time: string) => void;
   label?: string;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export function TimePicker({
@@ -34,6 +35,7 @@ export function TimePicker({
   label,
   placeholder = "Select time",
   className,
+  disabled = false,
 }: TimePickerProps) {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [open, setOpen] = React.useState(false);
@@ -159,23 +161,16 @@ export function TimePicker({
       >
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            type="button"
+            variant={"outline"}
             className={cn(
-              "w-full h-9 px-3 justify-start text-left font-normal bg-background/50 border border-input/50 hover:border-primary/30 hover:bg-accent/5 focus:border-primary/50 transition-all duration-200",
-              !time && "text-muted-foreground",
-              time && "text-foreground"
+              "w-full justify-start text-left font-normal",
+              !time && "text-muted-foreground"
             )}
+            disabled={disabled}
           >
-            <div className="flex items-center w-full">
-              <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              {time ? (
-                <span className="text-sm text-foreground/90">
-                  {getDisplayTime(time)}
-                </span>
-              ) : (
-                <span className="text-sm">{placeholder}</span>
-              )}
-            </div>
+            <span>{time ? getDisplayTime(time) : placeholder}</span>
+            <Clock className="ml-2 h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent

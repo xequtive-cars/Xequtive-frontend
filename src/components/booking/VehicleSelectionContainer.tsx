@@ -49,6 +49,43 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
     );
   };
 
+  // Render price breakdown if available
+  const renderPriceBreakdown = (vehicle: VehicleOption) => {
+    if (!vehicle.price.breakdown) return null;
+
+    const breakdown = vehicle.price.breakdown;
+
+    // Only show breakdown items with non-zero values
+    const items = [
+      { label: "Base Fare", value: breakdown.baseFare },
+      { label: "Distance Charge", value: breakdown.distanceCharge },
+      { label: "Additional Stop Fee", value: breakdown.additionalStopFee },
+      { label: "Time Surcharge", value: breakdown.timeMultiplier },
+      { label: "Special Location Fees", value: breakdown.specialLocationFees },
+      { label: "Waiting Charge", value: breakdown.waitingCharge },
+    ].filter((item) => item.value > 0);
+
+    if (items.length === 0) return null;
+
+    return (
+      <div className="mt-3 pt-3 border-t border-border/40">
+        <h4 className="text-sm font-medium mb-2">Price Breakdown</h4>
+        <div className="space-y-1 text-sm">
+          {items.map((item, index) => (
+            <div key={index} className="flex justify-between">
+              <span className="text-muted-foreground">{item.label}:</span>
+              <span>£{item.value.toFixed(2)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between font-semibold pt-1 border-t border-border/40 mt-2">
+            <span>Total:</span>
+            <span>£{vehicle.price.amount.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (
     !fareData ||
     !fareData.vehicleOptions ||
@@ -109,7 +146,7 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row gap-4">
                   {/* Vehicle Image */}
-                  <div className="flex-shrink-0 w-full sm:w-1/4 aspect-video sm:aspect-square bg-muted/30 rounded-md relative overflow-hidden">
+                  <div className="w-full sm:w-32 h-32 bg-muted/30 rounded-md overflow-hidden">
                     {vehicle.imageUrl ? (
                       <Image
                         src={vehicle.imageUrl}
@@ -151,76 +188,73 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
                   </div>
 
                   {/* Vehicle Details */}
-                  <div className="flex-1 flex flex-col">
+                  <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{vehicle.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {vehicle.description ||
-                            "Comfortable ride for your journey"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-lg">
-                          {vehicle.price.currency}{" "}
-                          {vehicle.price.amount.toFixed(2)}
-                        </span>
-                        <p className="text-xs text-muted-foreground">
-                          {vehicle.eta
-                            ? `${vehicle.eta} mins away`
-                            : "Available"}
-                        </p>
+                      <h3 className="text-lg font-semibold">{vehicle.name}</h3>
+                      <div className="text-lg font-bold">
+                        £{vehicle.price.amount.toFixed(2)}
                       </div>
                     </div>
 
-                    <div className="mt-auto pt-4">
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        <Badge
-                          variant={
-                            !exceededCapacity ||
-                            vehicle.capacity.passengers >= passengers
-                              ? "outline"
-                              : "destructive"
-                          }
-                          className="text-xs py-0 h-5"
-                        >
-                          <Users className="h-3 w-3 mr-1" />{" "}
-                          {vehicle.capacity.passengers} seats
-                        </Badge>
-                        <Badge
-                          variant={
-                            !exceededCapacity ||
-                            vehicle.capacity.luggage >=
-                              checkedLuggage + handLuggage
-                              ? "outline"
-                              : "destructive"
-                          }
-                          className="text-xs py-0 h-5"
-                        >
-                          <Briefcase className="h-3 w-3 mr-1" />{" "}
-                          {vehicle.capacity.luggage} bags
-                        </Badge>
-                        {vehicle.features?.includes("WiFi") && (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs py-0 h-5"
-                          >
-                            <Wifi size={10} className="mr-1" /> WiFi
-                          </Badge>
-                        )}
-                      </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {vehicle.description}
+                    </p>
 
-                      {/* Selection Button */}
-                      <Button
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      <Badge
                         variant={
-                          selectedVehicle?.id === vehicle.id
-                            ? "default"
-                            : "outline"
+                          !exceededCapacity ||
+                          vehicle.capacity.passengers >= passengers
+                            ? "outline"
+                            : "destructive"
                         }
-                        size="sm"
-                        className="w-full h-7 text-xs"
+                        className="text-xs py-0 h-5"
+                      >
+                        <Users className="h-3 w-3 mr-1" />{" "}
+                        {vehicle.capacity.passengers} seats
+                      </Badge>
+                      <Badge
+                        variant={
+                          !exceededCapacity ||
+                          vehicle.capacity.luggage >=
+                            checkedLuggage + handLuggage
+                            ? "outline"
+                            : "destructive"
+                        }
+                        className="text-xs py-0 h-5"
+                      >
+                        <Briefcase className="h-3 w-3 mr-1" />{" "}
+                        {vehicle.capacity.luggage} bags
+                      </Badge>
+                      {vehicle.features?.includes("WiFi") && (
+                        <Badge variant="secondary" className="text-xs py-0 h-5">
+                          <Wifi className="h-3 w-3 mr-1" /> WiFi
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Show features list if available */}
+                    {vehicle.features && vehicle.features.length > 0 && (
+                      <div className="text-xs text-muted-foreground mb-3">
+                        <span className="font-medium">Features:</span>{" "}
+                        {vehicle.features.join(", ")}
+                      </div>
+                    )}
+
+                    {/* Show price breakdown if this is the selected vehicle */}
+                    {selectedVehicle?.id === vehicle.id &&
+                      renderPriceBreakdown(vehicle)}
+
+                    <div className="mt-2">
+                      <Button
                         onClick={() => onSelectVehicle(vehicle)}
                         disabled={exceededCapacity}
+                        className={
+                          selectedVehicle?.id === vehicle.id
+                            ? "bg-primary"
+                            : "bg-primary/90 hover:bg-primary"
+                        }
+                        size="sm"
                       >
                         {selectedVehicle?.id === vehicle.id
                           ? "Selected"
