@@ -432,4 +432,134 @@ export const authService = {
         return error.message || "An error occurred during authentication.";
     }
   },
+
+  // Request password reset
+  forgotPassword: async (email: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const requestBody = { email };
+
+      // URL includes /api prefix
+      const fullUrl = `${apiUrl}/api/auth/forgot-password`;
+
+      // Call the API endpoint
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      // Handle 404 specifically
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: {
+            message:
+              "Forgot password endpoint not found (404). Please check API configuration.",
+            details: `The endpoint ${fullUrl} could not be reached.`,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Password reset request failed",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Password reset request failed. Please try again.",
+        },
+      };
+    }
+  },
+
+  // Reset password with token
+  resetPassword: async (
+    token: string,
+    newPassword: string,
+    confirmPassword: string
+  ): Promise<AuthResponse> => {
+    try {
+      // Validate password match
+      if (newPassword !== confirmPassword) {
+        return {
+          success: false,
+          error: { message: "Passwords do not match" },
+        };
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const requestBody = {
+        token,
+        newPassword,
+        confirmPassword,
+      };
+
+      // URL includes /api prefix
+      const fullUrl = `${apiUrl}/api/auth/reset-password`;
+
+      // Call the API endpoint
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      // Handle 404 specifically
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: {
+            message:
+              "Reset password endpoint not found (404). Please check API configuration.",
+            details: `The endpoint ${fullUrl} could not be reached.`,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Password reset failed",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Password reset failed. Please try again.",
+        },
+      };
+    }
+  },
 };

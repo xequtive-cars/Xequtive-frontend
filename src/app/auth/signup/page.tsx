@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,12 @@ const formSchema = z
         /^\+447[0-9]{9}$/,
         "Please enter a valid UK mobile number starting with +447 followed by 9 digits"
       ),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -86,38 +92,286 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      // Use our authentication service to register
-      const response = await authService.register(
-        data.fullName,
-        data.email,
-        data.password,
-        data.confirmPassword,
-        data.phoneNumber
-      );
-
-      if (!response.success) {
-        // Format error message for display
-        let errorMessage = response.error?.message || "Registration failed";
-
-        // Check for common errors
-        if (
-          errorMessage.includes("already registered") ||
-          errorMessage.includes("already in use") ||
-          errorMessage.includes("already exists")
-        ) {
-          errorMessage =
-            "This email address is already registered. Please use a different email or try signing in.";
-        }
-
-        setError(errorMessage);
+      // Additional client-side validation
+      if (!data.fullName.trim()) {
+        form.setError("fullName", {
+          type: "manual",
+          message: "Full name is required",
+        });
+        setError("Please enter your full name");
         setIsLoading(false);
         return;
       }
 
-      // Registration successful - redirect to signin page
-      window.location.href = "/auth/signin?registered=true";
+      if (!data.email.includes("@") || !data.email.includes(".")) {
+        form.setError("email", {
+          type: "manual",
+          message: "Please enter a valid email address",
+        });
+        setError("Please enter a valid email address");
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.password !== data.confirmPassword) {
+        form.setError("confirmPassword", {
+          type: "manual",
+          message: "Passwords do not match",
+        });
+        setError("Passwords do not match. Please check both password fields.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Use our authentication service to register
+        const response = await authService.register(
+          data.fullName,
+          data.email,
+          data.password,
+          data.confirmPassword,
+          data.phoneNumber
+        );
+
+        if (!response.success) {
+          // Format error message for display
+          let errorMessage = response.error?.message || "Registration failed";
+
+          // Map API error codes to user-friendly messages
+          const errorCodeMap: Record<string, string> = {
+            EMAIL_ALREADY_EXISTS:
+              "This email address is already registered. Please use a different email or try signing in.",
+            EMAIL_ALREADY_IN_USE:
+              "This email address is already registered. Please use a different email or try signing in.",
+            FAILED_TO_CREATE_USER:
+              "This email address is already registered. Please use a different email or try signing in.",
+            USER_CREATION_FAILED:
+              "This email address is already registered. Please use a different email or try signing in.",
+            EMAIL_EXISTS:
+              "This email address is already registered. Please use a different email or try signing in.",
+            DUPLICATE_USER:
+              "This email address is already registered. Please use a different email or try signing in.",
+            INVALID_EMAIL: "Please enter a valid email address.",
+            WEAK_PASSWORD:
+              "Password is too weak. It must be at least 8 characters with uppercase, lowercase and numbers.",
+            PASSWORD_MISMATCH:
+              "Passwords do not match. Please check both password fields.",
+            INVALID_PHONE_NUMBER:
+              "The phone number format is invalid. Please enter a valid UK mobile number.",
+            MISSING_REQUIRED_FIELD: "Please fill in all required fields.",
+            TOO_MANY_REQUESTS:
+              "Too many registration attempts. Please try again later.",
+            SERVER_ERROR:
+              "Our services are temporarily unavailable. Please try again later.",
+            NETWORK_ERROR:
+              "Network error. Please check your internet connection and try again.",
+            VALIDATION_ERROR: "Please check your details and try again.",
+            DUPLICATE_EMAIL:
+              "This email address is already registered. Please use a different email or try signing in.",
+            INVALID_NAME: "Please enter a valid full name.",
+            INVALID_PHONE:
+              "The phone number format is invalid. Please enter a valid UK mobile number.",
+            REGISTRATION_FAILED:
+              "Registration failed. The email address may already be in use.",
+          };
+
+          // Check for specific error codes first
+          const errorCode = errorMessage.toUpperCase().replace(/[^A-Z_]/g, "_");
+          console.log("Original registration error:", errorMessage);
+          console.log("Converted registration error code:", errorCode);
+
+          if (errorCodeMap[errorCode]) {
+            errorMessage = errorCodeMap[errorCode];
+
+            // Set form-specific errors based on the error code
+            if (
+              errorCode === "EMAIL_ALREADY_EXISTS" ||
+              errorCode === "EMAIL_ALREADY_IN_USE" ||
+              errorCode === "DUPLICATE_EMAIL" ||
+              errorCode === "FAILED_TO_CREATE_USER" ||
+              errorCode === "USER_CREATION_FAILED" ||
+              errorCode === "EMAIL_EXISTS" ||
+              errorCode === "DUPLICATE_USER" ||
+              errorCode === "REGISTRATION_FAILED"
+            ) {
+              form.setError("email", {
+                type: "manual",
+                message: "Email already in use",
+              });
+            } else if (errorCode === "WEAK_PASSWORD") {
+              form.setError("password", {
+                type: "manual",
+                message: "Password is too weak",
+              });
+            } else if (errorCode === "PASSWORD_MISMATCH") {
+              form.setError("confirmPassword", {
+                type: "manual",
+                message: "Passwords do not match",
+              });
+            } else if (
+              errorCode === "INVALID_PHONE_NUMBER" ||
+              errorCode === "INVALID_PHONE"
+            ) {
+              form.setError("phoneNumber", {
+                type: "manual",
+                message: "Invalid phone number",
+              });
+            } else if (errorCode === "INVALID_NAME") {
+              form.setError("fullName", {
+                type: "manual",
+                message: "Please enter a valid name",
+              });
+            } else if (errorCode === "INVALID_EMAIL") {
+              form.setError("email", {
+                type: "manual",
+                message: "Please enter a valid email",
+              });
+            }
+          }
+          // If no exact match, try to match parts of the error message
+          else if (
+            errorMessage.toLowerCase().includes("email") &&
+            (errorMessage.toLowerCase().includes("already registered") ||
+              errorMessage.toLowerCase().includes("already in use") ||
+              errorMessage.toLowerCase().includes("already exists"))
+          ) {
+            errorMessage =
+              "This email address is already registered. Please use a different email or try signing in.";
+
+            // Mark email field as invalid
+            form.setError("email", {
+              type: "manual",
+              message: "Email already in use",
+            });
+          }
+          // Handle "Failed to create user" which usually means duplicate email
+          else if (
+            errorMessage.toLowerCase().includes("failed to create user") ||
+            (errorMessage.toLowerCase().includes("failed") &&
+              errorMessage.toLowerCase().includes("user") &&
+              errorMessage.toLowerCase().includes("create"))
+          ) {
+            errorMessage =
+              "This email address is already registered. Please use a different email or try signing in.";
+            form.setError("email", {
+              type: "manual",
+              message: "Email already in use",
+            });
+          }
+          // Password-related errors
+          else if (errorMessage.toLowerCase().includes("password")) {
+            if (errorMessage.toLowerCase().includes("weak")) {
+              form.setError("password", {
+                type: "manual",
+                message:
+                  "Password is too weak. It must be at least 8 characters with uppercase, lowercase and numbers.",
+              });
+            } else if (errorMessage.toLowerCase().includes("match")) {
+              form.setError("confirmPassword", {
+                type: "manual",
+                message: "Passwords do not match",
+              });
+            } else {
+              form.setError("password", {
+                type: "manual",
+                message: errorMessage,
+              });
+            }
+          }
+          // Phone number errors
+          else if (
+            errorMessage.toLowerCase().includes("phone") ||
+            errorMessage.toLowerCase().includes("mobile") ||
+            errorMessage.toLowerCase().includes("number")
+          ) {
+            form.setError("phoneNumber", {
+              type: "manual",
+              message: "Please enter a valid phone number",
+            });
+            errorMessage =
+              "The phone number format is invalid. Please enter a valid UK mobile number.";
+          }
+          // Network or server errors
+          else if (
+            errorMessage.toLowerCase().includes("network") ||
+            errorMessage.toLowerCase().includes("connection") ||
+            errorMessage.toLowerCase().includes("offline")
+          ) {
+            errorMessage =
+              "Network error. Please check your internet connection and try again.";
+          } else if (
+            errorMessage.toLowerCase().includes("server") ||
+            errorMessage.toLowerCase().includes("unavailable") ||
+            errorMessage.toLowerCase().includes("maintenance") ||
+            errorMessage.includes("500") ||
+            errorMessage.includes("503")
+          ) {
+            errorMessage =
+              "Our services are temporarily unavailable. Please try again later.";
+          }
+          // Validation errors
+          else if (
+            errorMessage.toLowerCase().includes("invalid") ||
+            errorMessage.toLowerCase().includes("validation")
+          ) {
+            // Check what field might be invalid
+            if (errorMessage.toLowerCase().includes("name")) {
+              form.setError("fullName", {
+                type: "manual",
+                message: "Please enter a valid name",
+              });
+              errorMessage = "Please enter a valid full name.";
+            } else if (errorMessage.toLowerCase().includes("email")) {
+              form.setError("email", {
+                type: "manual",
+                message: "Please enter a valid email",
+              });
+              errorMessage = "Please enter a valid email address.";
+            }
+          }
+          // Rate limiting
+          else if (
+            errorMessage.toLowerCase().includes("too many") ||
+            errorMessage.toLowerCase().includes("rate limit") ||
+            errorMessage.toLowerCase().includes("try again later")
+          ) {
+            errorMessage =
+              "Too many registration attempts. Please try again later.";
+          }
+
+          setError(errorMessage);
+          setIsLoading(false);
+          return;
+        }
+
+        // Registration successful - redirect to signin page
+        window.location.href = "/auth/signin?registered=true";
+      } catch (networkError) {
+        console.error("Network error during registration:", networkError);
+        setError(
+          "Unable to connect to our services. Please check your internet connection and try again."
+        );
+        setIsLoading(false);
+        return;
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      console.error("Registration error:", err);
+
+      let errorMessage =
+        "An unexpected error occurred during registration. Please try again.";
+      if (err instanceof Error) {
+        // Check for specific error types
+        if (err.message.includes("network") || err.message.includes("fetch")) {
+          errorMessage =
+            "Network error. Please check your internet connection and try again.";
+        } else if (err.message.includes("JSON")) {
+          errorMessage = "Server response error. Please try again later.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -355,18 +609,21 @@ export default function SignupPage() {
                   />
 
                   {error && (
-                    <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-                      {error}
-                      {error.includes("already registered") && (
-                        <div className="mt-2">
-                          <Link
-                            href="/auth/signin"
-                            className="text-primary font-medium hover:underline underline-offset-4"
-                          >
-                            Go to Sign In
-                          </Link>
-                        </div>
-                      )}
+                    <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p>{error}</p>
+                        {error.toLowerCase().includes("already registered") && (
+                          <div className="mt-2">
+                            <Link
+                              href="/auth/signin"
+                              className="text-primary font-medium hover:underline underline-offset-4"
+                            >
+                              Go to Sign In
+                            </Link>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -388,6 +645,15 @@ export default function SignupPage() {
                   className="text-primary font-medium hover:underline underline-offset-4"
                 >
                   Sign in
+                </Link>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Forgot your password?{" "}
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-primary font-medium hover:underline underline-offset-4"
+                >
+                  Reset password
                 </Link>
               </div>
               <div className="text-xs text-muted-foreground">

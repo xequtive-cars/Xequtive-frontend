@@ -88,13 +88,13 @@ export default function DashboardLayout({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3 rounded-md flex items-center gap-2 shadow-premium"
+                  className="h-8 md:h-9 px-2 md:px-3 rounded-md flex items-center gap-1 md:gap-2 shadow-premium"
                   onClick={toggleDropdown}
                 >
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <User className="h-3.5 w-3.5" />
                   </div>
-                  <span className="font-medium text-xs hidden md:inline-block">
+                  <span className="font-medium text-xs hidden md:block">
                     {user?.displayName ||
                       user?.email?.split("@")[0] ||
                       "Account"}

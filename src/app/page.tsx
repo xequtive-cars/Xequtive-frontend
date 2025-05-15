@@ -109,13 +109,13 @@ export default function Home() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-10 px-4 rounded-md flex items-center gap-2"
+                  className="h-8 md:h-10 px-2 md:px-4 rounded-md flex items-center gap-1 md:gap-2"
                   onClick={toggleDropdown}
                 >
                   <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <User className="h-4 w-4" />
                   </div>
-                  <span className="font-medium text-sm">
+                  <span className="font-medium text-sm hidden md:block">
                     {user?.displayName ||
                       user?.email?.split("@")[0] ||
                       "Account"}

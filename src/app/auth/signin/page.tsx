@@ -84,23 +84,208 @@ function SignInForm() {
         return;
       }
 
-      const result = await authService.signIn(data.email, data.password);
-
-      if (!result.success) {
-        setError(result.error?.message || "Failed to sign in");
+      // Basic client-side validation before sending request
+      if (!data.email.includes("@") || !data.email.includes(".")) {
+        form.setError("email", {
+          type: "manual",
+          message: "Please enter a valid email address",
+        });
+        setError("Please enter a valid email address");
         setIsLoading(false);
         return;
       }
 
-      // Check for return URL in the query string
-      const searchParams = new URLSearchParams(window.location.search);
-      const returnUrl = searchParams.get("returnUrl");
+      if (data.password.length < 1) {
+        form.setError("password", {
+          type: "manual",
+          message: "Password is required",
+        });
+        setError("Password is required");
+        setIsLoading(false);
+        return;
+      }
 
-      // Navigate to the requested return URL or to the new booking page
-      router.push(returnUrl ? returnUrl : "/dashboard/new-booking");
+      // Network error handling
+      try {
+        const result = await authService.signIn(data.email, data.password);
+
+        if (!result.success) {
+          let errorMessage = result.error?.message || "Failed to sign in";
+
+          // Map API error codes to user-friendly messages
+          const errorCodeMap: Record<string, string> = {
+            INVALID_CREDENTIALS_LOGIN:
+              "Email or password is incorrect. Please try again.",
+            INVALID_LOGIN_CREDENTIALS:
+              "Email or password is incorrect. Please try again.",
+            USER_NOT_FOUND:
+              "No account found with this email address. Please check your email or sign up.",
+            INVALID_EMAIL: "The email address format is invalid.",
+            INVALID_PASSWORD: "Incorrect password. Please try again.",
+            TOO_MANY_REQUESTS:
+              "Too many failed attempts. Please try again later or reset your password.",
+            EMAIL_NOT_VERIFIED:
+              "Your account needs verification. Please check your email for a verification link.",
+            USER_DISABLED:
+              "This account has been disabled. Please contact support for assistance.",
+            EXPIRED_SESSION: "Your session has expired. Please sign in again.",
+            INVALID_SESSION: "Your session is invalid. Please sign in again.",
+            AUTH_ERROR: "Authentication error. Please try signing in again.",
+            NETWORK_ERROR:
+              "Network error. Please check your internet connection and try again.",
+            SERVER_ERROR:
+              "Server error. Our services are temporarily unavailable. Please try again later.",
+          };
+
+          // Check for specific error codes first
+          const errorCode = errorMessage.toUpperCase().replace(/[^A-Z_]/g, "_");
+          console.log("Original error:", errorMessage);
+          console.log("Converted error code:", errorCode);
+
+          if (errorCodeMap[errorCode]) {
+            errorMessage = errorCodeMap[errorCode];
+
+            // Set appropriate field errors based on the error code
+            if (
+              errorCode === "INVALID_LOGIN_CREDENTIALS" ||
+              errorCode === "INVALID_CREDENTIALS_LOGIN" ||
+              errorCode === "INVALID_PASSWORD"
+            ) {
+              form.setError("password", {
+                type: "manual",
+                message: "Incorrect password",
+              });
+            } else if (
+              errorCode === "USER_NOT_FOUND" ||
+              errorCode === "INVALID_EMAIL"
+            ) {
+              form.setError("email", {
+                type: "manual",
+                message:
+                  errorCode === "USER_NOT_FOUND"
+                    ? "Email not registered"
+                    : "Invalid email format",
+              });
+            }
+          }
+          // If no exact match, try to match parts of the error message
+          else if (
+            errorMessage.toLowerCase().includes("invalid credentials") ||
+            errorMessage.toLowerCase().includes("invalid login") ||
+            errorMessage.toLowerCase().includes("incorrect password") ||
+            errorMessage.toLowerCase().includes("invalid password")
+          ) {
+            errorMessage = "Email or password is incorrect. Please try again.";
+            form.setError("password", {
+              type: "manual",
+              message: "Incorrect password",
+            });
+          } else if (
+            errorMessage.toLowerCase().includes("user not found") ||
+            errorMessage.toLowerCase().includes("no user") ||
+            errorMessage.toLowerCase().includes("not registered") ||
+            errorMessage.toLowerCase().includes("no account")
+          ) {
+            errorMessage =
+              "No account found with this email address. Please check your email or sign up.";
+            form.setError("email", {
+              type: "manual",
+              message: "Email not registered",
+            });
+          } else if (
+            errorMessage.toLowerCase().includes("password") &&
+            (errorMessage.toLowerCase().includes("wrong") ||
+              errorMessage.toLowerCase().includes("incorrect") ||
+              errorMessage.toLowerCase().includes("invalid") ||
+              errorMessage.toLowerCase().includes("mismatch"))
+          ) {
+            errorMessage =
+              "Incorrect password. Please try again or reset your password.";
+            form.setError("password", {
+              type: "manual",
+              message: "Incorrect password",
+            });
+          } else if (
+            errorMessage.toLowerCase().includes("disabled") ||
+            errorMessage.toLowerCase().includes("suspended") ||
+            errorMessage.toLowerCase().includes("blocked")
+          ) {
+            errorMessage =
+              "This account has been disabled. Please contact support for assistance.";
+          } else if (
+            errorMessage.toLowerCase().includes("too many") ||
+            errorMessage.toLowerCase().includes("rate limit") ||
+            errorMessage.toLowerCase().includes("try again later") ||
+            errorMessage.toLowerCase().includes("temporary")
+          ) {
+            errorMessage =
+              "Too many failed attempts. Please try again later or reset your password.";
+          } else if (
+            errorMessage.toLowerCase().includes("network") ||
+            errorMessage.toLowerCase().includes("connection") ||
+            errorMessage.toLowerCase().includes("offline") ||
+            errorMessage.toLowerCase().includes("internet")
+          ) {
+            errorMessage =
+              "Network error. Please check your internet connection and try again.";
+          } else if (
+            errorMessage.toLowerCase().includes("server") ||
+            errorMessage.toLowerCase().includes("unavailable") ||
+            errorMessage.toLowerCase().includes("maintenance") ||
+            errorMessage.toLowerCase().includes("503") ||
+            errorMessage.toLowerCase().includes("500")
+          ) {
+            errorMessage =
+              "Server error. Our services are temporarily unavailable. Please try again later.";
+          } else if (
+            errorMessage.toLowerCase().includes("verification") ||
+            errorMessage.toLowerCase().includes("verify") ||
+            errorMessage.toLowerCase().includes("confirmed")
+          ) {
+            errorMessage =
+              "Your account needs verification. Please check your email for a verification link.";
+          }
+
+          setError(errorMessage);
+          setIsLoading(false);
+          return;
+        }
+
+        // Check for return URL in the query string
+        const searchParams = new URLSearchParams(window.location.search);
+        const returnUrl = searchParams.get("returnUrl");
+
+        // Navigate to the requested return URL or to the new booking page
+        router.push(returnUrl ? returnUrl : "/dashboard/new-booking");
+      } catch (networkError) {
+        console.error("Network error during sign in:", networkError);
+        setError(
+          "Unable to connect to our services. Please check your internet connection and try again."
+        );
+        setIsLoading(false);
+        return;
+      }
     } catch (error) {
       console.error("Login error:", error);
-      setError(error instanceof Error ? error.message : "Failed to sign in");
+
+      let errorMessage =
+        "An unexpected error occurred. Please try again later.";
+      if (error instanceof Error) {
+        // Check for specific error types
+        if (
+          error.message.includes("network") ||
+          error.message.includes("fetch")
+        ) {
+          errorMessage =
+            "Network error. Please check your internet connection and try again.";
+        } else if (error.message.includes("JSON")) {
+          errorMessage = "Server response error. Please try again later.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -126,9 +311,32 @@ function SignInForm() {
         )}
 
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            <span>{error}</span>
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3 text-destructive">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p>{error}</p>
+              {error.toLowerCase().includes("no account") && (
+                <div className="mt-2">
+                  <Link
+                    href="/auth/signup"
+                    className="text-primary font-medium hover:underline underline-offset-4"
+                  >
+                    Create an account
+                  </Link>
+                </div>
+              )}
+              {error.toLowerCase().includes("password") &&
+                error.toLowerCase().includes("reset") && (
+                  <div className="mt-2">
+                    <Link
+                      href="/auth/forgot-password"
+                      className="text-primary font-medium hover:underline underline-offset-4"
+                    >
+                      Reset password
+                    </Link>
+                  </div>
+                )}
+            </div>
           </div>
         )}
 
