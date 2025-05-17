@@ -18,6 +18,18 @@ const defaultOptions: RequestInit = {
   },
 };
 
+// API response type definition
+interface ApiResponse<T> {
+  success: boolean;
+  data: T | null;
+  error?: {
+    message: string;
+    details?: string;
+    code?: string;
+  };
+  metadata?: Record<string, unknown>;
+}
+
 // API service with authentication
 export const apiService = {
   // Get Firebase token for API requests
@@ -237,5 +249,81 @@ export const apiService = {
     }
 
     return response.json();
+  },
+
+  // Generic fetch with error handling and authentication
+  async fetchWithAuth<T>(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const fullUrl = `${apiUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+
+      // Ensure we always include credentials for cookie-based auth
+      const fetchOptions: RequestInit = {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+      };
+
+      const response = await fetch(fullUrl, fetchOptions);
+
+      // Network response was received
+      try {
+        // Try to parse JSON response
+        const data = await response.json();
+
+        // If the API returned an error response
+        if (!response.ok) {
+          return {
+            success: false,
+            data: null,
+            error: {
+              message: data.error?.message || "API request failed",
+              details: data.error?.details || response.statusText,
+              code: data.error?.code || response.status.toString(),
+            },
+          };
+        }
+
+        // Success response
+        return {
+          success: true,
+          data: data.data,
+          metadata: data.metadata || {},
+        };
+      } catch (parseError) {
+        // JSON parsing failed
+        console.error("JSON parsing error", parseError);
+        return {
+          success: false,
+          data: null,
+          error: {
+            message: "Failed to parse API response",
+            details: response.statusText,
+            code: response.status.toString(),
+          },
+        };
+      }
+    } catch (networkError) {
+      // Network error (e.g., offline, DNS failure)
+      console.error("Network error:", networkError);
+      return {
+        success: false,
+        data: null,
+        error: {
+          message: "Network error",
+          details:
+            networkError instanceof Error
+              ? networkError.message
+              : "Failed to connect to API",
+          code: "NETWORK_ERROR",
+        },
+      };
+    }
   },
 };

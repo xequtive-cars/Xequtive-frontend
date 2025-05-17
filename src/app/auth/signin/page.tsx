@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -26,77 +26,132 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  Mail,
+  ChevronLeft,
+  Loader2,
+} from "lucide-react";
 import PublicRoute from "@/components/auth/PublicRoute";
 import { authService } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { StepProgressBar } from "@/components/auth/StepProgressBar";
+import FormTransition from "@/components/auth/FormTransition";
+import GoogleButton from "@/components/auth/GoogleButton";
 
-// Form schema with validation
-const formSchema = z.object({
+// Step 1: Email form schema
+const emailSchema = z.object({
   email: z.string().email("Invalid email address"),
+});
+
+// Step 2: Password form schema
+const passwordSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type EmailFormData = z.infer<typeof emailSchema>;
+type PasswordFormData = z.infer<typeof passwordSchema>;
 
-function SignInForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+// Define the steps of the signin process
+type SigninStep = "email" | "password";
+
+function SignInForm({
+  onStepChange,
+  onComplete,
+}: {
+  onStepChange: (step: SigninStep) => void;
+  onComplete: () => void;
+}) {
+  const [currentStep, setCurrentStep] = useState<SigninStep>("email");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
 
-  // Check if redirected from registration
+  // Check for success message
   useEffect(() => {
-    if (searchParams?.get("registered") === "true") {
+    if (searchParams?.get("success") === "account_created") {
       setShowSuccess(true);
     }
   }, [searchParams]);
 
-  // Check if already authenticated - using auth context
+  // Redirect authenticated users away from auth pages
   useEffect(() => {
     if (isAuthenticated) {
-      // User is already authenticated, redirect to new booking page
-      router.push("/dashboard/new-booking");
+      // Use window.location for consistent auth redirection pattern
+      window.location.href = "/dashboard";
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated]);
 
-  // Initialize form
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  // Initialize forms for each step
+  const emailForm = useForm<EmailFormData>({
+    resolver: zodResolver(emailSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: formData.email,
     },
   });
 
-  // Handle form submission
-  const onSubmit = async (data: FormData) => {
+  const passwordForm = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      password: formData.password,
+    },
+  });
+
+  // Handle email step submission
+  const onEmailSubmit = async (data: EmailFormData) => {
     setError(null);
+
+    // Update the form data with the email
+    setFormData({
+      ...formData,
+      email: data.email,
+    });
+
+    // Move to the next step
+    setCurrentStep("password");
+    onStepChange("password");
+  };
+
+  // Handle password step (final) submission
+  const onPasswordSubmit = async (data: PasswordFormData) => {
     setIsLoading(true);
+    setError(null);
+
+    // Update the form data with password
+    const completeFormData = {
+      ...formData,
+      password: data.password,
+    };
 
     try {
-      if (!data.email || !data.password) {
-        setError("Email and password are required");
-        setIsLoading(false);
-        return;
-      }
-
       // Basic client-side validation before sending request
-      if (!data.email.includes("@") || !data.email.includes(".")) {
-        form.setError("email", {
+      if (
+        !completeFormData.email.includes("@") ||
+        !completeFormData.email.includes(".")
+      ) {
+        emailForm.setError("email", {
           type: "manual",
           message: "Please enter a valid email address",
         });
         setError("Please enter a valid email address");
         setIsLoading(false);
+        setCurrentStep("email");
+        onStepChange("email");
         return;
       }
 
-      if (data.password.length < 1) {
-        form.setError("password", {
+      if (completeFormData.password.length < 1) {
+        passwordForm.setError("password", {
           type: "manual",
           message: "Password is required",
         });
@@ -107,7 +162,10 @@ function SignInForm() {
 
       // Network error handling
       try {
-        const result = await authService.signIn(data.email, data.password);
+        const result = await authService.signIn(
+          completeFormData.email,
+          completeFormData.password
+        );
 
         if (!result.success) {
           let errorMessage = result.error?.message || "Failed to sign in";
@@ -139,8 +197,6 @@ function SignInForm() {
 
           // Check for specific error codes first
           const errorCode = errorMessage.toUpperCase().replace(/[^A-Z_]/g, "_");
-          console.log("Original error:", errorMessage);
-          console.log("Converted error code:", errorCode);
 
           if (errorCodeMap[errorCode]) {
             errorMessage = errorCodeMap[errorCode];
@@ -151,7 +207,7 @@ function SignInForm() {
               errorCode === "INVALID_CREDENTIALS_LOGIN" ||
               errorCode === "INVALID_PASSWORD"
             ) {
-              form.setError("password", {
+              passwordForm.setError("password", {
                 type: "manual",
                 message: "Incorrect password",
               });
@@ -159,7 +215,10 @@ function SignInForm() {
               errorCode === "USER_NOT_FOUND" ||
               errorCode === "INVALID_EMAIL"
             ) {
-              form.setError("email", {
+              // Go back to email step
+              setCurrentStep("email");
+              onStepChange("email");
+              emailForm.setError("email", {
                 type: "manual",
                 message:
                   errorCode === "USER_NOT_FOUND"
@@ -176,7 +235,7 @@ function SignInForm() {
             errorMessage.toLowerCase().includes("invalid password")
           ) {
             errorMessage = "Email or password is incorrect. Please try again.";
-            form.setError("password", {
+            passwordForm.setError("password", {
               type: "manual",
               message: "Incorrect password",
             });
@@ -188,55 +247,13 @@ function SignInForm() {
           ) {
             errorMessage =
               "No account found with this email address. Please check your email or sign up.";
-            form.setError("email", {
+            // Go back to email step
+            setCurrentStep("email");
+            onStepChange("email");
+            emailForm.setError("email", {
               type: "manual",
               message: "Email not registered",
             });
-          } else if (
-            errorMessage.toLowerCase().includes("password") &&
-            (errorMessage.toLowerCase().includes("wrong") ||
-              errorMessage.toLowerCase().includes("incorrect") ||
-              errorMessage.toLowerCase().includes("invalid") ||
-              errorMessage.toLowerCase().includes("mismatch"))
-          ) {
-            errorMessage =
-              "Incorrect password. Please try again or reset your password.";
-            form.setError("password", {
-              type: "manual",
-              message: "Incorrect password",
-            });
-          } else if (
-            errorMessage.toLowerCase().includes("disabled") ||
-            errorMessage.toLowerCase().includes("suspended") ||
-            errorMessage.toLowerCase().includes("blocked")
-          ) {
-            errorMessage =
-              "This account has been disabled. Please contact support for assistance.";
-          } else if (
-            errorMessage.toLowerCase().includes("too many") ||
-            errorMessage.toLowerCase().includes("rate limit") ||
-            errorMessage.toLowerCase().includes("try again later") ||
-            errorMessage.toLowerCase().includes("temporary")
-          ) {
-            errorMessage =
-              "Too many failed attempts. Please try again later or reset your password.";
-          } else if (
-            errorMessage.toLowerCase().includes("network") ||
-            errorMessage.toLowerCase().includes("connection") ||
-            errorMessage.toLowerCase().includes("offline") ||
-            errorMessage.toLowerCase().includes("internet")
-          ) {
-            errorMessage =
-              "Network error. Please check your internet connection and try again.";
-          } else if (
-            errorMessage.toLowerCase().includes("server") ||
-            errorMessage.toLowerCase().includes("unavailable") ||
-            errorMessage.toLowerCase().includes("maintenance") ||
-            errorMessage.toLowerCase().includes("503") ||
-            errorMessage.toLowerCase().includes("500")
-          ) {
-            errorMessage =
-              "Server error. Our services are temporarily unavailable. Please try again later.";
           } else if (
             errorMessage.toLowerCase().includes("verification") ||
             errorMessage.toLowerCase().includes("verify") ||
@@ -255,8 +272,14 @@ function SignInForm() {
         const searchParams = new URLSearchParams(window.location.search);
         const returnUrl = searchParams.get("returnUrl");
 
-        // Navigate to the requested return URL or to the new booking page
-        router.push(returnUrl ? returnUrl : "/dashboard/new-booking");
+        // Use window.location for a hard navigation instead of router.push
+        // This ensures we reload the page and check auth status properly
+        window.location.href = returnUrl || "/dashboard";
+
+        // Complete the form before navigation
+        onComplete();
+
+        // Don't set isLoading to false since we're reloading the page
       } catch (networkError) {
         console.error("Network error during sign in:", networkError);
         setError(
@@ -290,17 +313,43 @@ function SignInForm() {
     }
   };
 
+  // Function to go back to previous step
+  const goBack = () => {
+    if (currentStep === "password") {
+      setCurrentStep("email");
+      onStepChange("email");
+    }
+  };
+
+  // Helper function to render sign-in with Google button
+  const renderGoogleSignIn = () => (
+    <div className="mt-4">
+      <div className="relative my-3">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border"></span>
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with
+          </span>
+        </div>
+      </div>
+      <GoogleButton type="signin" />
+    </div>
+  );
+
   return (
-    <Card className="w-full max-w-md mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300 hover:shadow-2xl">
-      <CardHeader className="space-y-1">
+    <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
+      <CardHeader className="space-y-2 pb-3">
         <CardTitle className="text-2xl font-bold text-center">
           Sign in to your account
         </CardTitle>
-        <CardDescription className="text-center">
-          Enter your credentials to access your account
+        <CardDescription className="text-center text-base">
+          {currentStep === "email" && "Enter your email address to get started"}
+          {currentStep === "password" && "Enter your password to continue"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-7 pb-7 pt-3">
         {showSuccess && (
           <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg flex items-center gap-3 text-success">
             <CheckCircle2 className="h-5 w-5" />
@@ -340,87 +389,138 @@ function SignInForm() {
           </div>
         )}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium">
-                    Email address
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type="email"
-                        placeholder="name@example.com"
-                        {...field}
-                        className="h-12 pl-4 rounded-lg border-border focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
+        <div className="relative">
+          <FormTransition
+            isActive={currentStep === "email"}
+            direction="forward"
+            animationKey="email-step"
+          >
+            <Form {...emailForm}>
+              <form
+                onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+                className="space-y-6"
+              >
+                <FormField
+                  control={emailForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-base font-semibold">
+                        Email address
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type="email"
+                            placeholder="name@example.com"
+                            {...field}
+                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                          />
+                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                            <Mail className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <div className="flex justify-between">
-                    <FormLabel className="text-sm font-medium">
-                      Password
-                    </FormLabel>
-                    <Link
-                      href="/auth/forgot-password"
-                      className="text-xs text-primary hover:underline underline-offset-4"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        {...field}
-                        className="h-12 pl-4 pr-12 rounded-lg border-border focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">
-                          {showPassword ? "Hide password" : "Show password"}
-                        </span>
-                      </button>
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Continue"
+                  )}
+                </Button>
+              </form>
+            </Form>
+            {renderGoogleSignIn()}
+          </FormTransition>
 
-            <Button
-              type="submit"
-              className="w-full h-12 text-base font-medium transition-all"
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
-        </Form>
+          <FormTransition
+            isActive={currentStep === "password"}
+            direction="forward"
+            animationKey="password-step"
+          >
+            <Form {...passwordForm}>
+              <form
+                onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+                className="space-y-6"
+              >
+                <FormField
+                  control={passwordForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <div className="flex justify-between">
+                        <FormLabel className="text-base font-semibold">
+                          Password
+                        </FormLabel>
+                        <Link
+                          href="/auth/forgot-password"
+                          className="text-xs text-primary hover:underline underline-offset-4"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            {...field}
+                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                          />
+                          <div
+                            className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                            ) : (
+                              <Eye className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                            )}
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="sm:flex-1 h-11 text-base font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                    onClick={goBack}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="sm:flex-1 h-11 text-base font-semibold"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      "Sign in"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </FormTransition>
+        </div>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4 border-t p-6">
+      <CardFooter className="flex justify-center border-t p-4">
         <div className="text-sm text-center">
           Don&apos;t have an account?{" "}
           <Link
@@ -453,12 +553,55 @@ export default function SigninPage() {
           </div>
         </header>
 
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
-          <Suspense fallback={<div>Loading...</div>}>
-            <SignInForm />
-          </Suspense>
-        </main>
+        <SignInFormWithProgress />
       </div>
     </PublicRoute>
+  );
+}
+
+function SignInFormWithProgress() {
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const totalSteps = 2; // Email and password steps
+
+  // Update progress when the step changes
+  const handleStepChange = (step: SigninStep) => {
+    if (step === "email") {
+      setCurrentStep(1);
+      setIsCompleted(false);
+    } else if (step === "password") {
+      setCurrentStep(2);
+      setIsCompleted(false);
+    }
+  };
+
+  // Handle form completion
+  const handleComplete = () => {
+    setIsCompleted(true);
+  };
+
+  return (
+    <>
+      <StepProgressBar
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        completed={isCompleted}
+      />
+
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
+        <Suspense
+          fallback={
+            <div className="text-center">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            </div>
+          }
+        >
+          <SignInForm
+            onStepChange={handleStepChange}
+            onComplete={handleComplete}
+          />
+        </Suspense>
+      </main>
+    </>
   );
 }

@@ -1,3 +1,9 @@
+/**
+ * Auth service for handling authentication with the API
+ * Uses secure HTTP-only cookies for token storage (handled by the server)
+ * The backend handles setting cookies with tokens automatically
+ */
+
 import {
   signOut as firebaseSignOut,
   User,
@@ -42,185 +48,63 @@ const isBrowser = typeof window !== "undefined";
 
 // Auth service implementation
 export const authService = {
-  // Get current auth token
+  // Get current auth token - DEPRECATED, tokens now managed by secure HttpOnly cookies
   getToken: (): string | null => {
-    if (!isBrowser) return null;
-
-    try {
-      return localStorage.getItem("auth-token");
-    } catch {
-      return null;
-    }
+    return null; // We no longer store tokens in localStorage
   },
 
-  // Get current user data
-  getUserData: (): UserData | null => {
-    if (!isBrowser) return null;
-
-    try {
-      const userData = localStorage.getItem("user-data");
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+  // Get current user data from API
+  getUserData: async (): Promise<UserData | null> => {
+    return authService.checkAuthStatus();
   },
 
-  // Save auth data
+  // Save auth data - DEPRECATED, tokens now managed by secure HttpOnly cookies
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveAuthData: (token: string, userData: UserData, expiresIn?: string) => {
-    if (!isBrowser) return;
-
-    try {
-      // Store the token in localStorage
-      localStorage.setItem("auth-token", token);
-
-      // Also store the token in a cookie for middleware access
-      const expiryDays = expiresIn ? parseInt(expiresIn) / 86400 : 7; // Convert seconds to days or default to 7 days
-      document.cookie = `auth-token=${token}; path=/; max-age=${
-        expiryDays * 86400
-      }; SameSite=Strict; Secure`;
-
-      // Store user data
-      localStorage.setItem("user-data", JSON.stringify(userData));
-
-      // Set expiry timestamp if provided
-      if (expiresIn) {
-        const expiryTime = Date.now() + parseInt(expiresIn) * 1000;
-        localStorage.setItem("token-expiry", expiryTime.toString());
-      }
-
-      // Add a last-authenticated timestamp
-      localStorage.setItem("last-auth", Date.now().toString());
-    } catch {
-      // Error handling silent
-    }
+    // This function is now a no-op as we're using HttpOnly cookies
+    console.warn(
+      "saveAuthData is deprecated - using secure HttpOnly cookies instead"
+    );
   },
 
-  // Clear auth data
+  // Clear auth data - only used for local cleanup
   clearAuthData: () => {
-    if (!isBrowser) return;
-
-    try {
-      // Clear localStorage items
-      localStorage.removeItem("auth-token");
-      localStorage.removeItem("user-data");
-      localStorage.removeItem("token-expiry");
-      localStorage.removeItem("last-auth");
-
-      // Also clear the auth token cookie
-      document.cookie =
-        "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict";
-    } catch {
-      // Error handling silent
-    }
+    // The actual cookie clearing happens server-side when calling signOut()
+    console.info("Local auth data cleared");
   },
 
-  // Check if user is authenticated
-  isAuthenticated: (): boolean => {
+  // Check if user is authenticated by making an API call
+  isAuthenticated: async (): Promise<boolean> => {
     if (!isBrowser) return false;
 
     try {
-      // Get token and user data
-      const token = authService.getToken();
-      const userData = authService.getUserData();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
+        method: "GET",
+        credentials: "include", // Important for sending cookies
+      });
 
-      if (!token || !userData) {
-        return false;
-      }
-
-      // Check token expiry if available
-      const expiryTime = localStorage.getItem("token-expiry");
-      if (expiryTime) {
-        const expiryTimestamp = parseInt(expiryTime);
-        // Consider token invalid if it's expired or within 5 minutes of expiration
-        const fiveMinutesInMs = 5 * 60 * 1000;
-        if (
-          isNaN(expiryTimestamp) ||
-          expiryTimestamp < Date.now() + fiveMinutesInMs
-        ) {
-          console.warn("Auth token expired or about to expire");
-          authService.clearAuthData();
-          return false;
-        }
-      } else {
-        // If we don't have an expiry time but we have a token, check if it was created
-        // more than 4 days ago (assuming 5-day tokens)
-        const lastAuth = localStorage.getItem("last-auth");
-        if (lastAuth) {
-          const lastAuthTime = parseInt(lastAuth);
-          const fourDaysInMs = 4 * 24 * 60 * 60 * 1000;
-          if (
-            !isNaN(lastAuthTime) &&
-            Date.now() - lastAuthTime > fourDaysInMs
-          ) {
-            console.warn("Auth token potentially expired (older than 4 days)");
-            authService.clearAuthData();
-            return false;
-          }
-        }
-      }
-
-      return true;
+      return response.ok; // If 200, user is authenticated
     } catch {
-      // Clear data on error to be safe
-      authService.clearAuthData();
       return false;
     }
   },
 
-  // Check if auth token needs refreshing (within 30 minutes of expiration)
+  // This is no longer needed as token refresh is handled server-side
   shouldRefreshToken: (): boolean => {
-    if (!isBrowser) return false;
-
-    try {
-      // First check if we're authenticated at all
-      if (!authService.isAuthenticated()) {
-        return false;
-      }
-
-      // Get token expiry
-      const expiryTime = localStorage.getItem("token-expiry");
-      if (expiryTime) {
-        const expiryTimestamp = parseInt(expiryTime);
-        // If token expires within 30 minutes, we should refresh it
-        const thirtyMinutesInMs = 30 * 60 * 1000;
-        if (
-          !isNaN(expiryTimestamp) &&
-          expiryTimestamp < Date.now() + thirtyMinutesInMs
-        ) {
-          return true;
-        }
-      } else {
-        // If we don't have an expiry time but we have a token, check if it was created
-        // more than 4 days ago (assuming 5-day tokens)
-        const lastAuth = localStorage.getItem("last-auth");
-        if (lastAuth) {
-          const lastAuthTime = parseInt(lastAuth);
-          const threeDaysInMs = 3.5 * 24 * 60 * 60 * 1000;
-          if (
-            !isNaN(lastAuthTime) &&
-            Date.now() - lastAuthTime > threeDaysInMs
-          ) {
-            return true;
-          }
-        }
-      }
-
-      return false;
-    } catch {
-      return false;
-    }
+    return false;
   },
 
   // Handle 401 Unauthorized response from API
   handleAuthError: (status: number): boolean => {
-    // If we receive a 401, clear auth data and return true to indicate auth error
+    // If we receive a 401, redirect to login
     if (status === 401) {
       console.warn("Received 401 Unauthorized response from API");
-      authService.clearAuthData();
+      // We don't need to clear anything locally anymore
 
-      // Notify auth change
+      // Notify UI of auth change
       if (isBrowser) {
-        window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new Event("auth_error"));
       }
 
       return true;
@@ -255,13 +139,14 @@ export const authService = {
       };
 
       // URL includes /api prefix
-      const fullUrl = `${apiUrl}/api/auth/register`;
+      const fullUrl = `${apiUrl}/api/auth/signup`;
 
       // Call the API endpoint with correct path including /api prefix
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+        credentials: "include", // Important for cookie handling
       });
 
       // Handle 404 specifically
@@ -324,6 +209,7 @@ export const authService = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+        credentials: "include", // Important for cookie handling
       });
 
       // Handle 404 specifically
@@ -350,24 +236,12 @@ export const authService = {
         };
       }
 
-      // Login successful, store auth data
-      if (data.success && data.data) {
-        const { token, uid, email, displayName, role, phone, expiresIn } =
-          data.data;
+      // No need to save anything to localStorage anymore
+      // The backend has set the HttpOnly cookie automatically
 
-        // Save to localStorage
-        authService.saveAuthData(
-          token,
-          { uid, email, displayName, role, phoneNumber: phone || "" },
-          expiresIn
-        );
-
-        // Dispatch a storage event to notify other tabs/components
-        if (isBrowser) {
-          // Create and dispatch a storage event to trigger auth state update
-          // This helps components using the auth context to update immediately
-          window.dispatchEvent(new Event("storage"));
-        }
+      // Notify UI of auth change
+      if (isBrowser) {
+        window.dispatchEvent(new Event("auth_success"));
       }
 
       return {
@@ -387,20 +261,28 @@ export const authService = {
   // Sign out user
   signOut: async (): Promise<void> => {
     try {
-      // Clear local storage first
-      authService.clearAuthData();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const fullUrl = `${apiUrl}/api/auth/signout`;
 
-      // Then sign out from Firebase
+      // Call the signout endpoint to clear the HttpOnly cookie
+      await fetch(fullUrl, {
+        method: "POST",
+        credentials: "include", // Important for cookie handling
+      });
+
+      // Notify UI of auth change
+      if (isBrowser) {
+        window.dispatchEvent(new Event("auth_signout"));
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+    } finally {
+      // Still try to sign out from Firebase as a fallback
       try {
         await firebaseSignOut(auth);
       } catch {
         // Silent error handling
       }
-
-      // No longer redirect here as this is now handled by the auth context
-    } catch {
-      // Even if there's an error, try to clear local data
-      authService.clearAuthData();
     }
   },
 
@@ -447,6 +329,7 @@ export const authService = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+        credentials: "include", // Consistent with our approach
       });
 
       // Handle 404 specifically
@@ -520,6 +403,7 @@ export const authService = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+        credentials: "include", // Consistent with our approach
       });
 
       // Handle 404 specifically
@@ -558,6 +442,166 @@ export const authService = {
             error instanceof Error
               ? error.message
               : "Password reset failed. Please try again.",
+        },
+      };
+    }
+  },
+
+  // Check authentication status
+  checkAuthStatus: async (): Promise<UserData | null> => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const fullUrl = `${apiUrl}/api/auth/me`;
+
+      const response = await fetch(fullUrl, {
+        method: "GET",
+        credentials: "include", // Important for cookie handling
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.data) {
+        return null;
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      return null;
+    }
+  },
+
+  // Initiate Google OAuth flow
+  initiateGoogleAuth: () => {
+    if (!isBrowser) return;
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    window.location.href = `${apiUrl}/api/auth/google/login?redirect_url=${encodeURIComponent(
+      redirectUrl
+    )}`;
+  },
+
+  // Exchange temporary code for session
+  exchangeCodeForSession: async (code: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const fullUrl = `${apiUrl}/api/auth/google/callback`;
+
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Important for cookie handling
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: {
+            message: "Authentication failed",
+            details: "Failed to exchange code for session",
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Authentication failed",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      // Notify UI of auth change
+      if (isBrowser) {
+        window.dispatchEvent(new Event("auth_success"));
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Session exchange error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to exchange code for session",
+        },
+      };
+    }
+  },
+
+  // Complete user profile with phone number
+  completeUserProfile: async (
+    fullName: string,
+    phoneNumber: string
+  ): Promise<AuthResponse> => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const fullUrl = `${apiUrl}/api/auth/complete-profile`;
+
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Important for cookie handling
+        body: JSON.stringify({
+          fullName,
+          phoneNumber: phoneNumber.replace(/-/g, ""), // Remove dashes
+        }),
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: {
+            message: "Failed to complete profile",
+            details: "API request failed",
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to complete profile",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Profile completion error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to complete profile",
         },
       };
     }

@@ -1,7 +1,6 @@
 import { VehicleOption } from "@/components/booking/common/types";
 import { Location } from "@/components/map/MapComponent";
 import { format } from "date-fns";
-import { authService } from "@/lib/auth";
 
 // Enhanced booking interfaces - exported for documentation and future reference
 export interface BookingRequest {
@@ -223,12 +222,6 @@ class BookingService {
     const endpoint = `${apiUrl}/api/bookings/create-enhanced`;
 
     try {
-      // Get authentication token
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
       // Format the request according to the API documentation
       const requestData: BookingRequest = {
         customer: {
@@ -252,24 +245,12 @@ class BookingService {
                 lng: bookingDetails.dropoffLocation?.longitude || 0,
               },
             },
-            additionalStops: bookingDetails.additionalStops
-              .filter(
-                (stop) =>
-                  stop && stop.address && typeof stop.address === "string"
-              )
-              .map((stop) => ({
-                address: stop.address!,
-                coordinates: {
-                  lat: stop.latitude,
-                  lng: stop.longitude,
-                },
-              })),
           },
           datetime: {
             date: bookingDetails.selectedDate
               ? format(bookingDetails.selectedDate, "yyyy-MM-dd")
-              : format(new Date(), "yyyy-MM-dd"),
-            time: bookingDetails.selectedTime,
+              : "",
+            time: bookingDetails.selectedTime || "",
           },
           passengers: {
             count: bookingDetails.passengers || 1,
@@ -280,18 +261,39 @@ class BookingService {
             id: bookingDetails.selectedVehicle?.id || "",
             name: bookingDetails.selectedVehicle?.name || "",
           },
-          specialRequests: personalDetails.specialRequests,
+          specialRequests: personalDetails.specialRequests || "",
         },
       };
 
+      // Add additional stops if present
+      if (
+        bookingDetails.additionalStops &&
+        bookingDetails.additionalStops.length > 0
+      ) {
+        requestData.booking.locations.additionalStops =
+          bookingDetails.additionalStops.map((stop) => ({
+            address: stop.address || "",
+            coordinates: {
+              lat: stop.latitude || 0,
+              lng: stop.longitude || 0,
+            },
+          }));
+      }
+
+      // Make the API request
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Use cookies for authentication
         body: JSON.stringify(requestData),
       });
+
+      // Handle 401 unauthorized response
+      if (response.status === 401) {
+        throw new Error("Authentication required");
+      }
 
       const data = await response.json();
 
@@ -346,12 +348,6 @@ class BookingService {
     }
 
     try {
-      // Get authentication token
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
       // Construct the URL with optional status filter
       let url = `${apiUrl}/api/bookings/user`;
       if (statusFilter) {
@@ -359,10 +355,13 @@ class BookingService {
       }
 
       const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include", // Use cookies for authentication
       });
+
+      // Handle 401 unauthorized response
+      if (response.status === 401) {
+        throw new Error("Authentication required");
+      }
 
       const data = await response.json();
 
@@ -421,12 +420,6 @@ class BookingService {
     }
 
     try {
-      // Get authentication token
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
       // Ensure we're using the correct URL format with /api prefix
       // If NEXT_PUBLIC_API_URL doesn't include /api, we need to add it
       const url = `${apiUrl}/api/bookings/user/bookings/${bookingId}/cancel`;
@@ -437,8 +430,8 @@ class BookingService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Use cookies for authentication
         body,
       });
 

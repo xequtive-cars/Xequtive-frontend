@@ -7,7 +7,7 @@ import {
   useState,
   useEffect,
 } from "react";
-import { auth, getIdToken } from "./config";
+import { auth } from "./config";
 import { authService } from "@/lib/auth";
 
 // Check if we're in the browser environment
@@ -28,7 +28,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
-  getFirebaseToken: () => Promise<string | null>;
+  checkAuthStatus: () => Promise<boolean>;
 }
 
 // Create context with default values
@@ -37,7 +37,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isAuthenticated: false,
   signOut: async () => {},
-  getFirebaseToken: async () => null,
+  checkAuthStatus: async () => false,
 });
 
 // Auth provider component
@@ -47,6 +47,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Function to check authentication status from the backend
+  const checkAuthStatus = async (): Promise<boolean> => {
+    try {
+      if (!isBrowser) return false;
+
+      setIsLoading(true);
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
+        method: "GET",
+        credentials: "include", // Important for sending cookies
+      });
+
+      if (response.status === 401) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return false;
+      }
+
+      if (!response.ok) {
+        console.error("Failed to fetch user data:", response.statusText);
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return false;
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setUser(data.data);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return true;
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
   // This effect runs once on mount to initialize auth state
   useEffect(() => {
     if (!isBrowser) {
@@ -54,131 +103,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Initialize Firebase auth listener
-    const unsubscribe = auth.onAuthStateChanged(() => {
-      // We're now using our custom auth system, so we don't need to do anything here
-    });
-
     const initializeAuth = async () => {
-      // Get stored credentials from localStorage
-      const storedUser = authService.getUserData();
-      const isValid = authService.isAuthenticated();
-
-      if (storedUser && isValid) {
-        setUser(storedUser);
-        setIsAuthenticated(true);
-      } else {
-        // Clear any invalid auth data
-        authService.clearAuthData();
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-
-      setIsLoading(false);
+      await checkAuthStatus();
     };
 
     // Initialize authentication state immediately
     initializeAuth();
 
-    // Set up a storage event listener to sync auth state across tabs
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "auth-token" || event.key === "user-data") {
-        initializeAuth();
-      }
+    // Set up custom event listeners for auth state changes
+    const handleAuthSuccess = () => {
+      checkAuthStatus();
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    const handleAuthError = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsLoading(false);
+    };
 
-    // Use a simple interval to periodically check token expiration
+    const handleAuthSignout = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsLoading(false);
+    };
+
+    window.addEventListener("auth_success", handleAuthSuccess);
+    window.addEventListener("auth_error", handleAuthError);
+    window.addEventListener("auth_signout", handleAuthSignout);
+
+    // Check auth status periodically (every 5 minutes)
     const checkInterval = setInterval(() => {
-      // Check if token should be refreshed first
-      if (authService.shouldRefreshToken()) {
-        // Try to refresh the token silently if possible
-        // Note: This requires the user to be logged in with Firebase
-        const refreshUser = async () => {
-          try {
-            const currentUser = auth.currentUser;
-            if (currentUser) {
-              // Get a fresh token using our helper function
-              const token = await getIdToken(currentUser);
-              if (token) {
-                // Update token in storage
-                const userData = authService.getUserData();
-                if (userData) {
-                  authService.saveAuthData(token, userData, "432000"); // 5 days in seconds
-                  // No need to update state as storage event will trigger
-                }
-                return;
-              }
-            }
-
-            // If we couldn't refresh, check if the token is still valid
-            const isStillValid = authService.isAuthenticated();
-            if (!isStillValid && isAuthenticated) {
-              authService.clearAuthData();
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-          } catch (error) {
-            console.error("Error refreshing token:", error);
-            // Check if still valid anyway
-            const isStillValid = authService.isAuthenticated();
-            if (!isStillValid && isAuthenticated) {
-              authService.clearAuthData();
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-          }
-        };
-
-        refreshUser();
-      } else {
-        // Just check if the token is still valid
-        const isStillValid = authService.isAuthenticated();
-        if (!isStillValid && isAuthenticated) {
-          authService.clearAuthData();
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      }
-    }, 60000); // Check every minute
+      checkAuthStatus();
+    }, 5 * 60 * 1000);
 
     // Cleanup function
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("auth_success", handleAuthSuccess);
+      window.removeEventListener("auth_error", handleAuthError);
+      window.removeEventListener("auth_signout", handleAuthSignout);
       clearInterval(checkInterval);
-      unsubscribe();
     };
-  }, [isAuthenticated]);
-
-  // Get Firebase ID token for API requests
-  const getFirebaseToken = async (): Promise<string | null> => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        return null;
-      }
-
-      // Get the ID token
-      return await getIdToken(currentUser);
-    } catch (error) {
-      console.error("Error getting Firebase token:", error);
-      return null;
-    }
-  };
+  }, []);
 
   // Handle sign out - wrap the auth service method to also update local state
   const handleSignOut = async (): Promise<void> => {
     try {
-      // Clear auth data (both localStorage and cookies)
+      // Call the signout endpoint to clear cookies
       await authService.signOut();
 
       // Update local state immediately
       setUser(null);
       setIsAuthenticated(false);
 
-      // Force a hard redirect after signout for the best compatibility
-      // with both middleware and client-side auth context
+      // Force a hard redirect to the homepage after signout to reset all state
       window.location.href = "/";
     } catch (error) {
       console.error("Sign out error:", error);
@@ -186,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsAuthenticated(false);
 
-      // Still try to redirect
+      // Still redirect on error
       window.location.href = "/";
     }
   };
@@ -199,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated,
         signOut: handleSignOut,
-        getFirebaseToken,
+        checkAuthStatus,
       }}
     >
       {children}

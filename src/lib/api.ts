@@ -38,18 +38,13 @@ interface BookingUpdateData {
   fareEstimate?: number;
 }
 
-// Simple token getter
-const getToken = async (): Promise<string | null> => {
-  const token = localStorage.getItem("auth-token");
-  return token;
-};
-
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Important: include cookies with every request
   timeout: 30000, // 30 seconds timeout
 });
 
@@ -59,29 +54,17 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 unauthorized - redirect to login
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem("auth-token");
+      // No need to remove tokens from localStorage anymore
+      // The server is responsible for clearing cookies
       if (typeof window !== "undefined") {
-        window.location.href = "/auth/signin";
+        // Use a query parameter to avoid infinite loops
+        window.location.href = "/auth/signin?session_expired=true";
       }
     }
 
     return Promise.reject(error);
   }
 );
-
-// Add interceptor to add auth token to every request
-api.interceptors.request.use(async (config) => {
-  try {
-    const token = await getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  } catch (error) {
-    console.error("Error in auth interceptor:", error);
-    return config;
-  }
-});
 
 // Utility functions for API endpoints
 export const apiService = {

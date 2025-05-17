@@ -20,8 +20,8 @@ A Next.js-based frontend application for the Xequtive transportation booking pla
 - **UI Components**: Shadcn UI
 - **Form Validation**: Custom validation hooks
 - **Maps**: Google Maps integration
-- **Authentication**: Firebase Auth
-- **API Communication**: Fetch API with type-safe interfaces
+- **Authentication**: Cookie-based secure auth with Firebase backend
+- **API Communication**: Fetch API with credentials for cookie handling
 
 ## Project Structure
 
@@ -101,6 +101,26 @@ Comprehensive documentation is available in the `src/docs` directory:
 - **Booking Flow**: Details of the booking process
 - **API Integration**: Information about API interactions
 - **Component Examples**: Example usage of key components
+
+## Authentication
+
+The application uses a secure cookie-based authentication system:
+
+- **HttpOnly Cookies**: All auth tokens are stored in secure HTTP-only cookies
+- **Backend Management**: The backend API handles cookie creation and expiration
+- **Credentials**: All API requests include `credentials: "include"` to send cookies
+- **CORS**: The backend is configured to accept credentials with specific origins
+- **Custom Auth Context**: React context provides authentication state to components
+- **Protected Routes**: Both client-side and middleware route protection
+- **Session Management**: Automatic session verification and timeout handling
+
+### Authentication Flow:
+
+1. User signs in or registers via auth forms
+2. Backend validates credentials and sets secure cookies
+3. Frontend detects authentication via `/auth/me` endpoint
+4. Protected routes check auth status before rendering
+5. Middleware redirects unauthenticated users from protected areas
 
 ## Development Guidelines
 

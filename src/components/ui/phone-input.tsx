@@ -3,258 +3,128 @@
 /**
  * Enhanced PhoneInput Component
  *
- * An international phone input component with features like:
- * - Country code selection with flags
+ * A UK phone input component with features like:
+ * - UK country code display with flag
  * - Input validation and formatting
- * - Support for different phone number formats
  * - Visual feedback for valid/invalid numbers
  */
 
 import * as React from "react";
-import { Check, ChevronDown } from "lucide-react";
-
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-
-// We need to create a command component for country selection
-// These will be imported from shadcn UI components
-// For now, let's use a simpler dropdown approach
-const CommandInput = ({ placeholder }: { placeholder: string }) => (
-  <Input
-    className="h-9 border-none focus-visible:ring-0"
-    placeholder={placeholder}
-  />
-);
-
-const CommandEmpty = ({ children }: { children: React.ReactNode }) => (
-  <div className="py-6 text-center text-sm">{children}</div>
-);
-
-const CommandGroup = ({ children }: { children: React.ReactNode }) => (
-  <div className="max-h-[300px] overflow-y-auto">{children}</div>
-);
-
-const CommandList = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-1">{children}</div>
-);
-
-const CommandItem = ({
-  className,
-  onSelect,
-  children,
-  ...props
-}: {
-  className?: string;
-  onSelect: () => void;
-  children: React.ReactNode;
-  [key: string]: unknown;
-}) => (
-  <div
-    onClick={onSelect}
-    className={cn(
-      "px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-accent",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </div>
-);
-
-const Command = ({ children }: { children: React.ReactNode }) => (
-  <div className="border-none bg-transparent p-0">{children}</div>
-);
-
-// Later we can create proper components files for these
-
-// Most common country codes with flags
-const countryCodes = [
-  { code: "1", country: "US", label: "United States (+1)", flag: "🇺🇸" },
-  { code: "44", country: "GB", label: "United Kingdom (+44)", flag: "🇬🇧" },
-  { code: "49", country: "DE", label: "Germany (+49)", flag: "🇩🇪" },
-  { code: "33", country: "FR", label: "France (+33)", flag: "🇫🇷" },
-  { code: "34", country: "ES", label: "Spain (+34)", flag: "🇪🇸" },
-  { code: "39", country: "IT", label: "Italy (+39)", flag: "🇮🇹" },
-  { code: "61", country: "AU", label: "Australia (+61)", flag: "🇦🇺" },
-  { code: "1", country: "CA", label: "Canada (+1)", flag: "🇨🇦" },
-  { code: "86", country: "CN", label: "China (+86)", flag: "🇨🇳" },
-  { code: "91", country: "IN", label: "India (+91)", flag: "🇮🇳" },
-  { code: "81", country: "JP", label: "Japan (+81)", flag: "🇯🇵" },
-  { code: "82", country: "KR", label: "South Korea (+82)", flag: "🇰🇷" },
-  { code: "55", country: "BR", label: "Brazil (+55)", flag: "🇧🇷" },
-  { code: "52", country: "MX", label: "Mexico (+52)", flag: "🇲🇽" },
-  { code: "971", country: "AE", label: "UAE (+971)", flag: "🇦🇪" },
-  { code: "966", country: "SA", label: "Saudi Arabia (+966)", flag: "🇸🇦" },
-  { code: "65", country: "SG", label: "Singapore (+65)", flag: "🇸🇬" },
-  { code: "64", country: "NZ", label: "New Zealand (+64)", flag: "🇳🇿" },
-  { code: "27", country: "ZA", label: "South Africa (+27)", flag: "🇿🇦" },
-];
+import UKFlagIcon from "./icons/UKFlagIcon";
 
 interface PhoneInputProps
   extends Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
     "onChange" | "value"
   > {
-  value: string;
   onChange: (value: string) => void;
+  value: string;
   error?: boolean;
 }
 
 export function PhoneInput({
   className,
-  value,
   onChange,
-  error = false,
-  disabled = false,
+  value,
+  error,
   ...props
 }: PhoneInputProps) {
-  // Parse the value to get countryCode and phoneNumber separately
-  const parsePhoneValue = (val: string): [string, string] => {
-    // Remove any non-numeric, non-plus characters
-    const cleaned = val.replace(/[^\d+]/g, "");
+  const formatPhoneNumber = (input: string): string => {
+    // Remove all non-digits
+    const digits = input.replace(/\D/g, "");
 
-    // Check if the value starts with a plus
-    if (cleaned.startsWith("+")) {
-      // Find the country code
-      for (const country of countryCodes) {
-        if (cleaned.startsWith(`+${country.code}`)) {
-          return [
-            country.code,
-            cleaned.substring(country.code.length + 1), // +1 for the plus sign
-          ];
-        }
-      }
-
-      // If no matching country code, default to first digit after the plus
-      const firstPart = cleaned.substring(1, 2);
-      const secondPart = cleaned.substring(2);
-      return [firstPart || "1", secondPart];
+    // Format with spaces for UK mobile: 07911 123456
+    if (digits.length > 5) {
+      return `${digits.slice(0, 5)} ${digits.slice(5)}`;
     }
 
-    // If no plus, default to US/CA
-    return ["1", cleaned];
+    return digits;
   };
 
-  const [countryCode, phoneNumber] = parsePhoneValue(value);
-
-  // Find the selected country
-  const selectedCountry = React.useMemo(() => {
-    return countryCodes.find((c) => c.code === countryCode) || countryCodes[0];
-  }, [countryCode]);
-
-  // Update the phone value when countryCode or phoneNumber changes
-  const updatePhoneValue = React.useCallback(
-    (newCountryCode: string, newPhoneNumber: string) => {
-      onChange(`+${newCountryCode}${newPhoneNumber}`);
-    },
-    [onChange]
-  );
-
-  // Handle country selection
-  const handleSelectCountry = (country: (typeof countryCodes)[0]) => {
-    updatePhoneValue(country.code, phoneNumber);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatPhoneNumber(e.target.value);
+    // Always store with +44 prefix
+    onChange(
+      formattedValue.startsWith("+44") ? formattedValue : `+44${formattedValue}`
+    );
   };
 
-  // Handle phone number input
-  const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Extract only digits
-    const digits = e.target.value.replace(/\D/g, "");
-    updatePhoneValue(countryCode, digits);
-  };
+  // Prepare the formatted value to display (strip +44 prefix for display)
+  const displayValue = value.startsWith("+44") ? value.substring(3) : value;
 
-  // Format phone number for display (optional)
-  const formattedPhoneNumber = React.useMemo(() => {
-    // Very basic formatting - in a real app you'd use a library like libphonenumber-js
-    // This just groups digits for readability
-    if (!phoneNumber) return "";
-
-    // Different formatting based on country
-    if (countryCode === "1") {
-      // US/Canada
-      // Format as: XXX-XXX-XXXX
-      const groups = [];
-      if (phoneNumber.length > 0)
-        groups.push(phoneNumber.substring(0, Math.min(3, phoneNumber.length)));
-      if (phoneNumber.length > 3)
-        groups.push(phoneNumber.substring(3, Math.min(6, phoneNumber.length)));
-      if (phoneNumber.length > 6)
-        groups.push(phoneNumber.substring(6, phoneNumber.length));
-      return groups.join("-");
-    }
-
-    // Default grouping for other countries (groups of 3)
-    let formatted = "";
-    for (let i = 0; i < phoneNumber.length; i++) {
-      if (i > 0 && i % 3 === 0) formatted += " ";
-      formatted += phoneNumber[i];
-    }
-    return formatted;
-  }, [phoneNumber, countryCode]);
+  // Validate the number (a valid UK mobile starts with 07)
+  const isValid = displayValue.replace(/\s/g, "").match(/^07\d{9}$/);
 
   return (
-    <div className={cn("flex", className)}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              "flex h-10 items-center gap-1 pr-1 pl-3 rounded-r-none border-r-0",
-              error && "border-red-500 focus-visible:ring-red-500",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
-            disabled={disabled}
-          >
-            <span className="text-base">{selectedCountry.flag}</span>
-            <span className="text-xs">+{countryCode}</span>
-            <ChevronDown className="h-3 w-3 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="p-0 w-[220px]" side="bottom" align="start">
-          <Command>
-            <CommandInput placeholder="Search country..." />
-            <CommandList>
-              <CommandEmpty>No country found.</CommandEmpty>
-              <CommandGroup>
-                {countryCodes.map((country) => (
-                  <CommandItem
-                    key={`${country.country}-${country.code}`}
-                    value={`${country.country} ${country.label}`}
-                    onSelect={() => handleSelectCountry(country)}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <span className="text-base mr-1">{country.flag}</span>
-                    {country.label}
-                    {country.code === countryCode && (
-                      <Check className="ml-auto h-4 w-4" />
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={cn(
+        "flex h-14 w-full rounded-lg border overflow-hidden transition-all",
+        error
+          ? "border-destructive ring-2 ring-destructive/20"
+          : isValid
+          ? "border-green-500"
+          : "border-input",
+        className
+      )}
+    >
+      <div className="flex-shrink-0 w-[5.5rem] flex items-center justify-center gap-1.5 bg-muted/80 px-3 font-medium border-r">
+        <UKFlagIcon className="flex-shrink-0" />
+        <span className="text-sm font-medium">+44</span>
+      </div>
       <div className="relative flex-1">
         <Input
           type="tel"
+          value={displayValue}
+          onChange={handleChange}
+          className="flex-1 h-full w-full border-none rounded-none pl-3 pr-10 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg font-medium"
+          placeholder="7911 123456"
+          maxLength={12} // "7911 123456" is 11 chars with space
           inputMode="tel"
-          value={formattedPhoneNumber}
-          onChange={handlePhoneInput}
-          disabled={disabled}
-          className={cn(
-            "rounded-l-none pl-2",
-            error && "border-red-500 focus-visible:ring-red-500"
-          )}
           {...props}
         />
+        <div className="absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3 text-muted-foreground">
+          {isValid ? (
+            <motion.svg
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="h-5 w-5 text-green-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </motion.svg>
+          ) : (
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+
+export default PhoneInput;

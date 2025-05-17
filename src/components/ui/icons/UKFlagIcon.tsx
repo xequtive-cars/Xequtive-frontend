@@ -1,0 +1,41 @@
+"use client";
+
+import React from "react";
+
+interface UKFlagIconProps {
+  className?: string;
+}
+
+export const UKFlagIcon: React.FC<UKFlagIconProps> = ({ className }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 60 30"
+      width="24"
+      height="12"
+      className={className}
+      aria-label="United Kingdom flag"
+    >
+      <clipPath id="uk-flag-a">
+        <path d="M0 0v30h60V0z" />
+      </clipPath>
+      <clipPath id="uk-flag-b">
+        <path d="M30 15h30v15zv15H0zH0V0zV0h30z" />
+      </clipPath>
+      <g clipPath="url(#uk-flag-a)">
+        <path d="M0 0v30h60V0z" fill="#012169" />
+        <path d="M0 0l60 30m0-30L0 30" stroke="#fff" strokeWidth="6" />
+        <path
+          d="M0 0l60 30m0-30L0 30"
+          clipPath="url(#uk-flag-b)"
+          stroke="#C8102E"
+          strokeWidth="4"
+        />
+        <path d="M30 0v30M0 15h60" stroke="#fff" strokeWidth="10" />
+        <path d="M30 0v30M0 15h60" stroke="#C8102E" strokeWidth="6" />
+      </g>
+    </svg>
+  );
+};
+
+export default UKFlagIcon;

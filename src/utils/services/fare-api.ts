@@ -143,47 +143,16 @@ export const getFareEstimate = async (
       },
     };
 
-    // Get auth token using the authService
-    const token = authService.getToken();
-
-    if (!token) {
-      return {
-        success: false,
-        data: { fare: createEmptyFareResponse() },
-        error: {
-          code: "AUTH_ERROR",
-          message: "Authentication required. Please sign in to continue.",
-        },
-      };
-    }
-
-    // Check if token should be refreshed before calling API
-    if (authService.shouldRefreshToken()) {
-      // Instead of immediately clearing, just warn the user with an appropriate message
-      return {
-        success: false,
-        data: { fare: createEmptyFareResponse() },
-        error: {
-          code: "AUTH_REFRESH_REQUIRED",
-          message:
-            "Your session has expired. Please sign in again to continue.",
-        },
-      };
-    }
-
-    // Call API endpoint - Make sure we're using the exact format from the docs
-    const endpoint = `${apiUrl}/api/fare-estimate/enhanced`;
-
-    const response = await fetch(endpoint, {
+    // Call API with enhanced request
+    const response = await fetch(`${apiUrl}/api/fare-estimate/enhanced`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
       // Add these options to ensure our request actually goes through
       cache: "no-store",
-      credentials: "include",
+      credentials: "include", // Important for cookie-based auth
     });
 
     // Check for 401 Unauthorized responses
