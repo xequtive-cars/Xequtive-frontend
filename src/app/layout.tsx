@@ -7,6 +7,7 @@ import ReduxProvider from "@/providers/redux-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { CookieConsentProvider } from "@/components/providers/cookie-consent-provider";
+import { Toaster as SonnerToaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,7 +44,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ReduxProvider>
-            <ThemeProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <CookieConsentProvider>
                 <AnalyticsProvider>
                   {children}
@@ -53,6 +54,7 @@ export default function RootLayout({
             </ThemeProvider>
           </ReduxProvider>
         </AuthProvider>
+        <SonnerToaster richColors position="top-right" />
       </body>
     </html>
   );

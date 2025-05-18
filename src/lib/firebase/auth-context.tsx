@@ -20,6 +20,8 @@ interface AuthUser {
   displayName: string | null;
   role?: string;
   phoneNumber?: string;
+  photoURL?: string;
+  authProvider?: string;
 }
 
 // Auth context type
