@@ -1199,8 +1199,310 @@ export default function NewBookingPage() {
             <>
               {!showDetailsForm ? (
                 <div className="flex w-full h-full flex-col lg:flex-row gap-4">
-                  {/* Left panel: Width increased */}
-                  <div className="w-full lg:w-[29%]">
+                  {/* Mobile: Vehicle Selection First */}
+                  <div className="w-full lg:hidden flex flex-col">
+                    {/* Vehicle selection container with increased height to 85vh */}
+                    <div className="w-full max-h-[85vh] flex flex-col">
+                      <div className="p-3 border-b">
+                        <h2 className="text-base font-semibold flex justify-between items-center">
+                          <span>Select Vehicle</span>
+                          <Button
+                            variant="ghost"
+                            onClick={handleBackToForm}
+                            size="sm"
+                            className="h-8 text-sm p-1.5"
+                          >
+                            Back
+                          </Button>
+                        </h2>
+                      </div>
+                      <div className="overflow-y-auto flex-1 p-3 h-full">
+                        {/* Add CSS to resize vehicle cards by 40% */}
+                        <style jsx global>{`
+                          /* Make vehicle cards larger and better designed */
+                          .vehicle-card {
+                            height: 160px !important;
+                            max-height: 160px !important;
+                            margin-bottom: 1rem !important;
+                            padding: 1rem !important;
+                            border-radius: 0.5rem !important;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+                            border: 1px solid #e5e7eb !important;
+                            transition: all 0.2s ease-in-out !important;
+                            position: relative !important;
+                          }
+                          .vehicle-card:hover {
+                            transform: translateY(-2px) !important;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+                          }
+                          .vehicle-card.selected {
+                            border-color: #3b82f6 !important;
+                            background-color: #eff6ff !important;
+                          }
+                          .vehicle-card.selected:before {
+                            content: "✓" !important;
+                            position: absolute !important;
+                            top: -10px !important;
+                            right: -10px !important;
+                            width: 24px !important;
+                            height: 24px !important;
+                            background-color: #3b82f6 !important;
+                            color: white !important;
+                            border-radius: 50% !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            font-weight: bold !important;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+                            z-index: 10 !important;
+                            font-size: 12px !important;
+                          }
+                          /* Fix vehicle images */
+                          .vehicle-image {
+                            display: block !important;
+                            position: relative !important;
+                            width: 80px !important;
+                            height: 50px !important;
+                            margin-right: 1rem !important;
+                          }
+                          .vehicle-image img {
+                            object-fit: contain !important;
+                            max-height: 50px !important;
+                          }
+                          /* Adjust text sizes */
+                          .vehicle-card h3 {
+                            font-size: 1.125rem !important;
+                            margin-bottom: 0.35rem !important;
+                          }
+                          .vehicle-card p,
+                          .vehicle-card span {
+                            font-size: 1rem !important;
+                          }
+                          /* Adjust vehicle card content spacing */
+                          .vehicle-card-content {
+                            gap: 0.5rem !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            justify-content: space-between !important;
+                            height: 100% !important;
+                          }
+                          .vehicle-card .vehicle-details {
+                            display: flex !important;
+                            justify-content: space-between !important;
+                            width: 100% !important;
+                          }
+                        `}</style>
+
+                        {fareData && (
+                          <VehicleSelection
+                            fareData={fareData}
+                            pickupLocation={pickupLocation}
+                            dropoffLocation={dropoffLocation}
+                            selectedDate={selectedDate}
+                            selectedTime={selectedTime}
+                            passengers={passengers}
+                            checkedLuggage={checkedLuggage}
+                            handLuggage={handLuggage}
+                            onBack={handleBackToForm}
+                            onSelectVehicle={handleVehicleSelect}
+                            layout="vertical"
+                          />
+                        )}
+                      </div>
+
+                      {/* Continue button - Increase size by 40% */}
+                      {selectedVehicle && (
+                        <div className="px-3 py-3 border-t">
+                          <Button
+                            onClick={continueToBooking}
+                            className="w-full text-sm h-10"
+                          >
+                            Continue with {selectedVehicle.name}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile: Journey Details Second */}
+                  <div className="w-full lg:hidden mt-6 pb-10 hidden">
+                    <Card className="border shadow-sm">
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h2 className="text-base font-semibold">
+                            Journey Details
+                          </h2>
+                          <Button
+                            variant="ghost"
+                            onClick={handleBackToForm}
+                            size="sm"
+                            className="h-8 text-sm p-1.5"
+                          >
+                            Back
+                          </Button>
+                        </div>
+
+                        {/* Journey content - made scrollable */}
+                        <div className="max-h-[500px] overflow-y-auto pb-4">
+                          {/* Pickup field */}
+                          <div className="mb-4">
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Pickup Location
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {pickupLocation?.address || "Not specified"}
+                            </div>
+                          </div>
+
+                          {/* Dropoff field */}
+                          <div className="mb-4">
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Dropoff Location
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {dropoffLocation?.address || "Not specified"}
+                            </div>
+                          </div>
+
+                          {/* Additional stops */}
+                          {additionalStops.length > 0 && (
+                            <div className="mb-4">
+                              <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                                Additional Stops
+                              </label>
+                              {additionalStops.map((stop, index) => (
+                                <div
+                                  key={index}
+                                  className="p-2 bg-muted/40 rounded-md mb-1 text-sm"
+                                >
+                                  {stop.address}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Date and time */}
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                              <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                                Date
+                              </label>
+                              <p className="text-sm">
+                                {selectedDate
+                                  ? new Date(selectedDate).toLocaleDateString(
+                                      "en-GB",
+                                      {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      }
+                                    )
+                                  : "Not selected"}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                                Time
+                              </label>
+                              <p className="text-sm">
+                                {selectedTime || "Not selected"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Passengers & Luggage */}
+                          <div className="mb-4">
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Passengers & Luggage
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {getPassengerLuggageSummary()}
+                            </div>
+                          </div>
+
+                          {/* Journey details */}
+                          <div className="mb-4">
+                            <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                              Journey Info
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground">
+                                  Distance:
+                                </span>
+                                <span className="font-medium">
+                                  {fareData?.journey?.distance_miles
+                                    ? `${fareData.journey.distance_miles.toFixed(
+                                        1
+                                      )} miles`
+                                    : "Not available"}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Duration:
+                                </span>
+                                <span className="font-medium">
+                                  {fareData?.journey?.duration_minutes
+                                    ? `${fareData.journey.duration_minutes} min`
+                                    : "Not available"}
+                                </span>
+                              </div>
+
+                              {/* Fare Notifications */}
+                              {fareData &&
+                                fareData.notifications &&
+                                fareData.notifications.length > 0 && (
+                                  <div className="mt-2 border-t pt-2 border-border/40">
+                                    <div className="text-muted-foreground mb-1 text-xs font-medium">
+                                      Special Conditions:
+                                    </div>
+                                    <ul className="space-y-1">
+                                      {fareData.notifications.map(
+                                        (notification, index) => (
+                                          <li
+                                            key={index}
+                                            className="text-xs flex items-start"
+                                          >
+                                            <span className="bg-blue-100 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center mr-1.5 mt-0.5 flex-shrink-0">
+                                              i
+                                            </span>
+                                            <span>{notification}</span>
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Re-Calculate Button - Increase height and font size by 40% */}
+                        <Button
+                          variant={formModified ? "default" : "outline"}
+                          className="w-full text-sm h-10"
+                          onClick={() => {
+                            if (formModified) {
+                              handleCalculateFare();
+                            } else {
+                              handleBackToForm();
+                            }
+                          }}
+                          disabled={isFetching}
+                        >
+                          {isFetching
+                            ? "Calculating..."
+                            : formModified
+                            ? "Re-Calculate Fare"
+                            : "Back to Form"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Desktop: Journey Details First */}
+                  <div className="hidden lg:block lg:w-[29%]">
                     <Card className="border shadow-sm">
                       <CardContent className="p-3 space-y-4">
                         <div className="flex justify-between items-center mb-2">
@@ -1373,90 +1675,14 @@ export default function NewBookingPage() {
                     </Card>
                   </div>
 
-                  {/* Middle panel: Vehicle selection */}
-                  <div className="w-full lg:w-[42%] max-h-[calc(70vh + 70px)] lg:max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
+                  {/* Desktop: Vehicle Selection Second */}
+                  <div className="hidden lg:block lg:w-[42%] lg:max-h-[calc(100vh-6rem)] overflow-hidden lg:flex lg:flex-col">
                     <div className="p-3 border-b">
                       <h2 className="text-base font-semibold">
                         Select Vehicle
                       </h2>
                     </div>
                     <div className="overflow-y-auto flex-1 p-3 h-full">
-                      {/* Add CSS to resize vehicle cards by 40% */}
-                      <style jsx global>{`
-                        /* Make vehicle cards larger and better designed */
-                        .vehicle-card {
-                          height: 160px !important;
-                          max-height: 160px !important;
-                          margin-bottom: 1rem !important;
-                          padding: 1rem !important;
-                          border-radius: 0.5rem !important;
-                          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-                          border: 1px solid #e5e7eb !important;
-                          transition: all 0.2s ease-in-out !important;
-                          position: relative !important;
-                        }
-                        .vehicle-card:hover {
-                          transform: translateY(-2px) !important;
-                          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-                        }
-                        .vehicle-card.selected {
-                          border-color: #3b82f6 !important;
-                          background-color: #eff6ff !important;
-                        }
-                        .vehicle-card.selected:before {
-                          content: "✓" !important;
-                          position: absolute !important;
-                          top: -10px !important;
-                          right: -10px !important;
-                          width: 24px !important;
-                          height: 24px !important;
-                          background-color: #3b82f6 !important;
-                          color: white !important;
-                          border-radius: 50% !important;
-                          display: flex !important;
-                          align-items: center !important;
-                          justify-content: center !important;
-                          font-weight: bold !important;
-                          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-                          z-index: 10 !important;
-                          font-size: 12px !important;
-                        }
-                        /* Fix vehicle images */
-                        .vehicle-image {
-                          display: block !important;
-                          position: relative !important;
-                          width: 80px !important;
-                          height: 50px !important;
-                          margin-right: 1rem !important;
-                        }
-                        .vehicle-image img {
-                          object-fit: contain !important;
-                          max-height: 50px !important;
-                        }
-                        /* Adjust text sizes */
-                        .vehicle-card h3 {
-                          font-size: 1.125rem !important;
-                          margin-bottom: 0.35rem !important;
-                        }
-                        .vehicle-card p,
-                        .vehicle-card span {
-                          font-size: 1rem !important;
-                        }
-                        /* Adjust vehicle card content spacing */
-                        .vehicle-card-content {
-                          gap: 0.5rem !important;
-                          display: flex !important;
-                          flex-direction: column !important;
-                          justify-content: space-between !important;
-                          height: 100% !important;
-                        }
-                        .vehicle-card .vehicle-details {
-                          display: flex !important;
-                          justify-content: space-between !important;
-                          width: 100% !important;
-                        }
-                      `}</style>
-
                       {fareData && (
                         <VehicleSelection
                           fareData={fareData}
@@ -1487,7 +1713,7 @@ export default function NewBookingPage() {
                     )}
                   </div>
 
-                  {/* Right panel: Map - width reduced by 10% */}
+                  {/* Map Panel (for both views) */}
                   <div className="w-full lg:w-[25%] h-[40vh] lg:h-full lg:max-h-[calc(100vh-6rem)] hidden lg:block">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
@@ -1517,7 +1743,7 @@ export default function NewBookingPage() {
                   <div className="w-full lg:w-2/3 max-h-[calc(100vh-5rem)] relative">
                     {selectedVehicle && (
                       <div className="h-full overflow-hidden flex flex-col">
-                        <div className="flex-1 overflow-y-auto pr-2 pb-4 relative">
+                        <div className="flex-1 overflow-y-auto pr-2 pb-20 relative">
                           <PersonalDetailsForm
                             selectedVehicle={selectedVehicle}
                             pickupLocation={pickupLocation}

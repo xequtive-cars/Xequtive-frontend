@@ -9,6 +9,73 @@ import { cn } from "@/lib/utils";
 import { Location } from "@/components/map/MapComponent";
 import Image from "next/image";
 
+// Helper function to get vehicle image path based on vehicle ID
+const getVehicleImagePath = (vehicleId: string): string => {
+  if (vehicleId.includes("standard")) {
+    return "/images/vehicles/xequtive-1-removebg-preview.png";
+  } else if (vehicleId.includes("executive")) {
+    return "/images/vehicles/xequtive-2-removebg-preview.png";
+  } else if (vehicleId.includes("mpv") || vehicleId.includes("van")) {
+    return "/images/vehicles/xequtive-5-removebg-preview.png";
+  } else if (vehicleId.includes("estate")) {
+    return "/images/vehicles/xequtive-6-removebg-preview.png";
+  } else if (vehicleId.includes("luxury")) {
+    return "/images/vehicles/xequtive-8-removebg-preview.png";
+  } else if (vehicleId.includes("vip")) {
+    return "/images/vehicles/xequtive-9-removebg-preview.png";
+  }
+  // Default image
+  return "/images/vehicles/xequtive-3-removebg-preview.png";
+};
+
+// Helper function to get vehicle type order for sorting
+const getVehicleTypeOrder = (
+  vehicleId: string,
+  vehicleName: string
+): number => {
+  // First convert both id and name to lowercase for case-insensitive matching
+  const id = vehicleId.toLowerCase();
+  const name = vehicleName.toLowerCase();
+
+  // Direct name matching - most reliable approach
+  if (name.includes("standard saloon")) return 1;
+  if (name.includes("estate")) return 2;
+  if (name.includes("mpv-6")) return 3;
+  if (name.includes("mpv-8") && !name.includes("vip")) return 4;
+  if (name.includes("executive saloon") && !name.includes("vip")) return 5;
+  if (name.includes("vip executive saloon")) return 6;
+  if (name.includes("vip executive mpv")) return 7;
+  if (
+    name.includes("wheelchair") ||
+    name.includes("wav") ||
+    name.includes("accessible")
+  )
+    return 8;
+
+  // Fallback to ID-based checks if name doesn't match specific patterns
+  if (id.includes("standard")) return 1;
+  if (id.includes("estate")) return 2;
+  if (
+    id.includes("mpv-6") ||
+    (id.includes("mpv") && id.includes("6") && !id.includes("vip"))
+  )
+    return 3;
+  if (
+    id.includes("mpv-8") ||
+    (id.includes("mpv") && id.includes("8") && !id.includes("vip"))
+  )
+    return 4;
+  if ((id.includes("executive") || id.includes("exec")) && !id.includes("vip"))
+    return 5;
+  if (id.includes("vip") && id.includes("executive") && !id.includes("mpv"))
+    return 6;
+  if (id.includes("vip") && id.includes("mpv")) return 7;
+  if (id.includes("wav")) return 8;
+
+  // Default sorting
+  return 9;
+};
+
 interface VehicleSelectionContainerProps {
   fareData: FareResponse;
   pickupLocation: Location | null;
@@ -103,10 +170,18 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
     );
   }
 
-  // Sort vehicles by price (cheapest first)
+  // Sort vehicles by custom order instead of price
+  console.log("VehicleSelectionContainer - Vehicle ordering debug:");
   const sortedVehicles = [...fareData.vehicleOptions].sort(
-    (a, b) => a.price.amount - b.price.amount
+    (a, b) =>
+      getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
   );
+
+  // Log each vehicle and its order for debugging
+  for (const vehicle of sortedVehicles) {
+    const order = getVehicleTypeOrder(vehicle.id, vehicle.name);
+    console.log(`${vehicle.name} (${vehicle.id}): Sort order ${order}`);
+  }
 
   return (
     <div className="space-y-6">
@@ -145,44 +220,25 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
             >
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {/* Vehicle Image */}
-                  <div className="w-full sm:w-32 h-32 bg-muted/30 rounded-md overflow-hidden">
+                  {/* Vehicle Image - Increased size by making it more prominent within its container */}
+                  <div className="w-full sm:w-32 h-32 bg-muted/30 rounded-md overflow-hidden relative">
                     {vehicle.imageUrl ? (
                       <Image
                         src={vehicle.imageUrl}
                         alt={vehicle.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover scale-110"
                         width={128}
                         height={128}
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full">
-                        {vehicle.id.includes("executive") ? (
-                          <Image
-                            src="/images/vehicles/xequtive-3-removebg-preview.png"
-                            alt={vehicle.name}
-                            width={128}
-                            height={128}
-                            className="object-contain scale-125"
-                          />
-                        ) : vehicle.id.includes("mpv") ||
-                          vehicle.id.includes("van") ? (
-                          <Image
-                            src="/images/vehicles/xequtive-6-removebg-preview.png"
-                            alt={vehicle.name}
-                            width={128}
-                            height={128}
-                            className="object-contain scale-125"
-                          />
-                        ) : (
-                          <Image
-                            src="/images/vehicles/xequtive-9-removebg-preview.png"
-                            alt={vehicle.name}
-                            width={128}
-                            height={128}
-                            className="object-contain scale-125"
-                          />
-                        )}
+                        <Image
+                          src={getVehicleImagePath(vehicle.id)}
+                          alt={vehicle.name}
+                          width={128}
+                          height={128}
+                          className="object-contain scale-150" /* Increased scale from 125% to 150% */
+                        />
                       </div>
                     )}
                   </div>
