@@ -8,12 +8,14 @@ interface CustomTimePickerProps {
   name: "pickupTime";
   label: string;
   placeholder: string;
+  selectedDate?: Date;
 }
 
 export default function CustomTimePicker({
   name,
   label,
   placeholder,
+  selectedDate,
 }: CustomTimePickerProps) {
   const form = useFormContext<FormData>();
   const time = form.watch(name);
@@ -31,6 +33,7 @@ export default function CustomTimePicker({
             time={time}
             onTimeChange={handleTimeChange}
             placeholder={placeholder}
+            selectedDate={selectedDate}
           />
         </FormControl>
       </div>

@@ -1,6 +1,15 @@
+"use client";
+
+/**
+ * Passenger and Luggage Form Component
+ *
+ * A premium form for selecting passenger count and luggage options
+ */
+
 import * as React from "react";
 import { ChevronLeft, Minus, Plus, Users, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Component props
@@ -40,34 +49,32 @@ export function PassengerLuggageForm({
 
   return (
     <Card
-      className={`border border-border/60 rounded-md shadow-sm ${
-        className || ""
-      }`}
+      className={cn("border border-border/60 rounded-md shadow-sm", className)}
     >
-      <CardContent className="pt-4 pb-4 space-y-4">
+      <CardContent className="pt-5 space-y-5">
         {/* Back button */}
         <div className="flex items-center mb-2">
           <Button
             variant="ghost"
             size="sm"
-            className="p-0 h-9 w-9 mr-3"
+            className="p-0 h-10 w-10 mr-3"
             onClick={onBack}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-6 w-6" />
           </Button>
-          <h3 className="text-lg font-medium">Passengers & Luggage</h3>
+          <h3 className="text-xl font-medium">Passengers & Luggage</h3>
         </div>
 
         {/* Passenger selection */}
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium block">
+          <div className="space-y-2">
+            <label className="text-base font-medium block">
               Number of Passengers
             </label>
-            <div className="flex items-center justify-between h-12 border rounded-md p-2 bg-muted/40">
+            <div className="flex items-center justify-between h-12 border rounded-md p-3 bg-muted/40">
               <div className="flex items-center gap-2 px-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base">
                   {passengers} {passengers === 1 ? "Passenger" : "Passengers"}
                 </span>
               </div>
@@ -76,7 +83,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-border/50"
+                  className="h-9 w-9 rounded-full border-border/50"
                   onClick={() =>
                     handleChange(passengers - 1, onPassengersChange, 1)
                   }
@@ -85,14 +92,14 @@ export function PassengerLuggageForm({
                   <Minus className="h-4 w-4" />
                   <span className="sr-only">Decrease</span>
                 </Button>
-                <span className="w-10 text-center text-sm font-medium">
+                <span className="w-12 text-center text-base font-medium">
                   {passengers}
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-border/50"
+                  className="h-9 w-9 rounded-full border-border/50"
                   onClick={() =>
                     handleChange(passengers + 1, onPassengersChange, 1)
                   }
@@ -106,14 +113,14 @@ export function PassengerLuggageForm({
           </div>
 
           {/* Checked Luggage selection */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium block">
+          <div className="space-y-2">
+            <label className="text-base font-medium block">
               Checked Luggage (Large Bags)
             </label>
-            <div className="flex items-center justify-between h-12 border rounded-md p-2 bg-muted/40">
+            <div className="flex items-center justify-between h-12 border rounded-md p-3 bg-muted/40">
               <div className="flex items-center gap-2 px-2">
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
+                <Briefcase className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base">
                   {checkedLuggage} Large {checkedLuggage === 1 ? "Bag" : "Bags"}
                 </span>
               </div>
@@ -122,7 +129,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-border/50"
+                  className="h-9 w-9 rounded-full border-border/50"
                   onClick={() =>
                     handleChange(checkedLuggage - 1, onCheckedLuggageChange, 0)
                   }
@@ -131,14 +138,14 @@ export function PassengerLuggageForm({
                   <Minus className="h-4 w-4" />
                   <span className="sr-only">Decrease</span>
                 </Button>
-                <span className="w-10 text-center text-sm font-medium">
+                <span className="w-12 text-center text-base font-medium">
                   {checkedLuggage}
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-border/50"
+                  className="h-9 w-9 rounded-full border-border/50"
                   onClick={() =>
                     handleChange(checkedLuggage + 1, onCheckedLuggageChange, 0)
                   }
@@ -152,14 +159,14 @@ export function PassengerLuggageForm({
           </div>
 
           {/* Hand Luggage selection */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium block">
+          <div className="space-y-2">
+            <label className="text-base font-medium block">
               Hand Luggage (Small Bags)
             </label>
-            <div className="flex items-center justify-between h-12 border rounded-md p-2 bg-muted/40">
+            <div className="flex items-center justify-between h-12 border rounded-md p-3 bg-muted/40">
               <div className="flex items-center gap-2 px-2">
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
+                <Briefcase className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base">
                   {handLuggage} Small {handLuggage === 1 ? "Bag" : "Bags"}
                 </span>
               </div>
@@ -168,7 +175,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-border/50"
+                  className="h-9 w-9 rounded-full border-border/50"
                   onClick={() =>
                     handleChange(handLuggage - 1, onHandLuggageChange, 0)
                   }
@@ -177,14 +184,14 @@ export function PassengerLuggageForm({
                   <Minus className="h-4 w-4" />
                   <span className="sr-only">Decrease</span>
                 </Button>
-                <span className="w-10 text-center text-sm font-medium">
+                <span className="w-12 text-center text-base font-medium">
                   {handLuggage}
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-border/50"
+                  className="h-9 w-9 rounded-full border-border/50"
                   onClick={() =>
                     handleChange(handLuggage + 1, onHandLuggageChange, 0)
                   }
@@ -199,7 +206,11 @@ export function PassengerLuggageForm({
         </div>
 
         {/* Done button */}
-        <Button onClick={onBack} className="w-full h-10 text-sm font-medium">
+        <Button
+          onClick={onBack}
+          className="w-full h-11 text-base font-medium"
+          disabled={disabled}
+        >
           Save
         </Button>
       </CardContent>

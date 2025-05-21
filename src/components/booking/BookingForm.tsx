@@ -215,6 +215,7 @@ export function BookingForm({
                 placeholder="Select time"
                 className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
                 disabled={disabled || isFetching}
+                selectedDate={selectedDate}
               />
             </div>
 

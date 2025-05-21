@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * Premium TimePicker Component
+ * Premium Wheel TimePicker Component
  *
- * A luxury time picker with refined visual design:
- * - Elegant time categorization (morning, afternoon, evening, night)
- * - Beautiful visual indicators
- * - 5-minute increment options with smooth scrolling
- * - Premium aesthetic with subtle animations
+ * Features:
+ * - Smooth scrolling wheels for hours and minutes
+ * - Auto-snap selection mechanism
+ * - Deeply integrated visual connection between hours and minutes
+ * - Clean, intuitive interface
+ * - Dark/light mode compatible
  */
 
 import * as React from "react";
@@ -19,6 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { addHours } from "date-fns";
 
 export interface TimePickerProps {
   time: string;
@@ -27,6 +29,7 @@ export interface TimePickerProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  selectedDate?: Date;
 }
 
 export function TimePicker({
@@ -36,114 +39,241 @@ export function TimePicker({
   placeholder = "Select time",
   className,
   disabled = false,
+  selectedDate,
 }: TimePickerProps) {
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [open, setOpen] = React.useState(false);
 
-  // Generate time options in 10-minute increments (00:00 to 23:50)
-  const generateTimeOptions = () => {
-    const options: Array<{
-      time: string;
-      category: "morning" | "afternoon" | "evening" | "night";
-      hour: number;
-    }> = [];
-
-    for (let hour = 0; hour < 24; hour++) {
-      // Determine time category
-      let category: "morning" | "afternoon" | "evening" | "night";
-      if (hour >= 5 && hour < 12) {
-        category = "morning";
-      } else if (hour >= 12 && hour < 17) {
-        category = "afternoon";
-      } else if (hour >= 17 && hour < 21) {
-        category = "evening";
-      } else {
-        category = "night";
-      }
-
-      for (let minute = 0; minute < 60; minute += 10) {
-        const formattedHour = hour.toString().padStart(2, "0");
-        const formattedMinute = minute.toString().padStart(2, "0");
-        options.push({
-          time: `${formattedHour}:${formattedMinute}`,
-          category,
-          hour,
-        });
-      }
+  // Parse initial hours and minutes from the time prop
+  const [hours, setHours] = React.useState<number>(() => {
+    if (time) {
+      const [hourStr] = time.split(":");
+      return parseInt(hourStr, 10);
     }
-    return options;
-  };
+    return 12;
+  });
 
-  const timeOptions = generateTimeOptions();
+  const [minutes, setMinutes] = React.useState<number>(() => {
+    if (time) {
+      const [, minuteStr] = time.split(":");
+      return parseInt(minuteStr, 10);
+    }
+    return 0;
+  });
 
-  // Get time categories with their first occurrence index
-  const timeCategories = React.useMemo(() => {
-    const categories: { [key: string]: number } = {};
-    timeOptions.forEach((option, index) => {
-      if (!categories[option.category]) {
-        categories[option.category] = index;
-      }
-    });
-    return categories;
-  }, [timeOptions]);
-
-  // Scroll to selected time when popover opens
-  const scrollToSelectedTime = React.useCallback(() => {
-    if (scrollContainerRef.current && time) {
-      const selectedElement = scrollContainerRef.current.querySelector(
-        `[data-time="${time}"]`
-      );
-      if (selectedElement) {
-        // Add a short delay to ensure the popover is fully rendered
-        setTimeout(() => {
-          selectedElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }, 100);
+  // Update local state when external time prop changes
+  React.useEffect(() => {
+    if (time) {
+      const [hourStr, minuteStr] = time.split(":");
+      if (hourStr && minuteStr) {
+        setHours(parseInt(hourStr, 10));
+        setMinutes(parseInt(minuteStr, 10));
       }
     }
   }, [time]);
 
-  // Formatted display time (convert 24h to 12h format with AM/PM for display)
-  const getDisplayTime = (timeStr: string) => {
-    if (!timeStr) return "";
+  // Get now and minimum booking time (24 hours from now)
+  const now = new Date();
+  const minBookingTime = addHours(now, 24);
 
-    const [hourStr, minuteStr] = timeStr.split(":");
-    const hour = parseInt(hourStr, 10);
+  // Check if selectedDate is today or tomorrow
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    if (hour === 0) {
-      return `12:${minuteStr} AM`;
-    } else if (hour < 12) {
-      return `${hour}:${minuteStr} AM`;
-    } else if (hour === 12) {
-      return `12:${minuteStr} PM`;
-    } else {
-      return `${hour - 12}:${minuteStr} PM`;
-    }
+  const isToday = selectedDate
+    ? selectedDate.getFullYear() === today.getFullYear() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getDate() === today.getDate()
+    : false;
+
+  const isTomorrow = selectedDate
+    ? selectedDate.getFullYear() === today.getFullYear() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getDate() === today.getDate() + 1
+    : false;
+
+  // Format hours and minutes to HH:MM
+  const formatTime = (h: number, m: number): string => {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
 
-  // Jump to a specific time category
-  const jumpToCategory = (category: string) => {
-    if (scrollContainerRef.current) {
-      const index = timeCategories[category];
-      if (index !== undefined) {
-        const element = scrollContainerRef.current.children[index];
-        if (element) {
-          element.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }
+  // Check if the selected date and time are valid (at least 24 hours in the future)
+  const isTimeValid = (h: number, m: number): boolean => {
+    if (!selectedDate) return true;
+
+    // Create a date object with the selected date and time
+    const selectedDateTime = new Date(selectedDate);
+    selectedDateTime.setHours(h, m, 0, 0);
+
+    // Compare with minimum booking time
+    return selectedDateTime >= minBookingTime;
+  };
+
+  // Get the minimum valid hour for today or tomorrow
+  const getMinValidHour = (): number => {
+    if (!selectedDate) return 0;
+
+    // If selected date is earlier than minimum booking time, no valid hours
+    if (selectedDate < minBookingTime) {
+      // For today, return the min booking time hour
+      if (isToday) {
+        return minBookingTime.getHours();
       }
+
+      // For tomorrow, calculate the minimum hour
+      if (isTomorrow) {
+        const hoursToAdd = 24 - now.getHours();
+        // If the current time is after the hour we're checking on the next day
+        if (now.getHours() > 0) {
+          return Math.max(0, 24 - hoursToAdd);
+        }
+        return 0;
+      }
+
+      return 24; // No valid hours
     }
+
+    // For any future date beyond 24h, all hours are valid
+    return 0;
   };
 
-  // Handle time selection and close the popover
-  const handleTimeSelect = (selectedTime: string) => {
-    onTimeChange(selectedTime);
+  // Get the minimum valid minute for the selected hour
+  const getMinValidMinute = (): number => {
+    if (!selectedDate) return 0;
+
+    const minHour = getMinValidHour();
+
+    // If hours are greater than min valid hour, all minutes are valid
+    if (hours > minHour) return 0;
+
+    // If hours are less than min valid hour, no minutes are valid
+    if (hours < minHour) return 60;
+
+    // If hours equal min valid hour, minutes must be >= now.getMinutes()
+    if (isToday && hours === minBookingTime.getHours()) {
+      return minBookingTime.getMinutes();
+    }
+
+    // For tomorrow at the cutoff hour
+    if (isTomorrow && hours === minHour) {
+      return now.getMinutes();
+    }
+
+    return 0;
+  };
+
+  // Apply the selected time and close the picker
+  const handleApplyTime = () => {
+    const formattedTime = formatTime(hours, minutes);
+    onTimeChange(formattedTime);
     setOpen(false);
   };
+
+  // Handle hour change
+  const handleHourChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newHour = parseInt(e.target.value, 10);
+    setHours(newHour);
+
+    // If new hour is valid but current minutes aren't, reset to min valid minutes
+    const minValidMinute = getMinValidMinute();
+    if (minutes < minValidMinute) {
+      setMinutes(minValidMinute);
+    }
+  };
+
+  // Handle minute change
+  const handleMinuteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMinute = parseInt(e.target.value, 10);
+    setMinutes(newMinute);
+  };
+
+  // Generate hour options
+  const hourOptions = React.useMemo(() => {
+    const minHour = getMinValidHour();
+    const options = [];
+
+    for (let i = 0; i < 24; i++) {
+      const isDisabled = i < minHour;
+      options.push(
+        <option key={i} value={i} disabled={isDisabled}>
+          {i.toString().padStart(2, "0")}
+        </option>
+      );
+    }
+
+    return options;
+  }, [getMinValidHour]);
+
+  // Generate minute options
+  const minuteOptions = React.useMemo(() => {
+    const minMinute = hours === getMinValidHour() ? getMinValidMinute() : 0;
+    const options = [];
+
+    for (let i = 0; i < 60; i += 5) {
+      const isDisabled = hours === getMinValidHour() && i < minMinute;
+      options.push(
+        <option key={i} value={i} disabled={isDisabled}>
+          {i.toString().padStart(2, "0")}
+        </option>
+      );
+    }
+
+    // Add the current minute if it's not a multiple of 5
+    if (minutes % 5 !== 0) {
+      const isDisabled = hours === getMinValidHour() && minutes < minMinute;
+      options.splice(
+        Math.floor(minutes / 5),
+        0,
+        <option key={minutes} value={minutes} disabled={isDisabled}>
+          {minutes.toString().padStart(2, "0")}
+        </option>
+      );
+    }
+
+    return options;
+  }, [hours, minutes, getMinValidHour, getMinValidMinute]);
+
+  // CSS for select elements
+  const selectStyles = `
+    .time-select {
+      appearance: none;
+      background-color: transparent;
+      border: none;
+      padding: 0 1em;
+      margin: 0;
+      width: 100%;
+      font-family: inherit;
+      font-size: 1.25rem;
+      cursor: pointer;
+      line-height: inherit;
+      outline: none;
+      text-align: center;
+    }
+    
+    .time-select-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 5rem;
+      border-radius: 0.5rem;
+      background-color: hsl(var(--muted));
+      padding: 0.5rem;
+    }
+    
+    .time-select:focus + .focus-indicator {
+      box-shadow: 0 0 0 2px hsl(var(--border));
+    }
+    
+    .focus-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 0.5rem;
+      pointer-events: none;
+    }
+  `;
 
   return (
     <div className={className}>
@@ -152,116 +282,85 @@ export function TimePicker({
           {label}
         </label>
       )}
-      <Popover
-        open={open}
-        onOpenChange={(open) => {
-          setOpen(open);
-          if (open) scrollToSelectedTime();
-        }}
-      >
+
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             type="button"
-            variant={"outline"}
+            variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal",
-              !time && "text-muted-foreground"
+              !time && "text-muted-foreground",
+              !isTimeValid(hours, minutes) &&
+                "border-destructive text-destructive"
             )}
             disabled={disabled}
           >
-            <span>{time ? getDisplayTime(time) : placeholder}</span>
-            <Clock className="ml-2 h-4 w-4 opacity-50" />
+            <span>{time || placeholder}</span>
+            <Clock className="ml-auto h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
+
         <PopoverContent
-          className="w-72 p-0 bg-background/90 backdrop-blur-md border border-border/40 shadow-xl rounded-xl overflow-hidden"
+          className="w-auto p-4 bg-background border border-border/40 shadow-xl rounded-xl"
           align="start"
         >
-          {/* Quick category jumpers */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border/30">
-            <button
-              className="text-xs px-2 py-1 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => jumpToCategory("morning")}
-            >
-              Morning
-            </button>
-            <button
-              className="text-xs px-2 py-1 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => jumpToCategory("afternoon")}
-            >
-              Afternoon
-            </button>
-            <button
-              className="text-xs px-2 py-1 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => jumpToCategory("evening")}
-            >
-              Evening
-            </button>
-          </div>
+          {/* Time Display */}
+          <div className="flex flex-col gap-4">
+            <div className="text-center text-2xl font-semibold mb-2">
+              {formatTime(hours, minutes)}
+            </div>
 
-          <div
-            ref={scrollContainerRef}
-            className="max-h-72 overflow-y-auto py-1 overscroll-contain scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-primary/10 scrollbar-track-transparent hover:scrollbar-thumb-primary/20"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(var(--primary), 0.1) transparent",
-              scrollBehavior: "smooth",
-            }}
-          >
-            {timeOptions.map((option, index) => {
-              // Check if this is the first item of its category
-              const isFirstInCategory =
-                index === 0 ||
-                timeOptions[index - 1].category !== option.category;
+            {/* Time Selectors */}
+            <div className="flex justify-center items-center gap-2">
+              {/* Hour selector */}
+              <div className="time-select-wrapper">
+                <select
+                  className="time-select"
+                  value={hours}
+                  onChange={handleHourChange}
+                  aria-label="Hours"
+                >
+                  {hourOptions}
+                </select>
+                <div className="focus-indicator"></div>
+              </div>
 
-              // Get special hours (8:00, 12:00, 17:00, 22:00)
-              const isSpecialHour =
-                option.time.endsWith(":00") &&
-                [8, 12, 17, 22].includes(option.hour);
+              <div className="text-xl font-semibold">:</div>
 
-              return (
-                <React.Fragment key={option.time}>
-                  {isFirstInCategory && (
-                    <div className="sticky top-0 bg-accent/30 backdrop-blur-sm px-3 py-1 text-xs font-medium text-foreground/70 border-t border-b border-border/20 z-10">
-                      {option.category === "morning" && "Morning"}
-                      {option.category === "afternoon" && "Afternoon"}
-                      {option.category === "evening" && "Evening"}
-                      {option.category === "night" && "Night"}
-                    </div>
-                  )}
-                  <button
-                    data-time={option.time}
-                    className={cn(
-                      "flex w-full justify-between items-center px-4 py-2 text-sm transition-all duration-150",
-                      time === option.time
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "hover:bg-accent/50 text-foreground/80 hover:text-foreground",
-                      isSpecialHour ? "border-t border-border/20" : "",
-                      option.time.endsWith(":00") ? "font-medium" : ""
-                    )}
-                    onClick={() => handleTimeSelect(option.time)}
-                  >
-                    <span>{getDisplayTime(option.time)}</span>
-                    {time === option.time && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary"></span>
-                    )}
-                  </button>
-                </React.Fragment>
-              );
-            })}
-          </div>
-
-          {/* Current selection indicator */}
-          {time && (
-            <div className="px-3 py-2 border-t border-border/30 bg-accent/20">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Selected:</span>
-                <span className="text-sm font-medium">
-                  {getDisplayTime(time)}
-                </span>
+              {/* Minute selector */}
+              <div className="time-select-wrapper">
+                <select
+                  className="time-select"
+                  value={minutes}
+                  onChange={handleMinuteChange}
+                  aria-label="Minutes"
+                >
+                  {minuteOptions}
+                </select>
+                <div className="focus-indicator"></div>
               </div>
             </div>
-          )}
+
+            {/* Warning message for invalid times */}
+            {!isTimeValid(hours, minutes) && (
+              <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md">
+                Bookings require minimum 24 hours advance notice
+              </div>
+            )}
+
+            {/* Apply Button */}
+            <Button
+              type="button"
+              className="w-full mt-2"
+              disabled={!isTimeValid(hours, minutes)}
+              onClick={handleApplyTime}
+            >
+              Apply
+            </Button>
+          </div>
+
+          <style dangerouslySetInnerHTML={{ __html: selectStyles }} />
         </PopoverContent>
       </Popover>
     </div>

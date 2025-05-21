@@ -341,6 +341,7 @@ export default function NewBookingPageRedux() {
                   <TimePicker
                     time={selectedTime}
                     onTimeChange={(time) => dispatch(setSelectedTime(time))}
+                    selectedDate={selectedDate}
                   />
                   {errors.selectedTime && (
                     <p className="text-red-500 text-sm">

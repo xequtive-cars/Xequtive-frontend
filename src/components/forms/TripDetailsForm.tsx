@@ -77,6 +77,7 @@ export default function TripDetailsForm({
   setDropoffLocation,
 }: TripDetailsFormProps) {
   const form = useFormContext<FormData>();
+  const pickupDate = form.watch("pickupDate");
 
   return (
     <div className="bg-muted/30 p-4 rounded-lg space-y-4">
@@ -102,6 +103,7 @@ export default function TripDetailsForm({
               name="pickupTime"
               label="Pickup Time"
               placeholder="Select time"
+              selectedDate={pickupDate ? new Date(pickupDate) : undefined}
             />
           )}
         />
