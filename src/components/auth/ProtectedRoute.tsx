@@ -24,9 +24,6 @@ export default function ProtectedRoute({
         // Store the current path to redirect back after login
         // Use router.push instead of window.location to avoid hard reloads
         if (!pathname.includes("?redirecting=true")) {
-          console.log(
-            "ProtectedRoute: User is not authenticated, redirecting to signin"
-          );
           const returnUrl = encodeURIComponent(pathname);
           router.push(`/auth/signin?returnUrl=${returnUrl}&redirecting=true`);
         }

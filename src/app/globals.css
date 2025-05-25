@@ -65,6 +65,31 @@
     color 0.2s ease;
 }
 
+/* Fix for stop location input dropdown visibility */
+.stop-location-input {
+  position: relative !important;
+}
+
+.stop-location-input div[ref="suggestionsRef"],
+.stop-suggestions {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+/* Ensure stop suggestions appear at the top level */
+.stop-suggestions {
+  position: absolute !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: 9999 !important;
+}
+
+/* Set proper stacking context for the booking form card */
+.booking-form-card {
+  position: relative;
+  z-index: 1;
+}
+
 /* Base Container */
 .container {
   max-width: 100%;

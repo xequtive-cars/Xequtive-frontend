@@ -1,12 +1,28 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
+import { Plus, X, GripVertical, Loader2 } from "lucide-react";
 import { UkLocationInput } from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { PassengerLuggageForm } from "@/components/booking";
 import { Location } from "@/components/map/MapComponent";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
 
 interface BookingFormProps {
   pickupAddress: string;
@@ -51,6 +67,111 @@ interface BookingFormProps {
   calculateFare: () => void;
   getPassengerLuggageSummary: () => string;
   disabled?: boolean;
+  reorderStops?: (fromIndex: number, toIndex: number) => void;
+}
+
+// Add SortableStopInputField component
+function SortableStopInputField({
+  id,
+  address,
+  stopIndex,
+  updateAddress,
+  onLocationSelect,
+  removeStop,
+  userLocation,
+  disabled,
+  isFetching,
+  isEmpty,
+}: {
+  id: string;
+  address: string;
+  stopIndex: number;
+  updateAddress: (value: string) => void;
+  onLocationSelect: (location: {
+    address: string;
+    longitude: number;
+    latitude: number;
+  }) => void;
+  removeStop: (index: number) => void;
+  userLocation: { latitude: number; longitude: number } | null;
+  disabled?: boolean;
+  isFetching: boolean;
+  isEmpty: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  // Create a stable unique ID for each stop
+  const stopId = `stop-field-${stopIndex}`;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      id={stopId}
+      className="relative flex items-center mb-2"
+      data-stop-index={stopIndex}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className={`h-full px-2 flex items-center cursor-grab ${
+          isEmpty ? "opacity-50" : ""
+        }`}
+      >
+        <GripVertical
+          size={16}
+          className={`text-foreground ${isEmpty ? "opacity-50" : ""}`}
+        />
+      </div>
+
+      <div className="flex-grow relative">
+        <div className="relative">
+          <UkLocationInput
+            placeholder={`Enter stop ${stopIndex + 1}`}
+            initialLocation={
+              address
+                ? { address, coordinates: { lat: 0, lng: 0 }, type: "landmark" }
+                : null
+            }
+            onSelect={(location) => {
+              updateAddress(location.address);
+              onLocationSelect({
+                address: location.address,
+                longitude: location.coordinates.lng,
+                latitude: location.coordinates.lat,
+              });
+            }}
+            locationType="stop"
+            initialSuggestionsTitle="Suggested stop locations"
+            userLocation={userLocation}
+            disabled={disabled || isFetching}
+            className="bg-muted/40 text-sm h-10 rounded-md"
+          />
+
+          {/* Direct DOM reference remove button */}
+          <button
+            type="button"
+            id={`remove-stop-${stopIndex}`}
+            onClick={() => {
+              // Use the exact index from the data attribute
+              removeStop(stopIndex);
+            }}
+            className="absolute right-0 top-0 h-full flex items-center pr-3 justify-end z-[100]"
+            aria-label={`Remove stop ${stopIndex + 1}`}
+            data-stop-index={stopIndex}
+          >
+            <X size={19} className="text-foreground" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function BookingForm({
@@ -72,7 +193,6 @@ export function BookingForm({
   handLuggage,
   setHandLuggage,
   userLocation,
-  showVehicleOptions,
   setFormModified,
   isFetching,
   fetchError,
@@ -85,191 +205,291 @@ export function BookingForm({
   calculateFare,
   getPassengerLuggageSummary,
   disabled,
+  reorderStops,
 }: BookingFormProps) {
   const [currentStep, setCurrentStep] = useState<"location" | "luggage">(
     "location"
   );
 
+  // Add DND sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px movement before drag activation
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  // Add drag end handler
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id && reorderStops) {
+      const oldIndex = parseInt(active.id.toString().split("-")[1], 10);
+      const newIndex = parseInt(over.id.toString().split("-")[1], 10);
+
+      if (!isNaN(oldIndex) && !isNaN(newIndex)) {
+        reorderStops(oldIndex, newIndex);
+        setFormModified(true);
+      }
+    }
+  };
+
   return (
     <>
       {currentStep === "location" ? (
-        <Card className="border border-border/60 rounded-md shadow-sm">
-          <CardContent className="p-4 space-y-3">
-            {/* Pickup field */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground/90 block">
-                Pickup Location
-              </label>
+        <Card className="w-[110%] booking-form-card">
+          <CardContent>
+            <div className="space-y-3">
+              {/* Pickup */}
               <UkLocationInput
-                placeholder="Enter pickup address"
-                value={pickupAddress}
-                onChange={setPickupAddress}
-                onLocationSelect={handlePickupLocationSelect}
-                showInitialSuggestions={true}
-                type="pickup"
+                placeholder="Enter pickup location"
+                initialLocation={
+                  pickupAddress
+                    ? {
+                        address: pickupAddress,
+                        coordinates: pickupLocation
+                          ? {
+                              lat: pickupLocation.latitude,
+                              lng: pickupLocation.longitude,
+                            }
+                          : { lat: 0, lng: 0 },
+                        type: "landmark",
+                      }
+                    : null
+                }
+                onSelect={(location) => {
+                  setPickupAddress(location.address);
+                  handlePickupLocationSelect({
+                    address: location.address,
+                    longitude: location.coordinates.lng,
+                    latitude: location.coordinates.lat,
+                  });
+                  setFormModified(true);
+                }}
+                onClear={() => {
+                  setPickupAddress("");
+                  handlePickupLocationSelect({
+                    address: "",
+                    longitude: 0,
+                    latitude: 0,
+                  });
+                  setFormModified(true);
+                }}
+                locationType="pickup"
                 initialSuggestionsTitle="Suggested pickup locations"
                 userLocation={userLocation}
-                className="text-sm h-10 rounded-md bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
+                className="bg-muted/40 text-sm h-10 rounded-md w-full"
                 disabled={disabled || isFetching}
               />
-            </div>
 
-            {/* Dropoff field */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground/90 block">
-                Dropoff Location
-              </label>
-              <UkLocationInput
-                placeholder="Enter dropoff address"
-                value={dropoffAddress}
-                onChange={setDropoffAddress}
-                onLocationSelect={handleDropoffLocationSelect}
-                showInitialSuggestions={true}
-                type="dropoff"
-                initialSuggestionsTitle="Suggested dropoff locations"
-                userLocation={userLocation}
-                className="text-sm h-10 rounded-md bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
-                disabled={disabled || isFetching}
-              />
-            </div>
+              {/* Stops */}
+              {stopAddresses.length > 0 && (
+                <div className="pt-2 pb-1">
+                  {/* Wrap stops in DndContext */}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                    modifiers={[restrictToVerticalAxis]}
+                  >
+                    <SortableContext
+                      items={stopAddresses.map((_, i) => `stop-${i}`)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {stopAddresses.map((address, i) => {
+                        // Create a unique key that doesn't change
+                        const stopKey = `stop-${i}-${address.substring(0, 3)}`;
 
-            {/* Additional stops */}
-            {stopAddresses.length > 0 && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground/90 block">
-                  Additional Stops
-                </label>
-                <div className="space-y-2">
-                  {stopAddresses.map((address, index) => (
-                    <div key={`stop-${index}`} className="relative">
-                      <UkLocationInput
-                        placeholder={`Enter stop ${index + 1}`}
-                        value={address}
-                        onChange={(value) => updateStopAddress(index, value)}
-                        onLocationSelect={(location) =>
-                          handleStopLocationSelect(index, location)
-                        }
-                        showInitialSuggestions={true}
-                        type="stop"
-                        initialSuggestionsTitle="Suggested stop locations"
-                        userLocation={userLocation}
-                        className="text-sm h-10 rounded-md pr-10 bg-muted/40 !w-full [&>input]:h-10 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-muted/40"
-                        disabled={disabled || isFetching}
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeStop(index)}
-                        className="h-7 w-7 p-0 absolute right-2 top-1/2 -translate-y-1/2"
-                      >
-                        <X size={16} className="text-muted-foreground" />
-                      </Button>
-                    </div>
-                  ))}
+                        return (
+                          <div
+                            key={stopKey}
+                            className="stop-item-container"
+                            data-index={i}
+                          >
+                            <SortableStopInputField
+                              id={`stop-${i}`}
+                              address={address}
+                              stopIndex={i}
+                              updateAddress={(value) => {
+                                updateStopAddress(i, value);
+                                setFormModified(true);
+                              }}
+                              onLocationSelect={(location) => {
+                                handleStopLocationSelect(i, location);
+                                setFormModified(true);
+                              }}
+                              removeStop={(exactIndex) => {
+                                // Direct call to parent's removeStop with the exact index
+                                removeStop(exactIndex);
+                                setFormModified(true);
+                              }}
+                              userLocation={userLocation}
+                              disabled={disabled || isFetching}
+                              isFetching={isFetching}
+                              isEmpty={address.trim() === ""}
+                            />
+                          </div>
+                        );
+                      })}
+                    </SortableContext>
+                  </DndContext>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Add stop button */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-9 text-sm font-medium rounded-md"
-              onClick={addStop}
-              disabled={disabled || isFetching}
-            >
-              <Plus size={16} className="mr-2" />
-              Add Stop
-            </Button>
-
-            {/* Date Picker - Consistent sizing */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground/90 block">
-                Date
-              </label>
-              <DatePicker
-                date={selectedDate}
-                onDateChange={(date) => {
-                  setSelectedDate(date);
-                  if (showVehicleOptions) setFormModified(true);
-                }}
-                label=""
-                selectedTime={selectedTime}
-                className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
-                disabled={disabled || isFetching}
-              />
-            </div>
-
-            {/* Time Picker - Consistent sizing */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground/90 block">
-                Time
-              </label>
-              <TimePicker
-                time={selectedTime}
-                onTimeChange={(time) => {
-                  setSelectedTime(time);
-                  if (showVehicleOptions) setFormModified(true);
-                }}
-                label=""
-                placeholder="Select time"
-                className="h-10 text-sm w-full [&>button]:h-10 [&>button]:text-sm [&>button]:px-3 [&>button]:rounded-md [&>button]:border [&>button]:border-input [&>button]:bg-muted/20"
-                disabled={disabled || isFetching}
-                selectedDate={selectedDate}
-              />
-            </div>
-
-            {/* Passengers & Luggage */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground/90 block">
-                Passengers & Luggage
-              </label>
+              {/* Add stop button */}
               <Button
                 variant="outline"
-                className="w-full h-10 text-sm font-medium rounded-md flex justify-between items-center bg-muted/40"
-                onClick={() => setCurrentStep("luggage")}
-                disabled={disabled || isFetching}
+                size="sm"
+                onClick={() => {
+                  addStop();
+                  setFormModified(true);
+                }}
+                className="w-full h-9 text-sm"
+                disabled={
+                  stopAddresses.length >= 7 ||
+                  disabled ||
+                  isFetching ||
+                  !pickupAddress ||
+                  !dropoffAddress
+                }
               >
-                <span>{getPassengerLuggageSummary()}</span>
-                <span className="text-primary">Edit</span>
+                <Plus size={16} className="mr-2" />
+                Add Stop
               </Button>
-            </div>
 
-            {/* Calculate fare button */}
-            <Button
-              className="w-full h-10 text-sm font-medium mt-2"
-              onClick={calculateFare}
-              disabled={
-                !pickupLocation ||
-                !dropoffLocation ||
-                !selectedDate ||
-                !selectedTime ||
-                disabled ||
-                isFetching
-              }
-            >
-              {isFetching ? "Calculating..." : "Calculate Fare"}
-            </Button>
+              {/* Dropoff */}
+              <UkLocationInput
+                placeholder="Enter dropoff location"
+                initialLocation={
+                  dropoffAddress
+                    ? {
+                        address: dropoffAddress,
+                        coordinates: dropoffLocation
+                          ? {
+                              lat: dropoffLocation.latitude,
+                              lng: dropoffLocation.longitude,
+                            }
+                          : { lat: 0, lng: 0 },
+                        type: "landmark",
+                      }
+                    : null
+                }
+                onSelect={(location) => {
+                  setDropoffAddress(location.address);
+                  handleDropoffLocationSelect({
+                    address: location.address,
+                    longitude: location.coordinates.lng,
+                    latitude: location.coordinates.lat,
+                  });
+                  setFormModified(true);
+                }}
+                onClear={() => {
+                  setDropoffAddress("");
+                  handleDropoffLocationSelect({
+                    address: "",
+                    longitude: 0,
+                    latitude: 0,
+                  });
+                  setFormModified(true);
+                }}
+                locationType="dropoff"
+                initialSuggestionsTitle="Suggested dropoff locations"
+                userLocation={userLocation}
+                className="bg-muted/40 text-sm h-10 rounded-md w-full"
+                disabled={disabled || isFetching}
+              />
 
-            {/* Display error message if any */}
-            {fetchError && (
-              <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                {fetchError}
+              {/* Date and Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <DatePicker
+                  date={selectedDate}
+                  onDateChange={(date) => {
+                    setSelectedDate(date);
+                    setFormModified(true);
+                  }}
+                  className="w-full bg-muted/40 h-10 text-sm [&>button]:h-10 rounded-md"
+                  disabled={disabled || isFetching}
+                />
+                <TimePicker
+                  time={selectedTime}
+                  onTimeChange={(time) => {
+                    setSelectedTime(time);
+                    setFormModified(true);
+                  }}
+                  className="w-full bg-muted/40 h-10 text-sm [&>button]:h-10 rounded-md"
+                  disabled={disabled || isFetching}
+                  selectedDate={selectedDate}
+                />
               </div>
-            )}
+
+              {/* Passenger & Luggage Summary */}
+              <div
+                className="py-2.5 px-3 bg-muted/40 rounded-md text-sm cursor-pointer"
+                onClick={() => setCurrentStep("luggage")}
+              >
+                <div className="flex justify-between items-center">
+                  <div>{getPassengerLuggageSummary()}</div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentStep("luggage");
+                    }}
+                    disabled={disabled || isFetching}
+                  >
+                    <Plus size={16} className="text-primary" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Calculate Fare Button */}
+              <div className="pt-1">
+                <Button
+                  disabled={
+                    !pickupLocation ||
+                    !dropoffLocation ||
+                    !selectedDate ||
+                    !selectedTime ||
+                    isFetching ||
+                    disabled
+                  }
+                  onClick={calculateFare}
+                  className="w-full h-10 text-sm font-semibold"
+                >
+                  {isFetching ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Calculating...
+                    </>
+                  ) : (
+                    "Calculate Fare"
+                  )}
+                </Button>
+              </div>
+
+              {fetchError && (
+                <div className="text-sm text-destructive mt-2">
+                  {fetchError}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : (
         <PassengerLuggageForm
           passengers={passengers}
-          checkedLuggage={checkedLuggage}
-          handLuggage={handLuggage}
           onPassengersChange={setPassengers}
+          checkedLuggage={checkedLuggage}
           onCheckedLuggageChange={setCheckedLuggage}
+          handLuggage={handLuggage}
           onHandLuggageChange={setHandLuggage}
-          disabled={disabled || isFetching}
           onBack={() => setCurrentStep("location")}
-          className="h-fit"
+          className="w-[106%]"
+          disabled={disabled || isFetching}
         />
       )}
     </>

@@ -633,7 +633,7 @@ export default function NewBookingPage() {
     if (showVehicleOptions) setFormModified(true);
   };
 
-  // Handle additional stop location selection
+  // Handle stop location selection
   const handleStopLocationSelect = (
     index: number,
     location: { address: string; longitude: number; latitude: number }
@@ -643,13 +643,36 @@ export default function NewBookingPage() {
       !location.address ||
       (location.longitude === 0 && location.latitude === 0)
     ) {
+      // This is a clear operation - just clear the address at the index without removing the stop
+
+      // Validate index is within bounds for stopAddresses
+      if (index < 0 || index >= stopAddresses.length) {
+        return;
+      }
+
+      // Update the stop address at the specific index only
       const newStopAddresses = [...stopAddresses];
-      newStopAddresses[index] = "";
+      newStopAddresses[index] = ""; // Clear only this specific address
       setStopAddresses(newStopAddresses);
 
-      // Immediately update the stops array to ensure map updates right away
+      // Update additionalStops to reflect the cleared stop (empty coordinates) - just this specific one
       const newAdditionalStops = [...additionalStops];
-      newAdditionalStops.splice(index, 1);
+
+      // Make sure the index exists in additionalStops
+      while (newAdditionalStops.length <= index) {
+        newAdditionalStops.push({
+          address: "",
+          latitude: 0,
+          longitude: 0,
+        });
+      }
+
+      // Clear the coordinates at the index only - don't touch other stops
+      newAdditionalStops[index] = {
+        address: "",
+        latitude: 0,
+        longitude: 0,
+      };
       setAdditionalStops(newAdditionalStops);
 
       // Update map immediately
@@ -660,37 +683,54 @@ export default function NewBookingPage() {
           newAdditionalStops
         );
       }
+    } else {
+      // This is a valid location selection
 
-      // Mark form as modified if we're in the vehicle selection view
-      if (showVehicleOptions) setFormModified(true);
-      return;
+      // Validate index is within bounds for stopAddresses
+      if (index < 0 || index >= stopAddresses.length) {
+        return;
+      }
+
+      // Update the stop address at the specific index
+      const newStopAddresses = [...stopAddresses];
+      newStopAddresses[index] = location.address;
+      setStopAddresses(newStopAddresses);
+
+      // Update additionalStops with the new location
+      const newAdditionalStops = [...additionalStops];
+
+      // Make sure the index exists in additionalStops
+      while (newAdditionalStops.length <= index) {
+        newAdditionalStops.push({
+          address: "",
+          latitude: 0,
+          longitude: 0,
+        });
+      }
+
+      // Set the new location at the index
+      newAdditionalStops[index] = {
+        address: location.address,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+
+      setAdditionalStops(newAdditionalStops);
+
+      // Update map immediately
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.updateLocations(
+          pickupLocation,
+          dropoffLocation,
+          newAdditionalStops
+        );
+      }
     }
 
-    // Update stops
-    const newStops = [...additionalStops];
-    newStops[index] = {
-      address: location.address,
-      latitude: location.latitude,
-      longitude: location.longitude,
-    };
-    setAdditionalStops(newStops);
-
-    // Update the stop address
-    const newStopAddresses = [...stopAddresses];
-    newStopAddresses[index] = location.address;
-    setStopAddresses(newStopAddresses);
-
-    // Update map immediately to draw route without waiting for other form fields
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.updateLocations(
-        pickupLocation,
-        dropoffLocation,
-        newStops
-      );
+    // Mark form as modified if vehicle options are being shown
+    if (showVehicleOptions) {
+      setFormModified(true);
     }
-
-    // Mark form as modified if we're in the vehicle selection view
-    if (showVehicleOptions) setFormModified(true);
   };
 
   // Add a new stop field
@@ -698,23 +738,41 @@ export default function NewBookingPage() {
     setStopAddresses([...stopAddresses, ""]);
   };
 
-  // Remove a stop field
-  const removeStop = (index: number) => {
-    const newStopAddresses = [...stopAddresses];
-    newStopAddresses.splice(index, 1);
-    setStopAddresses(newStopAddresses);
+  // Remove a stop from the list - completely rewritten
+  const removeStop = (indexToRemove: number) => {
+    try {
+      // Sanity check on index bounds
+      if (indexToRemove < 0 || indexToRemove >= stopAddresses.length) {
+        return;
+      }
 
-    const newAdditionalStops = [...additionalStops];
-    newAdditionalStops.splice(index, 1);
-    setAdditionalStops(newAdditionalStops);
-
-    // Update map immediately when a stop is removed
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.updateLocations(
-        pickupLocation,
-        dropoffLocation,
-        newAdditionalStops
+      // Create a brand new array without the item at indexToRemove
+      const newStopAddresses = stopAddresses.filter(
+        (_, idx) => idx !== indexToRemove
       );
+
+      // Create a brand new additionalStops array without the item at indexToRemove
+      const newAdditionalStops = additionalStops.filter(
+        (_, idx) => idx !== indexToRemove
+      );
+
+      // Update the states
+      setStopAddresses(newStopAddresses);
+      setAdditionalStops(newAdditionalStops);
+
+      // Update the map
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.updateLocations(
+          pickupLocation,
+          dropoffLocation,
+          newAdditionalStops
+        );
+      }
+
+      // Set form as modified
+      setFormModified(true);
+    } catch {
+      // Error handling silently
     }
   };
 
@@ -723,6 +781,52 @@ export default function NewBookingPage() {
     const newStopAddresses = [...stopAddresses];
     newStopAddresses[index] = value;
     setStopAddresses(newStopAddresses);
+  };
+
+  // Reorder stops with drag-and-drop
+  const reorderStops = (fromIndex: number, toIndex: number) => {
+    // Validate indexes
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= stopAddresses.length ||
+      toIndex >= stopAddresses.length
+    ) {
+      return;
+    }
+
+    // Reorder stop addresses
+    const newStopAddresses = [...stopAddresses];
+    const [removed] = newStopAddresses.splice(fromIndex, 1);
+    newStopAddresses.splice(toIndex, 0, removed);
+    setStopAddresses(newStopAddresses);
+
+    // Reorder additional stops locations
+    const newAdditionalStops = [...additionalStops];
+    // Ensure the additionalStops array is at least as long as stopAddresses
+    while (newAdditionalStops.length < stopAddresses.length) {
+      newAdditionalStops.push({
+        address: "",
+        latitude: 0,
+        longitude: 0,
+      });
+    }
+
+    // Only attempt to reorder if fromIndex is valid
+    if (fromIndex < newAdditionalStops.length) {
+      const [removedStop] = newAdditionalStops.splice(fromIndex, 1);
+      newAdditionalStops.splice(toIndex, 0, removedStop);
+      setAdditionalStops(newAdditionalStops);
+    }
+
+    // Update map immediately when stops are reordered
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.updateLocations(
+        pickupLocation,
+        dropoffLocation,
+        newAdditionalStops
+      );
+    }
   };
 
   // Get passenger and luggage summary
@@ -1114,11 +1218,11 @@ export default function NewBookingPage() {
         )}
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col md:flex-row gap-2 overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row gap-2 overflow-hidden justify-between">
           {!showVehicleOptions ? (
             <>
-              {/* Booking Form - Width reduced by 20% */}
-              <div className="md:w-[28%] h-fit">
+              {/* Booking Form - Adjusted width to account for increased form width by 10% */}
+              <div className="md:w-[31%] h-fit">
                 <BookingForm
                   pickupAddress={pickupAddress}
                   setPickupAddress={setPickupAddress}
@@ -1150,12 +1254,13 @@ export default function NewBookingPage() {
                   removeStop={removeStop}
                   calculateFare={handleCalculateFare}
                   getPassengerLuggageSummary={getPassengerLuggageSummary}
+                  reorderStops={reorderStops}
                   disabled={locationPermission.denied}
                 />
               </div>
 
-              {/* Map Section - Width increased proportionally */}
-              <div className="flex-1 md:w-[72%]">
+              {/* Map Section - Width adjusted proportionally */}
+              <div className="md:w-[65%]">
                 {showMap ? (
                   locationPermission.denied ? (
                     <div className="h-full max-h-[calc(100vh-6rem)] rounded-lg overflow-hidden border shadow-sm flex items-center justify-center bg-muted/20">
@@ -1676,7 +1781,7 @@ export default function NewBookingPage() {
                   </div>
 
                   {/* Desktop: Vehicle Selection Second */}
-                  <div className="hidden lg:block lg:w-[42%] lg:max-h-[calc(100vh-6rem)] overflow-hidden lg:flex lg:flex-col">
+                  <div className="hidden lg:w-[42%] lg:max-h-[calc(100vh-6rem)] overflow-hidden lg:flex lg:flex-col">
                     <div className="p-3 border-b">
                       <h2 className="text-base font-semibold">
                         Select Vehicle

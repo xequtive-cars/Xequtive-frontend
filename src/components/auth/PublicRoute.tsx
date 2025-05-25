@@ -24,9 +24,6 @@ export default function PublicRoute({
         // Instead of an immediate redirect, we use router.push to avoid loops
         // We also check we're not already redirecting to avoid infinite loops
         if (!pathname.includes("?redirecting=true")) {
-          console.log(
-            "PublicRoute: User is authenticated, redirecting to dashboard"
-          );
           router.push("/dashboard?redirecting=true");
         }
       } else {

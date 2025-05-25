@@ -36,9 +36,6 @@ import {
   setPassengers,
   setCheckedLuggage,
   setHandLuggage,
-  handlePickupLocationSelect as handlePickupLocationSelectAction,
-  handleDropoffLocationSelect as handleDropoffLocationSelectAction,
-  handleStopLocationSelect as handleStopLocationSelectAction,
   setSelectedVehicle as setSelectedVehicleAction,
 } from "@/store/slices/bookingSlice";
 
@@ -53,6 +50,16 @@ import {
 } from "@/store/slices/uiSlice";
 
 import { calculateFare, submitBooking } from "@/store/slices/apiSlice";
+
+// Helper to create wrapper functions for UkLocationInput with proper types
+const createInputChangeHandler = (
+  dispatch: ReturnType<typeof useAppDispatch>,
+  actionCreator: (value: string) => { type: string; payload: string }
+) => {
+  return (value: string) => {
+    dispatch(actionCreator(value));
+  };
+};
 
 export default function NewBookingPageRedux() {
   const dispatch = useAppDispatch();
@@ -96,56 +103,26 @@ export default function NewBookingPageRedux() {
   // Destructure validation state
   const { errors } = validation;
 
+  // Create change handlers for inputs
+  const handlePickupAddressChange = createInputChangeHandler(
+    dispatch,
+    setPickupAddress
+  );
+  const handleDropoffAddressChange = createInputChangeHandler(
+    dispatch,
+    setDropoffAddress
+  );
+
   // Initialize map after component mounts
   useEffect(() => {
     dispatch(setShowMap(true));
   }, [dispatch]);
 
-  // Handle pickup location selection
-  const handlePickupLocationSelect = (location: {
-    address: string;
-    longitude: number;
-    latitude: number;
-  }) => {
-    dispatch(
-      handlePickupLocationSelectAction({
-        address: location.address,
-        latitude: location.latitude,
-        longitude: location.longitude,
-      })
-    );
-  };
-
-  // Handle dropoff location selection
-  const handleDropoffLocationSelect = (location: {
-    address: string;
-    longitude: number;
-    latitude: number;
-  }) => {
-    dispatch(
-      handleDropoffLocationSelectAction({
-        address: location.address,
-        latitude: location.latitude,
-        longitude: location.longitude,
-      })
-    );
-  };
-
-  // Handle additional stop location selection
-  const handleStopLocationSelect = (
-    index: number,
-    location: { address: string; longitude: number; latitude: number }
-  ) => {
-    dispatch(
-      handleStopLocationSelectAction({
-        index,
-        location: {
-          address: location.address,
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
-      })
-    );
+  // Create wrapper for updateStopAddress
+  const createStopAddressChangeHandler = (index: number) => {
+    return (value: string) => {
+      dispatch(updateStopAddressAction({ index, value }));
+    };
   };
 
   // Add a new stop field
@@ -156,11 +133,6 @@ export default function NewBookingPageRedux() {
   // Remove a stop field
   const removeStop = (index: number) => {
     dispatch(removeStopAction(index));
-  };
-
-  // Update stop address state
-  const updateStopAddress = (index: number, value: string) => {
-    dispatch(updateStopAddressAction({ index, value }));
   };
 
   // Get passenger and luggage summary
@@ -258,8 +230,9 @@ export default function NewBookingPageRedux() {
                 <label className="font-medium">Pickup Location</label>
                 <UkLocationInput
                   value={pickupAddress}
-                  onChange={(value) => dispatch(setPickupAddress(value))}
-                  onLocationSelect={handlePickupLocationSelect}
+                  onChange={handlePickupAddressChange}
+                  locationType="pickup"
+                  userLocation={null}
                   placeholder="Enter pickup address"
                 />
                 {errors.pickupLocation && (
@@ -286,10 +259,9 @@ export default function NewBookingPageRedux() {
                   </div>
                   <UkLocationInput
                     value={address}
-                    onChange={(value) => updateStopAddress(index, value)}
-                    onLocationSelect={(location) =>
-                      handleStopLocationSelect(index, location)
-                    }
+                    onChange={createStopAddressChangeHandler(index)}
+                    locationType="stop"
+                    userLocation={null}
                     placeholder={`Enter stop ${index + 1} address`}
                   />
                 </div>
@@ -311,8 +283,9 @@ export default function NewBookingPageRedux() {
                 <label className="font-medium">Dropoff Location</label>
                 <UkLocationInput
                   value={dropoffAddress}
-                  onChange={(value) => dispatch(setDropoffAddress(value))}
-                  onLocationSelect={handleDropoffLocationSelect}
+                  onChange={handleDropoffAddressChange}
+                  locationType="dropoff"
+                  userLocation={null}
                   placeholder="Enter dropoff address"
                 />
                 {errors.dropoffLocation && (

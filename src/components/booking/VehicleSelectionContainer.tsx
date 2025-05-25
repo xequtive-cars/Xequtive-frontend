@@ -171,17 +171,10 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
   }
 
   // Sort vehicles by custom order instead of price
-  console.log("VehicleSelectionContainer - Vehicle ordering debug:");
   const sortedVehicles = [...fareData.vehicleOptions].sort(
     (a, b) =>
       getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
   );
-
-  // Log each vehicle and its order for debugging
-  for (const vehicle of sortedVehicles) {
-    const order = getVehicleTypeOrder(vehicle.id, vehicle.name);
-    console.log(`${vehicle.name} (${vehicle.id}): Sort order ${order}`);
-  }
 
   return (
     <div className="space-y-6">

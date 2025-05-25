@@ -120,22 +120,10 @@ export default function VehicleSelection({
   const sortedVehicles = React.useMemo(() => {
     if (!fareData || !fareData.vehicleOptions) return [];
 
-    // Add console logging to debug the sorting
-    console.log("Vehicle ordering debug:");
     const sorted = [...fareData.vehicleOptions].sort(
       (a, b) =>
         getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
     );
-
-    // Log each vehicle with its sort order to diagnose issues
-    sorted.forEach((vehicle) => {
-      console.log(
-        `${vehicle.name} (${vehicle.id}): Sort order ${getVehicleTypeOrder(
-          vehicle.id,
-          vehicle.name
-        )}`
-      );
-    });
 
     return sorted;
   }, [fareData]);
