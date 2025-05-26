@@ -1,6 +1,9 @@
-import { FareResponse, ApiResponse } from "@/components/booking/common/types";
-import { Location } from "@/components/map/MapComponent";
-import { authService } from "@/lib/auth";
+import {
+  FareResponse,
+  ApiResponse,
+} from "../../components/booking/common/types";
+import { Location } from "../../components/map/MapComponent";
+import { authService } from "../../lib/auth";
 
 interface LocationData {
   address: string;
