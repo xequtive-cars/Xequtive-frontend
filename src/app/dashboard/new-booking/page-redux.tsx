@@ -35,6 +35,7 @@ import {
   setSelectedTime,
   setPassengers,
   setCheckedLuggage,
+  setMediumLuggage,
   setHandLuggage,
   setSelectedVehicle as setSelectedVehicleAction,
 } from "@/store/slices/bookingSlice";
@@ -82,6 +83,7 @@ export default function NewBookingPageRedux() {
     selectedTime,
     passengers,
     checkedLuggage,
+    mediumLuggage,
     handLuggage,
     selectedVehicle,
   } = booking;
@@ -205,6 +207,10 @@ export default function NewBookingPageRedux() {
   // Handle vehicle selection
   const handleVehicleSelect = (vehicle: VehicleOption) => {
     dispatch(setSelectedVehicleAction(vehicle));
+  };
+
+  const handleMediumLuggageChange = (value: number) => {
+    dispatch(setMediumLuggage(value));
   };
 
   return (
@@ -363,6 +369,8 @@ export default function NewBookingPageRedux() {
                     setCheckedLuggage={(value) =>
                       dispatch(setCheckedLuggage(value))
                     }
+                    mediumLuggage={mediumLuggage}
+                    setMediumLuggage={handleMediumLuggageChange}
                     handLuggage={handLuggage}
                     setHandLuggage={(value) => dispatch(setHandLuggage(value))}
                     onBack={() => dispatch(goToLocationStep())}
@@ -421,6 +429,7 @@ export default function NewBookingPageRedux() {
                   selectedTime={selectedTime}
                   passengers={passengers}
                   checkedLuggage={checkedLuggage}
+                  mediumLuggage={mediumLuggage}
                   handLuggage={handLuggage}
                   onBack={() => dispatch(handleBackToForm())}
                   onSelectVehicle={(vehicle) => {
@@ -531,6 +540,7 @@ export default function NewBookingPageRedux() {
                 selectedTime={selectedTime}
                 passengers={passengers}
                 checkedLuggage={checkedLuggage}
+                mediumLuggage={mediumLuggage}
                 handLuggage={handLuggage}
                 onBack={() => dispatch(handleBackToVehicleSelection())}
               />

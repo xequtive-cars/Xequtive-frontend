@@ -40,6 +40,8 @@ interface BookingFormProps {
   setPassengers: (value: number) => void;
   checkedLuggage: number;
   setCheckedLuggage: (value: number) => void;
+  mediumLuggage: number;
+  setMediumLuggage: (value: number) => void;
   handLuggage: number;
   setHandLuggage: (value: number) => void;
   userLocation: { latitude: number; longitude: number } | null;
@@ -190,6 +192,8 @@ export function BookingForm({
   setPassengers,
   checkedLuggage,
   setCheckedLuggage,
+  mediumLuggage,
+  setMediumLuggage,
   handLuggage,
   setHandLuggage,
   userLocation,
@@ -485,6 +489,8 @@ export function BookingForm({
           onPassengersChange={setPassengers}
           checkedLuggage={checkedLuggage}
           onCheckedLuggageChange={setCheckedLuggage}
+          mediumLuggage={mediumLuggage}
+          onMediumLuggageChange={setMediumLuggage}
           handLuggage={handLuggage}
           onHandLuggageChange={setHandLuggage}
           onBack={() => setCurrentStep("location")}

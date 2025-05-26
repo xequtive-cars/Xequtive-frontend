@@ -17,6 +17,8 @@ interface PassengerLuggageFormProps {
   setPassengers: (value: number) => void;
   checkedLuggage: number;
   setCheckedLuggage: (value: number) => void;
+  mediumLuggage: number;
+  setMediumLuggage: (value: number) => void;
   handLuggage: number;
   setHandLuggage: (value: number) => void;
   onBack: () => void;
@@ -28,6 +30,8 @@ export function PassengerLuggageForm({
   setPassengers,
   checkedLuggage,
   setCheckedLuggage,
+  mediumLuggage,
+  setMediumLuggage,
   handLuggage,
   setHandLuggage,
   onBack,
@@ -144,6 +148,52 @@ export function PassengerLuggageForm({
                     handleChange(checkedLuggage + 1, setCheckedLuggage, 0)
                   }
                   disabled={checkedLuggage >= 8}
+                >
+                  <Plus className="h-5 w-5" />
+                  <span className="sr-only">Increase</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Medium Luggage selection */}
+          <div className="space-y-3">
+            <label className="text-lg font-medium block">
+              Medium Luggage (Medium Bags)
+            </label>
+            <div className="flex items-center justify-between h-16 border rounded-md p-4 bg-muted/40">
+              <div className="flex items-center gap-3 px-3">
+                <Briefcase className="h-6 w-6 text-muted-foreground" />
+                <span className="text-lg">
+                  {mediumLuggage} Medium {mediumLuggage === 1 ? "Bag" : "Bags"}
+                </span>
+              </div>
+              <div className="flex items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 rounded-full border-border/50"
+                  onClick={() =>
+                    handleChange(mediumLuggage - 1, setMediumLuggage, 0)
+                  }
+                  disabled={mediumLuggage <= 0}
+                >
+                  <Minus className="h-5 w-5" />
+                  <span className="sr-only">Decrease</span>
+                </Button>
+                <span className="w-14 text-center text-lg font-medium">
+                  {mediumLuggage}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 rounded-full border-border/50"
+                  onClick={() =>
+                    handleChange(mediumLuggage + 1, setMediumLuggage, 0)
+                  }
+                  disabled={mediumLuggage >= 8}
                 >
                   <Plus className="h-5 w-5" />
                   <span className="sr-only">Increase</span>

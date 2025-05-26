@@ -20,6 +20,7 @@ interface BookingSummaryProps {
   time: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   className?: string;
 }
@@ -32,6 +33,7 @@ export function BookingSummary({
   time,
   passengers,
   checkedLuggage,
+  mediumLuggage,
   handLuggage,
   className,
 }: BookingSummaryProps) {
@@ -132,16 +134,24 @@ export function BookingSummary({
               </p>
               <p className="text-sm font-medium">
                 {passengers} {passengers === 1 ? "Passenger" : "Passengers"}
-                {(checkedLuggage > 0 || handLuggage > 0) && (
-                  <span className="ml-1">with </span>
-                )}
+                {(checkedLuggage > 0 ||
+                  mediumLuggage > 0 ||
+                  handLuggage > 0) && <span className="ml-1">with </span>}
                 {checkedLuggage > 0 && (
                   <span>
                     {checkedLuggage} large{" "}
                     {checkedLuggage === 1 ? "bag" : "bags"}
                   </span>
                 )}
-                {checkedLuggage > 0 && handLuggage > 0 && <span> and </span>}
+                {checkedLuggage > 0 &&
+                  (mediumLuggage > 0 || handLuggage > 0) && <span>, </span>}
+                {mediumLuggage > 0 && (
+                  <span>
+                    {mediumLuggage} medium{" "}
+                    {mediumLuggage === 1 ? "bag" : "bags"}
+                  </span>
+                )}
+                {mediumLuggage > 0 && handLuggage > 0 && <span>, </span>}
                 {handLuggage > 0 && (
                   <span>
                     {handLuggage} small {handLuggage === 1 ? "bag" : "bags"}

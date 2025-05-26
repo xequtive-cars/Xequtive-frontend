@@ -19,6 +19,7 @@ interface BookingState {
   // Passenger and luggage information
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
 
   // Vehicle selection
@@ -39,6 +40,7 @@ const initialState: BookingState = {
 
   passengers: 1,
   checkedLuggage: 0,
+  mediumLuggage: 0,
   handLuggage: 0,
 
   selectedVehicle: null,
@@ -101,6 +103,9 @@ const bookingSlice = createSlice({
     setCheckedLuggage: (state, action: PayloadAction<number>) => {
       state.checkedLuggage = action.payload;
     },
+    setMediumLuggage: (state, action: PayloadAction<number>) => {
+      state.mediumLuggage = action.payload;
+    },
     setHandLuggage: (state, action: PayloadAction<number>) => {
       state.handLuggage = action.payload;
     },
@@ -157,6 +162,7 @@ export const {
   setSelectedTime,
   setPassengers,
   setCheckedLuggage,
+  setMediumLuggage,
   setHandLuggage,
   setSelectedVehicle,
   resetBooking,

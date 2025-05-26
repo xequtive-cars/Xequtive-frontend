@@ -69,6 +69,7 @@ interface FareRequest {
   passengers: {
     count: number;
     checkedLuggage: number;
+    mediumLuggage: number;
     handLuggage: number;
   };
 }
@@ -223,6 +224,7 @@ export default function NewBookingPage() {
   // Passenger/luggage states
   const [passengers, setPassengers] = useState<number>(1);
   const [checkedLuggage, setCheckedLuggage] = useState<number>(0);
+  const [mediumLuggage, setMediumLuggage] = useState<number>(0);
   const [handLuggage, setHandLuggage] = useState<number>(0);
 
   // API states
@@ -273,6 +275,7 @@ export default function NewBookingPage() {
       const timeParam = searchParams.get("time");
       const paxParam = searchParams.get("pax");
       const clParam = searchParams.get("cl"); // checked luggage
+      const mlParam = searchParams.get("ml"); // medium luggage
       const hlParam = searchParams.get("hl"); // hand luggage
       const stopsParam = searchParams.get("stops");
 
@@ -364,6 +367,13 @@ export default function NewBookingPage() {
         const cl = parseInt(clParam, 10);
         if (!isNaN(cl) && cl >= 0) {
           setCheckedLuggage(cl);
+        }
+      }
+
+      if (mlParam) {
+        const ml = parseInt(mlParam, 10);
+        if (!isNaN(ml) && ml >= 0) {
+          setMediumLuggage(ml);
         }
       }
 
@@ -469,6 +479,7 @@ export default function NewBookingPage() {
       // Add passenger and luggage counts
       currentParams.set("pax", passengers.toString());
       currentParams.set("cl", checkedLuggage.toString());
+      currentParams.set("ml", mediumLuggage.toString());
       currentParams.set("hl", handLuggage.toString());
 
       // Update URL without refreshing the page
@@ -484,12 +495,20 @@ export default function NewBookingPage() {
       selectedTime !== "" ||
       passengers !== 1 ||
       checkedLuggage !== 0 ||
+      mediumLuggage !== 0 ||
       handLuggage !== 0;
 
     if (hasNonLocationData) {
       updateNonLocationParams();
     }
-  }, [selectedDate, selectedTime, passengers, checkedLuggage, handLuggage]);
+  }, [
+    selectedDate,
+    selectedTime,
+    passengers,
+    checkedLuggage,
+    mediumLuggage,
+    handLuggage,
+  ]);
 
   // Delay map rendering to prevent hydration issues
   useEffect(() => {
@@ -831,7 +850,12 @@ export default function NewBookingPage() {
 
   // Get passenger and luggage summary
   const getPassengerLuggageSummary = () => {
-    if (passengers === 0 && checkedLuggage === 0 && handLuggage === 0) {
+    if (
+      passengers === 0 &&
+      checkedLuggage === 0 &&
+      mediumLuggage === 0 &&
+      handLuggage === 0
+    ) {
       return "Not specified";
     }
 
@@ -848,6 +872,11 @@ export default function NewBookingPage() {
         `${checkedLuggage} large ${checkedLuggage === 1 ? "bag" : "bags"}`
       );
     }
+    if (mediumLuggage > 0) {
+      luggageParts.push(
+        `${mediumLuggage} medium ${mediumLuggage === 1 ? "bag" : "bags"}`
+      );
+    }
     if (handLuggage > 0) {
       luggageParts.push(
         `${handLuggage} small ${handLuggage === 1 ? "bag" : "bags"}`
@@ -855,7 +884,7 @@ export default function NewBookingPage() {
     }
 
     if (luggageParts.length > 0) {
-      parts.push(luggageParts.join(" and "));
+      parts.push(`${luggageParts.join(", ")}`);
     }
 
     return parts.join(" with ");
@@ -910,6 +939,7 @@ export default function NewBookingPage() {
         passengers: {
           count: passengers || 1,
           checkedLuggage: checkedLuggage || 0,
+          mediumLuggage: mediumLuggage || 0,
           handLuggage: handLuggage || 0,
         },
       };
@@ -1059,6 +1089,7 @@ export default function NewBookingPage() {
           selectedTime,
           passengers,
           checkedLuggage,
+          mediumLuggage,
           handLuggage,
           selectedVehicle,
         }
@@ -1082,6 +1113,7 @@ export default function NewBookingPage() {
       setSelectedTime("");
       setPassengers(1);
       setCheckedLuggage(0);
+      setMediumLuggage(0);
       setHandLuggage(0);
       setSelectedVehicle(null);
       setShowVehicleOptions(false);
@@ -1239,6 +1271,8 @@ export default function NewBookingPage() {
                   setPassengers={setPassengers}
                   checkedLuggage={checkedLuggage}
                   setCheckedLuggage={setCheckedLuggage}
+                  mediumLuggage={mediumLuggage}
+                  setMediumLuggage={setMediumLuggage}
                   handLuggage={handLuggage}
                   setHandLuggage={setHandLuggage}
                   userLocation={userLocation}
@@ -1407,6 +1441,7 @@ export default function NewBookingPage() {
                             selectedTime={selectedTime}
                             passengers={passengers}
                             checkedLuggage={checkedLuggage}
+                            mediumLuggage={mediumLuggage}
                             handLuggage={handLuggage}
                             onBack={handleBackToForm}
                             onSelectVehicle={handleVehicleSelect}
@@ -1797,6 +1832,7 @@ export default function NewBookingPage() {
                           selectedTime={selectedTime}
                           passengers={passengers}
                           checkedLuggage={checkedLuggage}
+                          mediumLuggage={mediumLuggage}
                           handLuggage={handLuggage}
                           onBack={handleBackToForm}
                           onSelectVehicle={handleVehicleSelect}
@@ -1858,6 +1894,7 @@ export default function NewBookingPage() {
                             selectedTime={selectedTime}
                             passengers={passengers}
                             checkedLuggage={checkedLuggage}
+                            mediumLuggage={mediumLuggage}
                             handLuggage={handLuggage}
                             onBack={handleBackToVehicleSelection}
                             onSubmit={handleSubmitBooking}

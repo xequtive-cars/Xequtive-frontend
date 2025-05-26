@@ -77,6 +77,7 @@ export interface BookingDetails {
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   selectedVehicle: VehicleOption | null;
 }

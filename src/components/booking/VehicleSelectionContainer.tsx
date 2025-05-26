@@ -85,6 +85,7 @@ interface VehicleSelectionContainerProps {
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   onBack: () => void;
   onSelectVehicle: (vehicle: VehicleOption) => void;
@@ -100,6 +101,7 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
   selectedTime,
   passengers,
   checkedLuggage,
+  mediumLuggage,
   handLuggage,
   onBack,
   onSelectVehicle,
@@ -108,7 +110,7 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
   // Check if capacity is exceeded for any vehicle
   const checkCapacityExceeded = (vehicle: VehicleOption) => {
     const totalPassengers = passengers;
-    const totalLuggage = checkedLuggage + handLuggage;
+    const totalLuggage = checkedLuggage + mediumLuggage + handLuggage;
 
     return (
       vehicle.capacity.passengers < totalPassengers ||
@@ -186,6 +188,7 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
         time={selectedTime}
         passengers={passengers}
         checkedLuggage={checkedLuggage}
+        mediumLuggage={mediumLuggage}
         handLuggage={handLuggage}
         className="mb-6"
       />
@@ -266,7 +269,7 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
                         variant={
                           !exceededCapacity ||
                           vehicle.capacity.luggage >=
-                            checkedLuggage + handLuggage
+                            checkedLuggage + mediumLuggage + handLuggage
                             ? "outline"
                             : "destructive"
                         }

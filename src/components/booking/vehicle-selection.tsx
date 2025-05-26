@@ -92,6 +92,7 @@ interface VehicleSelectionProps {
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   onBack: () => void;
   onSelectVehicle: (vehicle: VehicleOption) => void;
@@ -106,6 +107,7 @@ export default function VehicleSelection({
   selectedTime,
   passengers,
   checkedLuggage,
+  mediumLuggage,
   handLuggage,
   onBack,
   onSelectVehicle,
@@ -131,13 +133,19 @@ export default function VehicleSelection({
   // Check if the vehicle capacity meets requirements
   const checkVehicleCapacity = (vehicle: VehicleOption) => {
     const passengerOk = vehicle.capacity.passengers >= passengers;
-    const luggageOk = vehicle.capacity.luggage >= checkedLuggage + handLuggage;
+    const luggageOk =
+      vehicle.capacity.luggage >= checkedLuggage + mediumLuggage + handLuggage;
     return { passengerOk, luggageOk, isOk: passengerOk && luggageOk };
   };
 
   // Get passenger and luggage summary
   const getPassengerLuggageSummary = () => {
-    if (passengers === 0 && checkedLuggage === 0 && handLuggage === 0) {
+    if (
+      passengers === 0 &&
+      checkedLuggage === 0 &&
+      mediumLuggage === 0 &&
+      handLuggage === 0
+    ) {
       return "Not specified";
     }
 
@@ -152,6 +160,11 @@ export default function VehicleSelection({
     if (checkedLuggage > 0) {
       luggageParts.push(
         `${checkedLuggage} large ${checkedLuggage === 1 ? "bag" : "bags"}`
+      );
+    }
+    if (mediumLuggage > 0) {
+      luggageParts.push(
+        `${mediumLuggage} medium ${mediumLuggage === 1 ? "bag" : "bags"}`
       );
     }
     if (handLuggage > 0) {

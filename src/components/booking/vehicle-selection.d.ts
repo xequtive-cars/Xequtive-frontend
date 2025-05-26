@@ -9,6 +9,7 @@ interface VehicleSelectionProps {
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   onBack: () => void;
   onSelectVehicle: (vehicle: VehicleOption) => void;
@@ -22,6 +23,7 @@ export default function VehicleSelection({
   selectedTime,
   passengers,
   checkedLuggage,
+  mediumLuggage,
   handLuggage,
   onBack,
   onSelectVehicle,

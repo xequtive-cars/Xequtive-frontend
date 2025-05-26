@@ -26,6 +26,7 @@ interface FareRequest {
   passengers: {
     count: number;
     checkedLuggage: number;
+    mediumLuggage: number;
     handLuggage: number;
   };
 }
@@ -85,6 +86,7 @@ export const getFareEstimate = async (
         passengers: {
           count: 1,
           checkedLuggage: 0,
+          mediumLuggage: 0,
           handLuggage: 0,
         },
       };
@@ -142,6 +144,7 @@ export const getFareEstimate = async (
       passengers: {
         count: Number(request.passengers?.count) || 1,
         checkedLuggage: Number(request.passengers?.checkedLuggage) || 0,
+        mediumLuggage: Number(request.passengers?.mediumLuggage) || 0,
         handLuggage: Number(request.passengers?.handLuggage) || 0,
       },
     };

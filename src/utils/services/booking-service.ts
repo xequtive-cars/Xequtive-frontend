@@ -40,6 +40,7 @@ export interface BookingRequest {
     passengers: {
       count: number;
       checkedLuggage: number;
+      mediumLuggage: number;
       handLuggage: number;
     };
     vehicle: {
@@ -98,6 +99,7 @@ interface BookingDetails {
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   selectedVehicle: VehicleOption | null;
 }
@@ -255,6 +257,7 @@ class BookingService {
           passengers: {
             count: bookingDetails.passengers || 1,
             checkedLuggage: bookingDetails.checkedLuggage || 0,
+            mediumLuggage: bookingDetails.mediumLuggage || 0,
             handLuggage: bookingDetails.handLuggage || 0,
           },
           vehicle: {

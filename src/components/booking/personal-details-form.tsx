@@ -78,6 +78,7 @@ export interface PersonalDetailsFormProps {
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   onBack: () => void;
   onSubmit: (
@@ -102,6 +103,7 @@ export function PersonalDetailsForm({
   selectedTime,
   passengers,
   checkedLuggage,
+  mediumLuggage,
   handLuggage,
   onBack,
   onSubmit,
@@ -349,8 +351,10 @@ export function PersonalDetailsForm({
                   label="Passengers & Luggage"
                   value={`${passengers} passenger${
                     passengers !== 1 ? "s" : ""
-                  } | ${checkedLuggage + handLuggage} bag${
-                    checkedLuggage + handLuggage !== 1 ? "s" : ""
+                  } | ${checkedLuggage + mediumLuggage + handLuggage} bag${
+                    checkedLuggage + mediumLuggage + handLuggage !== 1
+                      ? "s"
+                      : ""
                   }`}
                   icon={User}
                 />
@@ -474,7 +478,7 @@ export function PersonalDetailsForm({
                         <BookingDetail
                           label="Passengers & Luggage"
                           value={`${passengers} pax, ${
-                            checkedLuggage + handLuggage
+                            checkedLuggage + mediumLuggage + handLuggage
                           } bags`}
                           icon={User}
                         />

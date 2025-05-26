@@ -25,6 +25,7 @@ interface FareRequest {
   passengers: {
     count: number;
     checkedLuggage: number;
+    mediumLuggage: number;
     handLuggage: number;
   };
 }

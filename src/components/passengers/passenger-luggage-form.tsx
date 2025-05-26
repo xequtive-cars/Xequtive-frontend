@@ -16,9 +16,11 @@ import { Card, CardContent } from "@/components/ui/card";
 export interface PassengerLuggageFormProps {
   passengers: number;
   checkedLuggage: number;
+  mediumLuggage: number;
   handLuggage: number;
   onPassengersChange: (value: number) => void;
   onCheckedLuggageChange: (value: number) => void;
+  onMediumLuggageChange: (value: number) => void;
   onHandLuggageChange: (value: number) => void;
   onBack: () => void;
   disabled?: boolean;
@@ -28,9 +30,11 @@ export interface PassengerLuggageFormProps {
 export function PassengerLuggageForm({
   passengers,
   checkedLuggage,
+  mediumLuggage,
   handLuggage,
   onPassengersChange,
   onCheckedLuggageChange,
+  onMediumLuggageChange,
   onHandLuggageChange,
   onBack,
   disabled = false,
@@ -51,13 +55,13 @@ export function PassengerLuggageForm({
     <Card
       className={cn("border border-border/60 rounded-md shadow-sm", className)}
     >
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 py-0 space-y-3">
         {/* Back button */}
         <div className="flex items-center mb-1">
           <Button
             variant="ghost"
             size="sm"
-            className="p-0 h-8 w-8 mr-3 hover:bg-muted/60"
+            className="p-0 mr-3 hover:bg-muted/60"
             onClick={onBack}
           >
             <ChevronLeft className="h-5 w-5 text-foreground" />
@@ -83,7 +87,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 bg-muted/0"
                   onClick={() =>
                     handleChange(passengers - 1, onPassengersChange, 1)
                   }
@@ -98,7 +102,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 bg-muted/0"
                   onClick={() =>
                     handleChange(passengers + 1, onPassengersChange, 1)
                   }
@@ -127,7 +131,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 bg-muted/0"
                   onClick={() =>
                     handleChange(checkedLuggage - 1, onCheckedLuggageChange, 0)
                   }
@@ -142,11 +146,55 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 bg-muted/0"
                   onClick={() =>
                     handleChange(checkedLuggage + 1, onCheckedLuggageChange, 0)
                   }
                   disabled={disabled || checkedLuggage >= 8}
+                >
+                  <Plus className="h-4 w-4 text-foreground" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Medium Luggage selection */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium block">
+              Medium Luggage (Medium Bags)
+            </label>
+            <div className="flex items-center justify-between h-10 border rounded-md px-3 py-2 bg-muted/40">
+              <div className="flex items-center gap-2 px-1">
+                <Briefcase className="h-5 w-5 text-foreground" />
+                <span className="text-sm">
+                  {mediumLuggage} Medium {mediumLuggage === 1 ? "Bag" : "Bags"}
+                </span>
+              </div>
+              <div className="flex flex-row items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-7 bg-muted/0"
+                  onClick={() =>
+                    handleChange(mediumLuggage - 1, onMediumLuggageChange, 0)
+                  }
+                  disabled={disabled || mediumLuggage <= 0}
+                >
+                  <Minus className="h-4 w-4 text-foreground" />
+                </Button>
+                <span className="mx-auto w-10 text-center text-sm">
+                  {mediumLuggage}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-7 bg-muted/0"
+                  onClick={() =>
+                    handleChange(mediumLuggage + 1, onMediumLuggageChange, 0)
+                  }
+                  disabled={disabled || mediumLuggage >= 8}
                 >
                   <Plus className="h-4 w-4 text-foreground" />
                 </Button>
@@ -171,7 +219,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 bg-muted/0"
                   onClick={() =>
                     handleChange(handLuggage - 1, onHandLuggageChange, 0)
                   }
@@ -186,7 +234,7 @@ export function PassengerLuggageForm({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 bg-muted/0"
                   onClick={() =>
                     handleChange(handLuggage + 1, onHandLuggageChange, 0)
                   }
