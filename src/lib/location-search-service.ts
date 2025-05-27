@@ -1,553 +1,691 @@
-import { Location } from "@/types/form";
+export interface LocationMetadata {
+  postcode: string | undefined;
+  city: string | undefined;
+  region: string | undefined;
+  category: string | undefined;
+  airportCode?: string;
+  terminalOptions?: string[];
+  terminalCoordinates?: {
+    [key: string]: { lat: number; lng: number };
+  };
+}
 
 export interface LocationSearchResult {
   address: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
+  coordinates: { lat: number; lng: number };
   type:
     | "airport"
-    | "terminal"
     | "station"
+    | "landmark"
+    | "address"
+    | "poi"
+    | "terminal"
     | "postcode"
     | "street"
     | "building"
     | "area"
-    | "landmark";
-  metadata?: {
-    airportCode?: string;
-    terminalOptions?: string[];
-    postcode?: string;
-    city?: string;
-    region?: string;
-  };
+    | "hospital";
+  metadata: LocationMetadata;
 }
 
-// UK major airports with coordinates
-const UK_AIRPORTS: LocationSearchResult[] = [
+interface LocationBase {
+  address: string;
+  type: LocationType;
+  metadata: LocationMetadata;
+}
+
+interface MapboxFeature {
+  id: string;
+  type: string;
+  place_type: string[];
+  relevance: number;
+  properties: {
+    [key: string]: string | number | boolean | null | undefined;
+    category?: string;
+  };
+  text: string;
+  place_name: string;
+  center: [number, number];
+  context?: Array<{
+    id: string;
+    text: string;
+    wikidata?: string;
+    short_code?: string;
+  }>;
+}
+
+interface MapboxResponse {
+  features: MapboxFeature[];
+}
+
+// UK major airports with terminal coordinates
+const UK_AIRPORTS: LocationBase[] = [
   {
-    address: "Heathrow Airport, London",
-    coordinates: { lat: 51.4700223, lng: -0.4542955 },
+    address: "London Heathrow Airport (LHR)",
     type: "airport",
     metadata: {
+      postcode: "TW6 2GW",
+      city: "London",
+      region: "Greater London",
+      category: "airport",
       airportCode: "LHR",
       terminalOptions: ["Terminal 2", "Terminal 3", "Terminal 4", "Terminal 5"],
-      city: "London",
-      region: "Greater London",
+      terminalCoordinates: {
+        "Terminal 2": { lat: 51.4712, lng: -0.4527 },
+        "Terminal 3": { lat: 51.4713, lng: -0.4566 },
+        "Terminal 4": { lat: 51.4591, lng: -0.4487 },
+        "Terminal 5": { lat: 51.4722, lng: -0.4869 },
+      },
     },
   },
   {
-    address: "Gatwick Airport, London",
-    coordinates: { lat: 51.1537, lng: -0.1821 },
+    address: "London Gatwick Airport (LGW)",
     type: "airport",
     metadata: {
+      postcode: "RH6 0NP",
+      city: "Gatwick",
+      region: "West Sussex",
+      category: "airport",
       airportCode: "LGW",
       terminalOptions: ["North Terminal", "South Terminal"],
-      city: "London",
-      region: "West Sussex",
+      terminalCoordinates: {
+        "North Terminal": { lat: 51.1572, lng: -0.1606 },
+        "South Terminal": { lat: 51.1537, lng: -0.1588 },
+      },
     },
   },
   {
-    address: "Manchester Airport",
-    coordinates: { lat: 53.3588, lng: -2.2727 },
+    address: "Manchester Airport (MAN)",
     type: "airport",
     metadata: {
-      airportCode: "MAN",
-      terminalOptions: ["Terminal 1", "Terminal 2", "Terminal 3"],
+      postcode: "M90 1QX",
       city: "Manchester",
       region: "Greater Manchester",
+      category: "airport",
+      airportCode: "MAN",
+      terminalOptions: ["Terminal 1", "Terminal 2", "Terminal 3"],
+      terminalCoordinates: {
+        "Terminal 1": { lat: 53.365, lng: -2.2728 },
+        "Terminal 2": { lat: 53.3659, lng: -2.269 },
+        "Terminal 3": { lat: 53.3636, lng: -2.2715 },
+      },
     },
   },
+  // Keep other airports with single terminals as they are
   {
-    address: "Birmingham Airport",
-    coordinates: { lat: 52.4539, lng: -1.7489 },
+    address: "London Stansted Airport (STN)",
     type: "airport",
     metadata: {
-      airportCode: "BHX",
-      terminalOptions: ["Main Terminal"],
-      city: "Birmingham",
-      region: "West Midlands",
-    },
-  },
-  {
-    address: "Edinburgh Airport",
-    coordinates: { lat: 55.95, lng: -3.3725 },
-    type: "airport",
-    metadata: {
-      airportCode: "EDI",
-      terminalOptions: ["Main Terminal"],
-      city: "Edinburgh",
-      region: "Scotland",
-    },
-  },
-  {
-    address: "Glasgow Airport",
-    coordinates: { lat: 55.8652, lng: -4.4332 },
-    type: "airport",
-    metadata: {
-      airportCode: "GLA",
-      terminalOptions: ["Main Terminal"],
-      city: "Glasgow",
-      region: "Scotland",
-    },
-  },
-  {
-    address: "Bristol Airport",
-    coordinates: { lat: 51.3827, lng: -2.7192 },
-    type: "airport",
-    metadata: {
-      airportCode: "BRS",
-      terminalOptions: ["Main Terminal"],
-      city: "Bristol",
-      region: "South West England",
-    },
-  },
-  {
-    address: "Newcastle Airport",
-    coordinates: { lat: 55.0374, lng: -1.6912 },
-    type: "airport",
-    metadata: {
-      airportCode: "NCL",
-      terminalOptions: ["Main Terminal"],
-      city: "Newcastle",
-      region: "North East England",
-    },
-  },
-  {
-    address: "Liverpool John Lennon Airport",
-    coordinates: { lat: 53.3375, lng: -2.8497 },
-    type: "airport",
-    metadata: {
-      airportCode: "LPL",
-      terminalOptions: ["Main Terminal"],
-      city: "Liverpool",
-      region: "North West England",
-    },
-  },
-  {
-    address: "London City Airport",
-    coordinates: { lat: 51.5048, lng: 0.0495 },
-    type: "airport",
-    metadata: {
-      airportCode: "LCY",
-      terminalOptions: ["Main Terminal"],
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "London Stansted Airport",
-    coordinates: { lat: 51.886, lng: 0.2389 },
-    type: "airport",
-    metadata: {
+      postcode: "CM24 1QW",
+      city: "Stansted Mountfitchet",
+      region: "Essex",
+      category: "airport",
       airportCode: "STN",
       terminalOptions: ["Main Terminal"],
-      city: "London",
-      region: "Essex",
+      terminalCoordinates: {
+        "Main Terminal": { lat: 51.886, lng: 0.2389 },
+      },
     },
   },
   {
-    address: "London Luton Airport",
-    coordinates: { lat: 51.8747, lng: -0.3683 },
+    address: "London Luton Airport (LTN)",
     type: "airport",
     metadata: {
+      postcode: "LU2 9LY",
+      city: "Luton",
+      region: "Bedfordshire",
+      category: "airport",
       airportCode: "LTN",
       terminalOptions: ["Main Terminal"],
+    },
+  },
+  {
+    address: "London City Airport (LCY)",
+    type: "airport",
+    metadata: {
+      postcode: "E16 2PX",
       city: "London",
-      region: "Bedfordshire",
+      region: "Greater London",
+      category: "airport",
+      airportCode: "LCY",
+      terminalOptions: ["Main Terminal"],
+    },
+  },
+  {
+    address: "Birmingham Airport (BHX)",
+    type: "airport",
+    metadata: {
+      postcode: "B26 3QJ",
+      city: "Birmingham",
+      region: "West Midlands",
+      category: "airport",
+      airportCode: "BHX",
+      terminalOptions: ["Main Terminal"],
+    },
+  },
+  {
+    address: "Edinburgh Airport (EDI)",
+    type: "airport",
+    metadata: {
+      postcode: "EH12 9DN",
+      city: "Edinburgh",
+      region: "Scotland",
+      category: "airport",
+      airportCode: "EDI",
+      terminalOptions: ["Main Terminal"],
+    },
+  },
+  {
+    address: "Glasgow Airport (GLA)",
+    type: "airport",
+    metadata: {
+      postcode: "PA3 2SW",
+      city: "Glasgow",
+      region: "Scotland",
+      category: "airport",
+      airportCode: "GLA",
+      terminalOptions: ["Main Terminal"],
+    },
+  },
+  {
+    address: "Bristol Airport (BRS)",
+    type: "airport",
+    metadata: {
+      postcode: "BS48 3DY",
+      city: "Bristol",
+      region: "Somerset",
+      category: "airport",
+      airportCode: "BRS",
+      terminalOptions: ["Main Terminal"],
     },
   },
 ];
 
-// UK Major train stations
-const UK_STATIONS: LocationSearchResult[] = [
+// UK Major train stations without coordinates
+const UK_STATIONS: LocationBase[] = [
   {
     address: "London King's Cross Station",
-    coordinates: { lat: 51.532, lng: -0.1233 },
     type: "station",
     metadata: {
+      postcode: "N1 9AL",
       city: "London",
       region: "Greater London",
+      category: "rail",
     },
   },
   {
-    address: "London Euston Station",
-    coordinates: { lat: 51.5284, lng: -0.1331 },
+    address: "London Waterloo Station",
     type: "station",
     metadata: {
+      postcode: "SE1 8SW",
       city: "London",
       region: "Greater London",
-    },
-  },
-  {
-    address: "London Paddington Station",
-    coordinates: { lat: 51.5154, lng: -0.1755 },
-    type: "station",
-    metadata: {
-      city: "London",
-      region: "Greater London",
+      category: "rail",
     },
   },
   {
     address: "London Liverpool Street Station",
-    coordinates: { lat: 51.5179, lng: -0.0803 },
     type: "station",
     metadata: {
+      postcode: "EC2M 7PY",
       city: "London",
       region: "Greater London",
+      category: "rail",
+    },
+  },
+  {
+    address: "London Victoria Station",
+    type: "station",
+    metadata: {
+      postcode: "SW1V 1JU",
+      city: "London",
+      region: "Greater London",
+      category: "rail",
+    },
+  },
+  {
+    address: "London Paddington Station",
+    type: "station",
+    metadata: {
+      postcode: "W2 1HQ",
+      city: "London",
+      region: "Greater London",
+      category: "rail",
     },
   },
   {
     address: "Manchester Piccadilly Station",
-    coordinates: { lat: 53.4774, lng: -2.2309 },
     type: "station",
     metadata: {
+      postcode: "M1 2QF",
       city: "Manchester",
       region: "Greater Manchester",
+      category: "rail",
     },
   },
   {
     address: "Birmingham New Street Station",
-    coordinates: { lat: 52.4778, lng: -1.8981 },
     type: "station",
     metadata: {
+      postcode: "B2 4QA",
       city: "Birmingham",
       region: "West Midlands",
+      category: "rail",
+    },
+  },
+  {
+    address: "Edinburgh Waverley Station",
+    type: "station",
+    metadata: {
+      postcode: "EH1 1BB",
+      city: "Edinburgh",
+      region: "Scotland",
+      category: "rail",
+    },
+  },
+  {
+    address: "Glasgow Central Station",
+    type: "station",
+    metadata: {
+      postcode: "G1 3SL",
+      city: "Glasgow",
+      region: "Scotland",
+      category: "rail",
+    },
+  },
+  {
+    address: "Leeds Station",
+    type: "station",
+    metadata: {
+      postcode: "LS1 4DY",
+      city: "Leeds",
+      region: "West Yorkshire",
+      category: "rail",
     },
   },
 ];
 
-// UK popular landmarks
-const UK_LANDMARKS: LocationSearchResult[] = [
+// UK popular landmarks without coordinates
+const UK_LANDMARKS: LocationBase[] = [
   {
-    address: "Buckingham Palace, London",
-    coordinates: { lat: 51.5014, lng: -0.1419 },
+    address: "Big Ben, Westminster",
     type: "landmark",
     metadata: {
+      postcode: "SW1A 0AA",
       city: "London",
       region: "Greater London",
+      category: "landmark",
     },
   },
   {
-    address: "Houses of Parliament, London",
-    coordinates: { lat: 51.4995, lng: -0.1248 },
+    address: "Tower Bridge, London",
     type: "landmark",
     metadata: {
+      postcode: "SE1 2UP",
       city: "London",
       region: "Greater London",
+      category: "landmark",
     },
   },
   {
-    address: "The Shard, London",
-    coordinates: { lat: 51.5045, lng: -0.0865 },
+    address: "Buckingham Palace",
     type: "landmark",
     metadata: {
+      postcode: "SW1A 1AA",
       city: "London",
       region: "Greater London",
+      category: "landmark",
     },
   },
   {
-    address: "Old Trafford, Manchester",
-    coordinates: { lat: 53.4631, lng: -2.2913 },
+    address: "Edinburgh Castle",
     type: "landmark",
     metadata: {
-      city: "Manchester",
-      region: "Greater Manchester",
-    },
-  },
-];
-
-// UK popular London locations
-const LONDON_LANDMARKS: LocationSearchResult[] = [
-  {
-    address: "Buckingham Palace, London",
-    coordinates: { lat: 51.5014, lng: -0.1419 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
+      postcode: "EH1 2NG",
+      city: "Edinburgh",
+      region: "Scotland",
+      category: "landmark",
     },
   },
   {
-    address: "Houses of Parliament, London",
-    coordinates: { lat: 51.4995, lng: -0.1248 },
+    address: "Stonehenge",
     type: "landmark",
     metadata: {
-      city: "London",
-      region: "Greater London",
+      postcode: "SP4 7DE",
+      city: "Amesbury",
+      region: "Wiltshire",
+      category: "landmark",
     },
   },
   {
-    address: "The Shard, London",
-    coordinates: { lat: 51.5045, lng: -0.0865 },
+    address: "Roman Baths",
     type: "landmark",
     metadata: {
-      city: "London",
-      region: "Greater London",
+      postcode: "BA1 1LZ",
+      city: "Bath",
+      region: "Somerset",
+      category: "landmark",
     },
   },
   {
     address: "Tower of London",
-    coordinates: { lat: 51.5081, lng: -0.0759 },
     type: "landmark",
     metadata: {
+      postcode: "EC3N 4AB",
       city: "London",
       region: "Greater London",
+      category: "landmark",
     },
   },
   {
-    address: "British Museum, London",
-    coordinates: { lat: 51.5194, lng: -0.1269 },
+    address: "St Paul's Cathedral",
     type: "landmark",
     metadata: {
+      postcode: "EC4M 8AD",
       city: "London",
       region: "Greater London",
+      category: "landmark",
+    },
+  },
+  {
+    address: "Westminster Abbey",
+    type: "landmark",
+    metadata: {
+      postcode: "SW1P 3PA",
+      city: "London",
+      region: "Greater London",
+      category: "landmark",
     },
   },
   {
     address: "London Eye",
-    coordinates: { lat: 51.5033, lng: -0.1195 },
     type: "landmark",
     metadata: {
+      postcode: "SE1 7PB",
       city: "London",
       region: "Greater London",
-    },
-  },
-  {
-    address: "Natural History Museum, London",
-    coordinates: { lat: 51.4967, lng: -0.1764 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "Piccadilly Circus, London",
-    coordinates: { lat: 51.5099, lng: -0.1349 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "Trafalgar Square, London",
-    coordinates: { lat: 51.508, lng: -0.128 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "Wembley Stadium, London",
-    coordinates: { lat: 51.556, lng: -0.2795 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "O2 Arena, London",
-    coordinates: { lat: 51.503, lng: 0.0032 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "Canary Wharf, London",
-    coordinates: { lat: 51.5054, lng: -0.0235 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
-    },
-  },
-  {
-    address: "ExCeL London",
-    coordinates: { lat: 51.5082, lng: 0.0293 },
-    type: "landmark",
-    metadata: {
-      city: "London",
-      region: "Greater London",
+      category: "landmark",
     },
   },
 ];
 
-// Create combined dataset
-const combinedLocations = [
-  ...UK_AIRPORTS,
-  ...UK_STATIONS,
-  ...UK_LANDMARKS,
-  ...LONDON_LANDMARKS,
-];
+// First fix the type issue
+export type LocationType =
+  | "airport"
+  | "station"
+  | "landmark"
+  | "address"
+  | "poi"
+  | "terminal"
+  | "postcode"
+  | "street"
+  | "building"
+  | "area"
+  | "hospital";
 
 class LocationSearchService {
-  // Search for locations based on query
-  async searchLocations(
-    query: string,
+  private mapboxToken: string;
+  private coordinatesCache: Map<string, { lat: number; lng: number }>;
+
+  constructor() {
+    this.mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+    this.coordinatesCache = new Map();
+  }
+
+  private async getCoordinatesForLocation(
+    location: LocationBase
+  ): Promise<{ lat: number; lng: number } | null> {
+    try {
+      // First check cache
+      if (this.coordinatesCache.has(location.address)) {
+        return this.coordinatesCache.get(location.address)!;
+      }
+
+      // If not in cache, fetch from Mapbox
+      const searchQuery = `${location.address}, ${location.metadata.city}, ${location.metadata.postcode}`;
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        searchQuery
+      )}.json?access_token=${this.mapboxToken}&country=gb&limit=1`;
+
+      const response = await fetch(url);
+      const data = (await response.json()) as MapboxResponse;
+
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        const coordinates = { lat, lng };
+        // Cache the result
+        this.coordinatesCache.set(location.address, coordinates);
+        return coordinates;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error getting coordinates:", error);
+      return null;
+    }
+  }
+
+  async getSuggestedLocations(
     type?: "pickup" | "dropoff" | "stop",
     userLocation?: { latitude: number; longitude: number } | null
   ): Promise<LocationSearchResult[]> {
-    if (!query || query.trim().length === 0) {
-      // If no query, return suggested locations based on type
-      return this.getSuggestedLocations(type, userLocation);
-    }
+    try {
+      const suggestions: LocationSearchResult[] = [];
 
-    // Normalize the query for search
-    const normalizedQuery = query.toLowerCase().trim();
-
-    // Filter the locations based on the query
-    const results = combinedLocations.filter((location) => {
-      // Check if the query matches parts of the address
-      return (
-        location.address.toLowerCase().includes(normalizedQuery) ||
-        location.metadata?.airportCode
-          ?.toLowerCase()
-          .includes(normalizedQuery) ||
-        location.metadata?.city?.toLowerCase().includes(normalizedQuery) ||
-        location.metadata?.region?.toLowerCase().includes(normalizedQuery)
-      );
-    });
-
-    // Sort results - prioritize exact matches at the beginning
-    results.sort((a, b) => {
-      const aStartsWith = a.address.toLowerCase().startsWith(normalizedQuery);
-      const bStartsWith = b.address.toLowerCase().startsWith(normalizedQuery);
-
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
-
-      // If user location is provided, sort by proximity
+      // 1. Add current location if available
       if (userLocation) {
-        const aDistance = this.calculateDistance(
+        const currentLocationAddress = await this.reverseGeocode(
           userLocation.latitude,
-          userLocation.longitude,
-          a.coordinates.lat,
-          a.coordinates.lng
+          userLocation.longitude
         );
-
-        const bDistance = this.calculateDistance(
-          userLocation.latitude,
-          userLocation.longitude,
-          b.coordinates.lat,
-          b.coordinates.lng
-        );
-
-        return aDistance - bDistance;
+        suggestions.push({
+          address: currentLocationAddress || "📍 Use My Current Location",
+          coordinates: {
+            lat: userLocation.latitude,
+            lng: userLocation.longitude,
+          },
+          type: "landmark",
+          metadata: {
+            postcode: undefined,
+            city: undefined,
+            region: undefined,
+            category: "current_location",
+          },
+        });
       }
 
-      return 0;
-    });
+      // 2. Get coordinates for all static locations if not cached
+      const allLocations = [...UK_AIRPORTS, ...UK_STATIONS, ...UK_LANDMARKS];
+      const locationsWithCoordinates = await Promise.all(
+        allLocations.map(async (location) => {
+          const coordinates = await this.getCoordinatesForLocation(location);
+          return coordinates ? { ...location, coordinates } : null;
+        })
+      );
 
-    // In the future, we would integrate with a real geocoding API like Google Places,
-    // but for now we're using our predefined dataset
+      // Filter out locations where we couldn't get coordinates
+      const validLocations = locationsWithCoordinates.filter(
+        (loc): loc is LocationSearchResult => loc !== null
+      );
 
-    return results;
+      // 3. Sort all locations by distance from user if available
+      if (userLocation) {
+        validLocations.sort((a, b) => {
+          const distA = this.calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            a.coordinates.lat,
+            a.coordinates.lng
+          );
+          const distB = this.calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            b.coordinates.lat,
+            b.coordinates.lng
+          );
+          return distA - distB;
+        });
+      }
+
+      // 4. Add sorted locations by type
+      const airports = validLocations
+        .filter((loc) => loc.type === "airport")
+        .slice(0, 5);
+      const stations = validLocations
+        .filter((loc) => loc.type === "station")
+        .slice(0, 3);
+      const landmarks = validLocations
+        .filter((loc) => loc.type === "landmark")
+        .slice(0, 5);
+
+      suggestions.push(...airports, ...stations, ...landmarks);
+
+      // 5. Add nearby POIs if user location is available
+      if (userLocation) {
+        const nearbyPOIs = await this.getNearbyPOIs(userLocation);
+        suggestions.push(...nearbyPOIs.slice(0, 3));
+      }
+
+      return suggestions;
+    } catch (error) {
+      console.error("Error getting suggested locations:", error);
+      return [];
+    }
   }
 
-  // Get default suggested locations based on location type
-  getSuggestedLocations(
-    type?: "pickup" | "dropoff" | "stop",
+  async searchLocations(
+    query: string,
+    locationType?: "pickup" | "dropoff" | "stop",
     userLocation?: { latitude: number; longitude: number } | null
-  ): LocationSearchResult[] {
-    // If user location is available, create a current location suggestion
-    const suggestions: LocationSearchResult[] = [];
+  ): Promise<LocationSearchResult[]> {
+    try {
+      if (!query || query.trim().length === 0) {
+        return [];
+      }
 
-    if (userLocation) {
-      suggestions.push({
-        address: "Current Location",
+      const normalizedQuery = query.toLowerCase().trim();
+
+      // First search Mapbox
+      let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        query
+      )}.json?access_token=${
+        this.mapboxToken
+      }&country=gb&types=address,poi,place,postcode&limit=5&autocomplete=true`;
+
+      // Add proximity if user location is available
+      if (userLocation) {
+        url += `&proximity=${userLocation.longitude},${userLocation.latitude}`;
+      }
+
+      const response = await fetch(url);
+      const data = (await response.json()) as MapboxResponse;
+
+      const mapboxResults = data.features.map((feature) => ({
+        address: feature.place_name,
         coordinates: {
-          lat: userLocation.latitude,
-          lng: userLocation.longitude,
+          lat: feature.center[1],
+          lng: feature.center[0],
         },
-        type: "landmark",
+        type: this.determineLocationType(feature),
         metadata: {
-          city: "Current Location",
+          postcode: this.extractPostcode(feature),
+          city: this.extractCity(feature),
+          region: this.extractRegion(feature),
+          category: feature.properties.category as string | undefined,
         },
-      });
-    }
+      }));
 
-    // Sort locations by proximity if user location is available
-    const sortedLocations = [...combinedLocations];
-    if (userLocation) {
-      sortedLocations.sort((a, b) => {
-        const aDistance = this.calculateDistance(
-          userLocation.latitude,
-          userLocation.longitude,
-          a.coordinates.lat,
-          a.coordinates.lng
+      // Then search static locations
+      const allStaticLocations = [
+        ...UK_AIRPORTS,
+        ...UK_STATIONS,
+        ...UK_LANDMARKS,
+      ];
+      const filteredLocations = allStaticLocations.filter((location) => {
+        const address = location.address.toLowerCase();
+        const city = location.metadata.city?.toLowerCase() || "";
+        const airportCode = location.metadata.airportCode?.toLowerCase() || "";
+        const postcode = location.metadata.postcode?.toLowerCase() || "";
+
+        return (
+          address.includes(normalizedQuery) ||
+          city.includes(normalizedQuery) ||
+          airportCode.includes(normalizedQuery) ||
+          postcode.includes(normalizedQuery)
         );
-
-        const bDistance = this.calculateDistance(
-          userLocation.latitude,
-          userLocation.longitude,
-          b.coordinates.lat,
-          b.coordinates.lng
-        );
-
-        return aDistance - bDistance;
       });
-    }
 
-    // Different suggestions for different location types
-    const airportResults = sortedLocations
-      .filter((loc) => loc.type === "airport")
-      .slice(0, 8);
-    const stationResults = sortedLocations
-      .filter((loc) => loc.type === "station")
-      .slice(0, 5);
-    const landmarkResults = sortedLocations
-      .filter((loc) => loc.type === "landmark")
-      .slice(0, 7);
+      // Get coordinates for filtered locations
+      const staticResults = await Promise.all(
+        filteredLocations.map(async (location) => {
+          // For airports with terminal coordinates, use those directly
+          if (
+            location.type === "airport" &&
+            location.metadata.terminalCoordinates &&
+            location.metadata.terminalCoordinates["Main Terminal"]
+          ) {
+            return {
+              ...location,
+              coordinates:
+                location.metadata.terminalCoordinates["Main Terminal"],
+            } as LocationSearchResult;
+          }
 
-    switch (type) {
-      case "pickup":
-        // For pickup, prioritize airports and stations
-        return [
-          ...suggestions,
-          ...airportResults,
-          ...stationResults,
-          ...landmarkResults,
-        ];
+          // For other locations, get coordinates from cache or Mapbox
+          const coordinates = await this.getCoordinatesForLocation(location);
+          return coordinates
+            ? ({
+                ...location,
+                coordinates,
+              } as LocationSearchResult)
+            : null;
+        })
+      );
 
-      case "dropoff":
-        // For dropoff, similar to pickup but may prioritize differently
-        return [
-          ...suggestions,
-          ...airportResults,
-          ...stationResults,
-          ...landmarkResults,
-        ];
+      // Combine all results
+      const allResults = [
+        ...staticResults.filter((r): r is LocationSearchResult => r !== null),
+        ...mapboxResults,
+      ];
 
-      case "stop":
-        // For stops, prioritize landmarks and general areas
-        return [
-          ...suggestions,
-          ...landmarkResults,
-          ...stationResults,
-          ...airportResults.slice(0, 4),
-        ];
+      // Sort results by relevance
+      const sortedResults = this.sortResults(allResults, normalizedQuery);
 
-      default:
-        // Default suggestions
-        return [...suggestions, ...sortedLocations.slice(0, 20)];
+      // Remove duplicates and return
+      return this.deduplicateResults(sortedResults);
+    } catch (error) {
+      console.error("Error searching locations:", error);
+      return [];
     }
   }
 
-  // Calculate distance between two coordinates using the Haversine formula
-  calculateDistance(
+  private async reverseGeocode(
+    latitude: number,
+    longitude: number
+  ): Promise<string | null> {
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${this.mapboxToken}&country=gb&types=address`;
+      const response = await fetch(url);
+      const data = (await response.json()) as MapboxResponse;
+
+      if (data.features && data.features.length > 0) {
+        return data.features[0].place_name;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error reverse geocoding:", error);
+      return null;
+    }
+  }
+
+  private calculateDistance(
     lat1: number,
     lon1: number,
     lat2: number,
     lon2: number
   ): number {
-    const R = 6371; // Radius of the earth in km
+    const R = 6371; // Earth's radius in km
     const dLat = this.deg2rad(lat2 - lat1);
     const dLon = this.deg2rad(lon2 - lon1);
     const a =
@@ -557,40 +695,144 @@ class LocationSearchService {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
-    return d;
+    return R * c;
   }
 
-  // Convert degrees to radians
-  deg2rad(deg: number): number {
+  private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
   }
 
-  // Get airport terminals for a specific airport
-  getAirportTerminals(airportCode: string): string[] {
-    const airport = UK_AIRPORTS.find(
-      (a) => a.metadata?.airportCode === airportCode
-    );
-    return airport?.metadata?.terminalOptions || [];
-  }
+  private async getNearbyPOIs(userLocation: {
+    latitude: number;
+    longitude: number;
+  }): Promise<LocationSearchResult[]> {
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/poi.json?proximity=${userLocation.longitude},${userLocation.latitude}&access_token=${this.mapboxToken}&country=gb&types=poi&limit=5`;
+      const response = await fetch(url);
+      const data = (await response.json()) as MapboxResponse;
 
-  // Format the location for display
-  formatLocationForDisplay(result: LocationSearchResult): string {
-    if (result.type === "airport" && result.metadata?.airportCode) {
-      return `${result.address} (${result.metadata.airportCode})`;
+      return data.features.map((feature) => ({
+        address: feature.place_name,
+        coordinates: {
+          lat: feature.center[1],
+          lng: feature.center[0],
+        },
+        type: this.determineLocationType(feature),
+        metadata: {
+          postcode: this.extractPostcode(feature),
+          city: this.extractCity(feature),
+          region: this.extractRegion(feature),
+          category: feature.properties.category as string | undefined,
+        },
+      }));
+    } catch (error) {
+      console.error("Error getting nearby POIs:", error);
+      return [];
     }
-    return result.address;
   }
 
-  // Convert a search result to a simpler Location object for the map
-  toMapLocation(result: LocationSearchResult): Location {
-    return {
-      address: result.address,
-      coordinates: {
-        lat: result.coordinates.lat,
-        lng: result.coordinates.lng,
-      },
-    };
+  private filterAirports(query: string): LocationBase[] {
+    return UK_AIRPORTS.filter((airport) =>
+      airport.address.toLowerCase().includes(query.toLowerCase())
+    );
+  }
+
+  private deduplicateResults(
+    results: LocationSearchResult[]
+  ): LocationSearchResult[] {
+    const seen = new Set<string>();
+    return results.filter((result) => {
+      const key = `${result.address}-${result.coordinates.lat}-${result.coordinates.lng}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private determineLocationType(feature: MapboxFeature): LocationType {
+    const placeType = feature.place_type?.[0];
+    const category = feature.properties?.category;
+
+    if (placeType === "poi" && category === "airport") return "airport";
+    if (placeType === "poi" && category === "rail") return "station";
+    if (placeType === "address") return "building";
+    if (placeType === "postcode") return "postcode";
+    if (placeType === "poi" && category === "hospital") return "hospital";
+    if (placeType === "place") return "area";
+    if (placeType === "poi") return "poi";
+
+    return "landmark";
+  }
+
+  private extractPostcode(feature: MapboxFeature): string | undefined {
+    const context = feature.context || [];
+    const postcodeEntry = context.find((c) => c.id.startsWith("postcode"));
+    return postcodeEntry?.text;
+  }
+
+  private extractCity(feature: MapboxFeature): string | undefined {
+    const context = feature.context || [];
+    const cityEntry = context.find((c) => c.id.startsWith("place"));
+    return cityEntry?.text;
+  }
+
+  private extractRegion(feature: MapboxFeature): string | undefined {
+    const context = feature.context || [];
+    const regionEntry = context.find((c) => c.id.startsWith("region"));
+    return regionEntry?.text;
+  }
+
+  formatLocationForDisplay(location: LocationSearchResult): string {
+    if (location.type === "airport" && location.metadata.airportCode) {
+      return `${location.address} (${location.metadata.airportCode})`;
+    }
+    return location.address;
+  }
+
+  private sortResults(
+    results: LocationSearchResult[],
+    query: string
+  ): LocationSearchResult[] {
+    return results.sort((a, b) => {
+      const aAddress = a.address.toLowerCase();
+      const bAddress = b.address.toLowerCase();
+      const aMetadata = a.metadata;
+      const bMetadata = b.metadata;
+
+      // Exact matches first
+      if (aAddress === query) return -1;
+      if (bAddress === query) return 1;
+
+      // Then airport code matches
+      const aAirportMatch = aMetadata.airportCode?.toLowerCase() === query;
+      const bAirportMatch = bMetadata.airportCode?.toLowerCase() === query;
+      if (aAirportMatch && !bAirportMatch) return -1;
+      if (!aAirportMatch && bAirportMatch) return 1;
+
+      // Then starts with query
+      if (aAddress.startsWith(query) && !bAddress.startsWith(query)) return -1;
+      if (!aAddress.startsWith(query) && bAddress.startsWith(query)) return 1;
+
+      // Then postcode matches
+      const aPostcodeMatch = aMetadata.postcode?.toLowerCase().includes(query);
+      const bPostcodeMatch = bMetadata.postcode?.toLowerCase().includes(query);
+      if (aPostcodeMatch && !bPostcodeMatch) return -1;
+      if (!aPostcodeMatch && bPostcodeMatch) return 1;
+
+      // Then city matches
+      const aCityMatch = aMetadata.city?.toLowerCase().includes(query);
+      const bCityMatch = bMetadata.city?.toLowerCase().includes(query);
+      if (aCityMatch && !bCityMatch) return -1;
+      if (!aCityMatch && bCityMatch) return 1;
+
+      // Finally, contains query
+      if (aAddress.includes(query) && !bAddress.includes(query)) return -1;
+      if (!aAddress.includes(query) && bAddress.includes(query)) return 1;
+
+      return 0;
+    });
   }
 }
 

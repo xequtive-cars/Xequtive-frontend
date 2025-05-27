@@ -3,11 +3,13 @@
  *
  * This LocationInput component is in its final form and has been thoroughly tested.
  * It provides the following functionality:
- * - Location search with Mapbox Geocoding API integration
+ * - Advanced UK location search with Mapbox Places API integration
+ * - Support for house numbers, full addresses, postcodes, airports, stations, POIs
  * - Auto-suggestions dropdown with proper styling
  * - Clear button (X) to reset input
  * - Loading indicator during API requests
  * - Proper handling of selection events
+ * - Proximity-based results using user's location
  *
  * Any modifications to this component should be carefully reviewed as they
  * may break existing functionality.
@@ -23,10 +25,32 @@ import { Loader2, MapPin, X } from "lucide-react";
 // This will persist between component unmounts and remounts
 const selectedLocationsCache = new Map<string, boolean>();
 
+interface MapboxFeature {
+  id: string;
+  place_name: string;
+  center: [number, number];
+  place_type: string[];
+  text: string;
+  context?: Array<{
+    id: string;
+    text: string;
+    wikidata?: string;
+    short_code?: string;
+  }>;
+}
+
 interface LocationSuggestion {
   id: string;
   place_name: string;
   center: [number, number];
+  place_type: string[];
+  text: string;
+  context?: Array<{
+    id: string;
+    text: string;
+    wikidata?: string;
+    short_code?: string;
+  }>;
 }
 
 interface LocationInputProps {
@@ -39,6 +63,7 @@ interface LocationInputProps {
     latitude: number;
   }) => void;
   className?: string;
+  userLocation?: { latitude: number; longitude: number } | null;
 }
 
 export function LocationInput({
@@ -47,6 +72,7 @@ export function LocationInput({
   onChange,
   onLocationSelect,
   className,
+  userLocation,
 }: LocationInputProps) {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +107,7 @@ export function LocationInput({
     }
 
     const fetchSuggestions = async () => {
-      if (value.trim().length < 3) {
+      if (value.trim().length < 2) {
         setSuggestions([]);
         setHoveredIndex(null);
         return;
@@ -90,26 +116,28 @@ export function LocationInput({
       setIsLoading(true);
       try {
         const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-        const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        let endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
           value
-        )}.json?access_token=${token}&types=address,place,poi&limit=5`;
+        )}.json?access_token=${token}&country=gb&autocomplete=true&limit=5&types=address,postcode,poi,place`;
+
+        // Add proximity if user location is available
+        if (userLocation) {
+          endpoint += `&proximity=${userLocation.longitude},${userLocation.latitude}`;
+        }
 
         const response = await fetch(endpoint);
         const data = await response.json();
 
         if (data.features) {
           setSuggestions(
-            data.features.map(
-              (feature: {
-                id: string;
-                place_name: string;
-                center: [number, number];
-              }) => ({
-                id: feature.id,
-                place_name: feature.place_name,
-                center: feature.center,
-              })
-            )
+            data.features.map((feature: MapboxFeature) => ({
+              id: feature.id,
+              place_name: feature.place_name,
+              center: feature.center,
+              place_type: feature.place_type,
+              text: feature.text,
+              context: feature.context,
+            }))
           );
           // Only show suggestions if the input is focused and wasn't previously selected
           if (!selectedLocationsCache.has(value)) {
@@ -129,7 +157,7 @@ export function LocationInput({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [value]);
+  }, [value, userLocation]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -190,6 +218,22 @@ export function LocationInput({
     }, 500);
   };
 
+  const getLocationIcon = (suggestion: LocationSuggestion) => {
+    return (
+      <MapPin
+        className={`h-4 w-4 mr-2 shrink-0 mt-0.5 ${
+          hoveredIndex === suggestions.indexOf(suggestion)
+            ? "text-primary-foreground"
+            : "text-foreground"
+        }`}
+      />
+    );
+  };
+
+  const formatSuggestionText = (suggestion: LocationSuggestion) => {
+    return suggestion.place_name;
+  };
+
   return (
     <div ref={containerRef} className={`relative ${className || ""}`}>
       <Input
@@ -197,48 +241,48 @@ export function LocationInput({
         placeholder={placeholder}
         value={value}
         onChange={(e) => {
-          // Skip if a selection was just made
-          if (!selectionMadeRef.current) {
-            // If the user is typing something new, remove the cached status
-            if (value && e.target.value !== value) {
-              selectedLocationsCache.delete(value);
-            }
-            onChange(e.target.value);
+          const newValue = e.target.value;
+          onChange(newValue);
+          if (!newValue) {
+            handleClear();
+          } else if (selectionMadeRef.current) {
+            selectionMadeRef.current = false;
           }
         }}
         onFocus={() => {
           // Only show suggestions if:
           // 1. Not recently selected
-          // 2. Has at least 3 characters
+          // 2. Has at least 2 characters
           // 3. Has suggestions available
           // 4. Not in the cache of previously selected locations
           if (
             !selectionMadeRef.current &&
-            value.trim().length >= 3 &&
+            value.trim().length >= 2 &&
             suggestions.length > 0 &&
             !selectedLocationsCache.has(value)
           ) {
             setShowSuggestions(true);
           }
         }}
-        className="focus-visible:ring-2 focus-visible:ring-offset-0"
+        className="focus-visible:ring-2 focus-visible:ring-offset-0 pr-8"
       />
 
       {/* Loading indicator */}
       {isLoading && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          <Loader2 className="h-4 w-4 animate-spin" />
         </div>
       )}
 
       {/* Clear button - show when there's text and not loading */}
       {!isLoading && value.trim().length > 0 && (
-        <div
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer bg-background rounded-full p-1 hover:bg-accent transition-colors"
+        <button
+          type="button"
           onClick={handleClear}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
         >
-          <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
-        </div>
+          <X className="h-4 w-4" />
+        </button>
       )}
 
       {showSuggestions && suggestions.length > 0 && (
@@ -261,18 +305,12 @@ export function LocationInput({
                         : "text-foreground hover:bg-accent/50"
                     }`}
                   >
-                    <MapPin
-                      className={`h-4 w-4 mr-2 shrink-0 mt-0.5 ${
-                        hoveredIndex === index
-                          ? "text-primary-foreground"
-                          : "text-foreground"
-                      }`}
-                    />
+                    {getLocationIcon(suggestion)}
                     <span
                       className="font-medium break-words whitespace-normal"
                       title={suggestion.place_name}
                     >
-                      {suggestion.place_name}
+                      {formatSuggestionText(suggestion)}
                     </span>
                   </div>
                 ))}

@@ -1,7 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 // Define step types for strong typing
-export type BookingStep = "location" | "luggage" | "vehicle" | "details";
+export type BookingStep =
+  | "location"
+  | "luggage"
+  | "additionalRequests"
+  | "vehicle"
+  | "details";
 
 // Define the UI state structure
 interface UiState {
@@ -81,6 +86,9 @@ const uiSlice = createSlice({
     goToDetailsStep: (state) => {
       state.showDetailsForm = true;
     },
+    goToAdditionalRequestsStep: (state) => {
+      state.currentStep = "additionalRequests";
+    },
 
     // Back navigation handlers
     handleBackToForm: (state) => {
@@ -119,6 +127,7 @@ export const {
   goToLuggageStep,
   goToVehicleStep,
   goToDetailsStep,
+  goToAdditionalRequestsStep,
   handleBackToForm,
   handleBackToVehicleSelection,
   resetUiState,

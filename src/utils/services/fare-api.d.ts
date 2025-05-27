@@ -27,6 +27,10 @@ interface FareRequest {
     checkedLuggage: number;
     mediumLuggage: number;
     handLuggage: number;
+    babySeat: number;
+    childSeat: number;
+    boosterSeat: number;
+    wheelchair: number;
   };
 }
 

@@ -4,12 +4,11 @@ import { useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/store";
 import MapComponent from "@/components/map/MapComponent";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Check } from "lucide-react";
+import { Plus, X, Check, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UkLocationInput } from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
-import { PassengerLuggageForm } from "@/components/booking/passenger-luggage-form";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -23,6 +22,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { VehicleSelectionContainer } from "@/components/booking";
 import { PersonalDetailsForm } from "@/components/booking/personal-details-form";
 import { VehicleOption } from "@/components/booking/common/types";
+import { AdditionalRequestsForm } from "@/components/booking/additional-requests-form";
 
 // Import actions from Redux slices
 import {
@@ -38,6 +38,10 @@ import {
   setMediumLuggage,
   setHandLuggage,
   setSelectedVehicle as setSelectedVehicleAction,
+  setBabySeat,
+  setChildSeat,
+  setBoosterSeat,
+  setWheelchair,
 } from "@/store/slices/bookingSlice";
 
 import {
@@ -48,6 +52,7 @@ import {
   handleBackToForm,
   handleBackToVehicleSelection,
   handleCloseSuccessDialog,
+  goToAdditionalRequestsStep,
 } from "@/store/slices/uiSlice";
 
 import { calculateFare, submitBooking } from "@/store/slices/apiSlice";
@@ -86,6 +91,10 @@ export default function NewBookingPageRedux() {
     mediumLuggage,
     handLuggage,
     selectedVehicle,
+    babySeat,
+    childSeat,
+    boosterSeat,
+    wheelchair,
   } = booking;
 
   // Destructure UI state
@@ -169,6 +178,28 @@ export default function NewBookingPageRedux() {
     return parts.join(" with ");
   };
 
+  // Get additional requests summary
+  const getAdditionalRequestsSummary = () => {
+    const requests = [];
+    if (babySeat > 0) {
+      requests.push(`${babySeat} baby ${babySeat === 1 ? "seat" : "seats"}`);
+    }
+    if (childSeat > 0) {
+      requests.push(`${childSeat} child ${childSeat === 1 ? "seat" : "seats"}`);
+    }
+    if (boosterSeat > 0) {
+      requests.push(
+        `${boosterSeat} booster ${boosterSeat === 1 ? "seat" : "seats"}`
+      );
+    }
+    if (wheelchair > 0) {
+      requests.push(
+        `${wheelchair} ${wheelchair === 1 ? "wheelchair" : "wheelchairs"}`
+      );
+    }
+    return requests.length > 0 ? requests.join(", ") : "Not specified";
+  };
+
   // Handle moving to luggage step
   const goToLuggage = () => {
     dispatch(goToLuggageStep());
@@ -207,10 +238,6 @@ export default function NewBookingPageRedux() {
   // Handle vehicle selection
   const handleVehicleSelect = (vehicle: VehicleOption) => {
     dispatch(setSelectedVehicleAction(vehicle));
-  };
-
-  const handleMediumLuggageChange = (value: number) => {
-    dispatch(setMediumLuggage(value));
   };
 
   return (
@@ -360,20 +387,122 @@ export default function NewBookingPageRedux() {
 
               <h2 className="text-2xl font-bold">Passengers & Luggage</h2>
 
+              {/* Passenger & Luggage Field */}
+              <Card>
+                <CardContent className="!pt-0">
+                  <div className="flex items-center justify-between py-0">
+                    <div>
+                      {passengers > 1 ||
+                      checkedLuggage > 0 ||
+                      mediumLuggage > 0 ||
+                      handLuggage > 0 ? (
+                        <p className="text-sm">
+                          {getPassengerLuggageSummary()}
+                        </p>
+                      ) : (
+                        <>
+                          <h3 className="text-base font-medium">
+                            Passengers & Luggage
+                          </h3>
+                          <p className="text-xs text-gray-500">1 passenger</p>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-1 hover:translate-x-1 transition-transform"
+                      onClick={() => {
+                        dispatch(setPassengers(passengers));
+                        dispatch(setCheckedLuggage(checkedLuggage));
+                        dispatch(setMediumLuggage(mediumLuggage));
+                        dispatch(setHandLuggage(handLuggage));
+                        dispatch(goToLuggageStep());
+                      }}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Requests Field */}
+              <Card>
+                <CardContent className="!pt-0">
+                  <div className="flex items-center justify-between py-0">
+                    <div>
+                      {(babySeat as number) > 0 ||
+                      (childSeat as number) > 0 ||
+                      (boosterSeat as number) > 0 ||
+                      (wheelchair as number) > 0 ? (
+                        <p className="text-sm">
+                          {getAdditionalRequestsSummary()}
+                        </p>
+                      ) : (
+                        <>
+                          <h3 className="text-base font-medium">
+                            Additional Requests
+                          </h3>
+                          <p className="text-xs text-gray-500">Not specified</p>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => dispatch(goToAdditionalRequestsStep())}
+                      className="h-auto p-1 hover:translate-x-1 transition-transform"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="pt-4">
+                <Button
+                  type="button"
+                  onClick={handleCalculateFare}
+                  disabled={isFetching}
+                  className="w-full"
+                >
+                  {isFetching
+                    ? "Calculating..."
+                    : "Calculate Fare & Select Vehicle"}
+                </Button>
+                {fetchError && (
+                  <p className="mt-2 text-red-500 text-sm">{fetchError}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Additional Requests form */}
+          {currentStep === "additionalRequests" && (
+            <div className="space-y-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => dispatch(goToLuggageStep())}
+                className="mb-2"
+              >
+                ← Back to Passengers & Luggage
+              </Button>
+
+              <h2 className="text-2xl font-bold">Additional Requests</h2>
+
               <Card>
                 <CardContent className="pt-6">
-                  <PassengerLuggageForm
-                    passengers={passengers}
-                    setPassengers={(value) => dispatch(setPassengers(value))}
-                    checkedLuggage={checkedLuggage}
-                    setCheckedLuggage={(value) =>
-                      dispatch(setCheckedLuggage(value))
-                    }
-                    mediumLuggage={mediumLuggage}
-                    setMediumLuggage={handleMediumLuggageChange}
-                    handLuggage={handLuggage}
-                    setHandLuggage={(value) => dispatch(setHandLuggage(value))}
-                    onBack={() => dispatch(goToLocationStep())}
+                  <AdditionalRequestsForm
+                    babySeat={babySeat}
+                    setBabySeat={(value) => dispatch(setBabySeat(value))}
+                    childSeat={childSeat}
+                    setChildSeat={(value) => dispatch(setChildSeat(value))}
+                    boosterSeat={boosterSeat}
+                    setBoosterSeat={(value) => dispatch(setBoosterSeat(value))}
+                    wheelchair={wheelchair}
+                    setWheelchair={(value) => dispatch(setWheelchair(value))}
+                    onBack={() => dispatch(goToLuggageStep())}
                   />
                 </CardContent>
               </Card>

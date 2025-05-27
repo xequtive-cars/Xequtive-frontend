@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, X, GripVertical, Loader2 } from "lucide-react";
+import { Plus, X, GripVertical, Loader2, ArrowRight } from "lucide-react";
 import { UkLocationInput } from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
@@ -44,8 +44,12 @@ interface BookingFormProps {
   setMediumLuggage: (value: number) => void;
   handLuggage: number;
   setHandLuggage: (value: number) => void;
+  babySeat: number;
+  childSeat: number;
+  boosterSeat: number;
+  wheelchair: number;
   userLocation: { latitude: number; longitude: number } | null;
-  showVehicleOptions: boolean;
+  showVehicleOptions?: boolean;
   setFormModified: (value: boolean) => void;
   isFetching: boolean;
   fetchError: string | null;
@@ -68,6 +72,8 @@ interface BookingFormProps {
   removeStop: (index: number) => void;
   calculateFare: () => void;
   getPassengerLuggageSummary: () => string;
+  getAdditionalRequestsSummary: () => string;
+  onGoToAdditionalRequests: () => void;
   disabled?: boolean;
   reorderStops?: (fromIndex: number, toIndex: number) => void;
 }
@@ -138,7 +144,17 @@ function SortableStopInputField({
             placeholder={`Enter stop ${stopIndex + 1}`}
             initialLocation={
               address
-                ? { address, coordinates: { lat: 0, lng: 0 }, type: "landmark" }
+                ? {
+                    address,
+                    coordinates: { lat: 0, lng: 0 },
+                    type: "landmark",
+                    metadata: {
+                      postcode: undefined,
+                      city: undefined,
+                      region: undefined,
+                      category: undefined,
+                    },
+                  }
                 : null
             }
             onSelect={(location) => {
@@ -196,6 +212,10 @@ export function BookingForm({
   setMediumLuggage,
   handLuggage,
   setHandLuggage,
+  babySeat,
+  childSeat,
+  boosterSeat,
+  wheelchair,
   userLocation,
   setFormModified,
   isFetching,
@@ -208,6 +228,8 @@ export function BookingForm({
   removeStop,
   calculateFare,
   getPassengerLuggageSummary,
+  getAdditionalRequestsSummary,
+  onGoToAdditionalRequests,
   disabled,
   reorderStops,
 }: BookingFormProps) {
@@ -260,6 +282,12 @@ export function BookingForm({
                             }
                           : { lat: 0, lng: 0 },
                         type: "landmark",
+                        metadata: {
+                          postcode: undefined,
+                          city: undefined,
+                          region: undefined,
+                          category: undefined,
+                        },
                       }
                     : null
                 }
@@ -377,6 +405,12 @@ export function BookingForm({
                             }
                           : { lat: 0, lng: 0 },
                         type: "landmark",
+                        metadata: {
+                          postcode: undefined,
+                          city: undefined,
+                          region: undefined,
+                          category: undefined,
+                        },
                       }
                     : null
                 }
@@ -428,27 +462,77 @@ export function BookingForm({
                 />
               </div>
 
-              {/* Passenger & Luggage Summary */}
-              <div
-                className="py-2.5 px-3 bg-muted/40 rounded-md text-sm cursor-pointer"
-                onClick={() => setCurrentStep("luggage")}
-              >
-                <div className="flex justify-between items-center">
-                  <div>{getPassengerLuggageSummary()}</div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentStep("luggage");
-                    }}
-                    disabled={disabled || isFetching}
-                  >
-                    <Plus size={16} className="text-primary" />
-                  </Button>
-                </div>
-              </div>
+              {/* Passenger & Luggage Field */}
+              <Card>
+                <CardContent className="py-0">
+                  <div className="flex items-center justify-between py-0">
+                    <div>
+                      {passengers > 1 ||
+                      checkedLuggage > 0 ||
+                      mediumLuggage > 0 ||
+                      handLuggage > 0 ? (
+                        <p className="text-sm">
+                          {getPassengerLuggageSummary()}
+                        </p>
+                      ) : (
+                        <>
+                          <h3 className="text-base font-small">
+                            Passengers & Luggage
+                          </h3>
+                          <p className="text-xs text-gray-500">1 passenger</p>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 transition-transform"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentStep("luggage");
+                      }}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Requests Field */}
+              <Card>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between py-0">
+                    <div>
+                      {babySeat > 0 ||
+                      childSeat > 0 ||
+                      boosterSeat > 0 ||
+                      wheelchair > 0 ? (
+                        <p className="text-sm">
+                          {getAdditionalRequestsSummary()}
+                        </p>
+                      ) : (
+                        <>
+                          <h3 className="text-base font-medium">
+                            Additional Requests
+                          </h3>
+                          <p className="text-xs text-gray-500">Not specified</p>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 transition-transform"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGoToAdditionalRequests();
+                      }}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Calculate Fare Button */}
               <div className="pt-1">
@@ -494,7 +578,7 @@ export function BookingForm({
           handLuggage={handLuggage}
           onHandLuggageChange={setHandLuggage}
           onBack={() => setCurrentStep("location")}
-          className="w-[106%]"
+          className="w-[100%]"
           disabled={disabled || isFetching}
         />
       )}

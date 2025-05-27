@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { MapPin, X } from "lucide-react";
+import { X } from "lucide-react";
 import {
   LocationSearchResult,
   locationSearchService,
@@ -19,6 +19,9 @@ type LocationWithTerminal = LocationSearchResult & {
     postcode?: string;
     city?: string;
     region?: string;
+    terminalCoordinates?: {
+      [key: string]: { lat: number; lng: number };
+    };
   };
 };
 
@@ -82,6 +85,7 @@ export function UkLocationInput({
     left: 0,
     width: 0,
   });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Initialize portal container when component mounts
   useEffect(() => {
@@ -180,10 +184,15 @@ export function UkLocationInput({
     const fullAddress = `${selectedAirport.address}, ${terminal}`;
     setValue(fullAddress);
 
-    // Create a modified location with terminal info
+    // Get terminal-specific coordinates if available
+    const terminalCoords =
+      selectedAirport.metadata?.terminalCoordinates?.[terminal];
+
+    // Create a modified location with terminal info and coordinates
     const locationWithTerminal: LocationWithTerminal = {
       ...selectedAirport,
       address: fullAddress,
+      coordinates: terminalCoords || selectedAirport.coordinates,
       metadata: {
         ...selectedAirport.metadata,
         terminal: terminal,
@@ -229,18 +238,38 @@ export function UkLocationInput({
 
   // Handle focus on input
   const handleFocus = async () => {
-    if (!isSuggestionsOpen && !selectedLocation) {
+    // Show dropdown immediately
+    setIsSuggestionsOpen(true);
+
+    if (!selectedLocation) {
       try {
+        setIsSearching(true);
         const suggestedLocations =
           await locationSearchService.getSuggestedLocations(
             locationType,
             userLocation
           );
         setSuggestions(suggestedLocations);
-        setIsSuggestionsOpen(true);
       } catch {
         // Silently handle error
+      } finally {
+        setIsSearching(false);
       }
+    }
+  };
+
+  // Add scroll handler
+  const handleScroll = (e: React.UIEvent<HTMLUListElement>) => {
+    const bottom =
+      Math.floor(e.currentTarget.scrollHeight - e.currentTarget.scrollTop) ===
+      e.currentTarget.clientHeight;
+
+    if (bottom && !isLoadingMore) {
+      setIsLoadingMore(true);
+      // Simulate loading more items
+      setTimeout(() => {
+        setIsLoadingMore(false);
+      }, 1000);
     }
   };
 
@@ -292,7 +321,7 @@ export function UkLocationInput({
       <div
         ref={suggestionsRef}
         className={cn(
-          "fixed bg-background border border-border rounded-md shadow-lg max-h-[300px] overflow-y-auto",
+          "fixed bg-background border border-border rounded-md shadow-lg max-h-[480px] overflow-y-auto", // Increased by 20% from 400px
           locationType === "stop" && "location-dropdown-stop"
         )}
         style={{
@@ -307,7 +336,7 @@ export function UkLocationInput({
             <div className="p-2 sticky top-0 bg-background border-b border-border">
               <h3 className="text-sm font-medium">Select Terminal</h3>
             </div>
-            <ul className="py-1">
+            <ul className="py-1" onScroll={handleScroll}>
               {terminalOptions.map((terminal, index) => (
                 <li
                   key={`${terminal}-${index}`}
@@ -317,6 +346,11 @@ export function UkLocationInput({
                   <span className="text-sm">{terminal}</span>
                 </li>
               ))}
+              {isLoadingMore && (
+                <li className="px-3 py-2 text-center text-sm text-muted-foreground">
+                  Loading more...
+                </li>
+              )}
             </ul>
           </>
         ) : (
@@ -326,7 +360,7 @@ export function UkLocationInput({
                 {value ? suggestionsTitle : initialSuggestionsTitle}
               </h3>
             </div>
-            {isSearching ? (
+            {isSearching && suggestions.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 Searching...
               </div>
@@ -335,7 +369,7 @@ export function UkLocationInput({
                 No locations found
               </div>
             ) : (
-              <ul className="py-1">
+              <ul className="py-1" onScroll={handleScroll}>
                 {suggestions.map((suggestion, index) => (
                   <li
                     key={`${suggestion.address}-${index}`}
@@ -343,7 +377,6 @@ export function UkLocationInput({
                     onClick={() => handleSelectLocation(suggestion)}
                   >
                     <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2 text-foreground" />
                       <div>
                         <span className="text-sm">{suggestion.address}</span>
                         {suggestion.type === "airport" &&
@@ -362,6 +395,11 @@ export function UkLocationInput({
                     </div>
                   </li>
                 ))}
+                {isLoadingMore && (
+                  <li className="px-3 py-2 text-center text-sm text-muted-foreground">
+                    Loading more...
+                  </li>
+                )}
               </ul>
             )}
           </>

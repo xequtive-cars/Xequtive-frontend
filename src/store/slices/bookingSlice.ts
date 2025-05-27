@@ -22,6 +22,12 @@ interface BookingState {
   mediumLuggage: number;
   handLuggage: number;
 
+  // Additional requests
+  babySeat: number;
+  childSeat: number;
+  boosterSeat: number;
+  wheelchair: number;
+
   // Vehicle selection
   selectedVehicle: VehicleOption | null;
 }
@@ -42,6 +48,11 @@ const initialState: BookingState = {
   checkedLuggage: 0,
   mediumLuggage: 0,
   handLuggage: 0,
+
+  babySeat: 0,
+  childSeat: 0,
+  boosterSeat: 0,
+  wheelchair: 0,
 
   selectedVehicle: null,
 };
@@ -110,6 +121,20 @@ const bookingSlice = createSlice({
       state.handLuggage = action.payload;
     },
 
+    // Additional requests actions
+    setBabySeat: (state, action: PayloadAction<number>) => {
+      state.babySeat = action.payload;
+    },
+    setChildSeat: (state, action: PayloadAction<number>) => {
+      state.childSeat = action.payload;
+    },
+    setBoosterSeat: (state, action: PayloadAction<number>) => {
+      state.boosterSeat = action.payload;
+    },
+    setWheelchair: (state, action: PayloadAction<number>) => {
+      state.wheelchair = action.payload;
+    },
+
     // Vehicle selection actions
     setSelectedVehicle: (
       state,
@@ -169,6 +194,10 @@ export const {
   handlePickupLocationSelect,
   handleDropoffLocationSelect,
   handleStopLocationSelect,
+  setBabySeat,
+  setChildSeat,
+  setBoosterSeat,
+  setWheelchair,
 } = bookingSlice.actions;
 
 export default bookingSlice.reducer;

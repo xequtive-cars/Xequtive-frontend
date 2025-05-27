@@ -14,6 +14,7 @@ import {
   VehicleOption,
   BookingForm,
 } from "@/components/booking";
+import { AdditionalRequestsForm } from "@/components/booking/additional-requests-form";
 import { getFareEstimate } from "@/utils/services/fare-api";
 import { bookingService } from "@/utils/services/booking-service";
 import {
@@ -27,6 +28,13 @@ import {
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { authService } from "@/lib/auth";
 import { toast } from "@/components/ui/use-toast";
+import {
+  setBabySeat,
+  setChildSeat,
+  setBoosterSeat,
+  setWheelchair,
+} from "@/store/slices/bookingSlice";
+import { useAppSelector, useAppDispatch } from "@/store";
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -200,6 +208,7 @@ const formatDate = (date: Date): string => {
 export default function NewBookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dispatch = useAppDispatch();
 
   // Map ref to keep track of the map interface
   const mapInstanceRef = useRef<MapInterface | null>(null);
@@ -261,6 +270,16 @@ export default function NewBookingPage() {
     denied: false,
     error: null,
   });
+
+  // Additional requests state from Redux
+  const booking = useAppSelector((state) => state.booking);
+  const babySeat = booking.babySeat || 0;
+  const childSeat = booking.childSeat || 0;
+  const boosterSeat = booking.boosterSeat || 0;
+  const wheelchair = booking.wheelchair || 0;
+
+  // Add current step state
+  const [currentStep, setCurrentStep] = useState("location");
 
   // Load state from query parameters on initial load
   useEffect(() => {
@@ -1219,6 +1238,28 @@ export default function NewBookingPage() {
     }
   };
 
+  // Get additional requests summary
+  const getAdditionalRequestsSummary = () => {
+    const requests = [];
+    if (babySeat > 0) {
+      requests.push(`${babySeat} baby ${babySeat === 1 ? "seat" : "seats"}`);
+    }
+    if (childSeat > 0) {
+      requests.push(`${childSeat} child ${childSeat === 1 ? "seat" : "seats"}`);
+    }
+    if (boosterSeat > 0) {
+      requests.push(
+        `${boosterSeat} booster ${boosterSeat === 1 ? "seat" : "seats"}`
+      );
+    }
+    if (wheelchair > 0) {
+      requests.push(
+        `${wheelchair} ${wheelchair === 1 ? "wheelchair" : "wheelchairs"}`
+      );
+    }
+    return requests.length > 0 ? requests.join(", ") : "Not specified";
+  };
+
   return (
     <ProtectedRoute>
       <div className="h-[100vh] w-full flex flex-col pt-2 overflow-hidden">
@@ -1253,44 +1294,77 @@ export default function NewBookingPage() {
         <div className="flex-1 flex flex-col md:flex-row gap-2 overflow-hidden justify-between">
           {!showVehicleOptions ? (
             <>
-              {/* Booking Form - Adjusted width to account for increased form width by 10% */}
+              {/* Booking Form */}
               <div className="md:w-[31%] h-fit">
-                <BookingForm
-                  pickupAddress={pickupAddress}
-                  setPickupAddress={setPickupAddress}
-                  dropoffAddress={dropoffAddress}
-                  setDropoffAddress={setDropoffAddress}
-                  stopAddresses={stopAddresses}
-                  pickupLocation={pickupLocation}
-                  dropoffLocation={dropoffLocation}
-                  selectedDate={selectedDate}
-                  setSelectedDate={setSelectedDate}
-                  selectedTime={selectedTime}
-                  setSelectedTime={setSelectedTime}
-                  passengers={passengers}
-                  setPassengers={setPassengers}
-                  checkedLuggage={checkedLuggage}
-                  setCheckedLuggage={setCheckedLuggage}
-                  mediumLuggage={mediumLuggage}
-                  setMediumLuggage={setMediumLuggage}
-                  handLuggage={handLuggage}
-                  setHandLuggage={setHandLuggage}
-                  userLocation={userLocation}
-                  showVehicleOptions={showVehicleOptions}
-                  setFormModified={setFormModified}
-                  isFetching={isFetching}
-                  fetchError={fetchError}
-                  handlePickupLocationSelect={handlePickupLocationSelect}
-                  handleDropoffLocationSelect={handleDropoffLocationSelect}
-                  handleStopLocationSelect={handleStopLocationSelect}
-                  updateStopAddress={updateStopAddress}
-                  addStop={addStop}
-                  removeStop={removeStop}
-                  calculateFare={handleCalculateFare}
-                  getPassengerLuggageSummary={getPassengerLuggageSummary}
-                  reorderStops={reorderStops}
-                  disabled={locationPermission.denied}
-                />
+                {currentStep === "additionalRequests" ? (
+                  <div className="space-y-4">
+                    <AdditionalRequestsForm
+                      babySeat={babySeat}
+                      childSeat={childSeat}
+                      boosterSeat={boosterSeat}
+                      wheelchair={wheelchair}
+                      setBabySeat={(value: number) =>
+                        dispatch(setBabySeat(value))
+                      }
+                      setChildSeat={(value: number) =>
+                        dispatch(setChildSeat(value))
+                      }
+                      setBoosterSeat={(value: number) =>
+                        dispatch(setBoosterSeat(value))
+                      }
+                      setWheelchair={(value: number) =>
+                        dispatch(setWheelchair(value))
+                      }
+                      onBack={() => setCurrentStep("location")}
+                      disabled={locationPermission.denied}
+                    />
+                  </div>
+                ) : (
+                  <BookingForm
+                    pickupAddress={pickupAddress}
+                    setPickupAddress={setPickupAddress}
+                    dropoffAddress={dropoffAddress}
+                    setDropoffAddress={setDropoffAddress}
+                    stopAddresses={stopAddresses}
+                    pickupLocation={pickupLocation}
+                    dropoffLocation={dropoffLocation}
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                    selectedTime={selectedTime}
+                    setSelectedTime={setSelectedTime}
+                    passengers={passengers}
+                    setPassengers={setPassengers}
+                    checkedLuggage={checkedLuggage}
+                    setCheckedLuggage={setCheckedLuggage}
+                    mediumLuggage={mediumLuggage}
+                    setMediumLuggage={setMediumLuggage}
+                    handLuggage={handLuggage}
+                    setHandLuggage={setHandLuggage}
+                    babySeat={babySeat}
+                    childSeat={childSeat}
+                    boosterSeat={boosterSeat}
+                    wheelchair={wheelchair}
+                    userLocation={userLocation}
+                    showVehicleOptions={showVehicleOptions}
+                    setFormModified={setFormModified}
+                    isFetching={isFetching}
+                    fetchError={fetchError}
+                    handlePickupLocationSelect={handlePickupLocationSelect}
+                    handleDropoffLocationSelect={handleDropoffLocationSelect}
+                    handleStopLocationSelect={handleStopLocationSelect}
+                    updateStopAddress={updateStopAddress}
+                    addStop={addStop}
+                    removeStop={removeStop}
+                    calculateFare={handleCalculateFare}
+                    getPassengerLuggageSummary={getPassengerLuggageSummary}
+                    getAdditionalRequestsSummary={getAdditionalRequestsSummary}
+                    onGoToAdditionalRequests={() =>
+                      setCurrentStep("additionalRequests")
+                    }
+                    disabled={locationPermission.denied}
+                    reorderStops={reorderStops}
+                  />
+                )}
               </div>
 
               {/* Map Section - Width adjusted proportionally */}
