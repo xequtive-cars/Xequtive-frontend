@@ -1802,7 +1802,14 @@ const MapComponent = ({
         map.current
       );
     }
-  }, [pickupLocation, dropoffLocation, stops, showRoute, updateMapElements]);
+  }, [
+    pickupLocation,
+    dropoffLocation,
+    stops,
+    showRoute,
+    updateMapElements,
+    map.current,
+  ]);
 
   return (
     <div className={`map-container relative ${className}`}>

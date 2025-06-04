@@ -1,631 +1,604 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
-import { VehicleOption } from "./vehicle-selection";
-import {
-  Check,
-  ArrowLeft,
-  MapPin,
-  Phone,
-  Mail,
-  User,
-  CalendarIcon,
-  Car,
-  Lock,
-  Loader2,
-  LucideIcon,
-} from "lucide-react";
-import { format } from "date-fns";
-import { Location } from "@/components/map/MapComponent";
+import { Check, ChevronDown, Plane, Train } from "lucide-react";
+import { CountryPhoneInput } from "@/components/ui/country-phone-input";
 import { useAuth } from "@/contexts/AuthContext";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { AdvancedTimePicker } from "@/components/ui/advanced-datetime-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Interfaces for booking data types
-export interface VerifiedFare {
-  vehicleId: string;
-  vehicleName: string;
-  price: {
-    amount: number;
-    currency: string;
-  };
-  distance_miles: number;
-  duration_minutes: number;
+// Define types for travel information
+interface FlightInformation {
+  airline: string;
+  flightNumber: string;
+  scheduledDeparture: string;
+  status?: "on-time" | "delayed" | "cancelled";
 }
 
-export interface BookingVerification {
-  bookingId: string;
-  verificationToken: string;
-  verifiedFare: VerifiedFare;
-  expiresIn?: number;
+interface TrainInformation {
+  trainOperator: string;
+  trainNumber: string;
+  scheduledDeparture: string;
+  status?: "on-time" | "delayed" | "cancelled";
 }
 
-interface BookingDetailsProps {
-  label: string;
-  value: string;
-  icon: LucideIcon;
-}
+// Updated schema to match the requirements
+const personalDetailsSchema = z.object({
+  fullName: z.string().min(2, "Full name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+  specialRequests: z.string().optional(),
+  flightInformation: z
+    .object({
+      airline: z.string().optional(),
+      flightNumber: z.string().optional(),
+      scheduledDeparture: z.string().optional(),
+    })
+    .optional(),
+  trainInformation: z
+    .object({
+      trainOperator: z.string().optional(),
+      trainNumber: z.string().optional(),
+      scheduledDeparture: z.string().optional(),
+    })
+    .optional(),
+  termsAgreed: z.boolean().refine((val) => val, {
+    message: "You must agree to the terms and conditions",
+  }),
+});
 
-function BookingDetail({ label, value, icon: Icon }: BookingDetailsProps) {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 mt-0.5">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-      <div>
-        <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <p className="text-base font-medium">{value}</p>
-      </div>
-    </div>
-  );
-}
+type PersonalDetailsFormData = z.infer<typeof personalDetailsSchema>;
 
-export interface PersonalDetailsFormProps {
-  selectedVehicle: VehicleOption;
-  pickupLocation: Location | null;
-  dropoffLocation: Location | null;
-  additionalStops: Location[];
-  selectedDate: Date | undefined;
-  selectedTime: string;
-  passengers: number;
-  checkedLuggage: number;
-  mediumLuggage: number;
-  handLuggage: number;
-  onBack: () => void;
+interface PersonalDetailsFormProps {
   onSubmit: (
-    personalDetails: {
+    details: {
       fullName: string;
       email: string;
       phone: string;
       specialRequests: string;
+      flightInformation?: FlightInformation;
+      trainInformation?: TrainInformation;
     },
-    agree: boolean
+    agree: boolean,
+    e?: React.BaseSyntheticEvent
   ) => void;
-  isSubmitting: boolean;
-  error: string | null;
+  onFormValidityChange?: (isValid: boolean) => void;
+  isSubmitting?: boolean;
+  error?: string | null;
+  hasAirportLocations?: boolean;
+  hasTrainStationLocations?: boolean;
+  lockedDate?: Date | string;
 }
 
 export function PersonalDetailsForm({
-  selectedVehicle,
-  pickupLocation,
-  dropoffLocation,
-  additionalStops,
-  selectedDate,
-  selectedTime,
-  passengers,
-  checkedLuggage,
-  mediumLuggage,
-  handLuggage,
-  onBack,
   onSubmit,
-  isSubmitting,
+  onFormValidityChange,
+  isSubmitting = false,
   error,
+  hasAirportLocations = false,
+  hasTrainStationLocations = false,
+  lockedDate,
 }: PersonalDetailsFormProps) {
   const { user } = useAuth();
-  const [fullName, setFullName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [specialRequests, setSpecialRequests] = useState<string>("");
-  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const [isFlightDetailsOpen, setIsFlightDetailsOpen] = useState(false);
+  const [isTrainDetailsOpen, setIsTrainDetailsOpen] = useState(false);
 
-  // Pre-fill form fields with user data when component mounts
+  // Ensure lockedDate is a valid date object
+  const validLockedDate =
+    lockedDate instanceof Date
+      ? lockedDate
+      : lockedDate
+      ? new Date(lockedDate)
+      : new Date(); // Default to current date if no date is provided
+
+  const form = useForm<PersonalDetailsFormData>({
+    resolver: zodResolver(personalDetailsSchema),
+    defaultValues: {
+      fullName: user?.displayName || "",
+      email: user?.email || "",
+      phone: user?.phoneNumber || "",
+      specialRequests: "",
+      flightInformation: {
+        airline: "",
+        flightNumber: "",
+        scheduledDeparture: "",
+      },
+      trainInformation: {
+        trainOperator: "",
+        trainNumber: "",
+        scheduledDeparture: "",
+      },
+      termsAgreed: false,
+    },
+    mode: "onChange",
+  });
+
+  // Add useEffect to track form validity
   useEffect(() => {
-    if (user) {
-      setFullName(user.displayName || "");
-      setEmail(user.email || "");
+    // Check form validity and notify parent component
+    const { isValid, errors } = form.formState;
 
-      // The phone field will be filled from the user object
-      // which gets loaded from Firestore by the auth context
-      setPhone(user.phoneNumber || "");
+    console.log("Form Validity:", isValid);
+    console.log("Form Errors:", errors);
+
+    // Explicitly check required fields
+    const requiredFieldsFilled =
+      !!form.getValues("fullName") &&
+      !!form.getValues("email") &&
+      !!form.getValues("phone") &&
+      form.getValues("termsAgreed") === true;
+
+    console.log("Required Fields Filled:", requiredFieldsFilled);
+
+    onFormValidityChange?.(isValid && requiredFieldsFilled);
+  }, [
+    form,
+    form.formState.isValid,
+    form.formState.errors,
+    form.getValues,
+    onFormValidityChange,
+  ]);
+
+  const submitForm = (
+    data: PersonalDetailsFormData,
+    e?: React.BaseSyntheticEvent
+  ) => {
+    // Add explicit prevention of default
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-  }, [user]);
 
-  // Form validation
-  const isFormValid =
-    fullName.trim() !== "" &&
-    email.trim() !== "" &&
-    email.includes("@") &&
-    phone.trim() !== "" &&
-    // Validate UK phone number format
-    /^\+44[0-9]{9,10}$/.test(phone.replace(/-/g, ""));
+    console.log("Submit Form Called - Preventing Default", {
+      event: e,
+      data,
+    });
 
-  const handleSubmit = () => {
-    if (isFormValid) {
-      // Submit the booking with agreement
-      onSubmit(
-        {
-          fullName,
-          email,
-          phone,
-          specialRequests,
-        },
-        true
-      );
+    const { fullName, email, phone, specialRequests, termsAgreed } = data;
+
+    // Explicitly check terms agreement
+    if (!termsAgreed) {
+      form.setError("termsAgreed", {
+        type: "manual",
+        message: "You must agree to the terms and conditions",
+      });
+      return;
     }
-  };
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return "Not specified";
-    return format(date, "EEE, d MMM yyyy");
+    onSubmit(
+      {
+        fullName,
+        email,
+        phone,
+        specialRequests: specialRequests || "",
+      },
+      termsAgreed,
+      e
+    );
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-right-5 duration-500 h-full flex flex-col">
-      {!showConfirmation ? (
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-semibold">Passenger Details</h2>
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              size="lg"
-              className="gap-2 h-12"
-            >
-              <ArrowLeft size={20} />
-              Back
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto">
-            {/* Contact Information Card - Reduced vertical gaps and 3-1 layout */}
-            <Card className="border shadow-sm flex-1 flex flex-col">
-              <CardHeader className="py-3">
-                <CardTitle className="text-xl">Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-4 flex-grow">
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                  {/* 3 small fields on the left (reduced by 30%) */}
-                  <div className="md:col-span-3 space-y-4">
-                    <div>
-                      <Label
-                        htmlFor="fullName"
-                        className="text-base font-medium"
-                      >
-                        Full Name *
-                      </Label>
-                      <Input
-                        id="fullName"
-                        placeholder="Enter your full name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="mt-1 h-12 bg-muted/40"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="email"
-                        className="text-base font-medium flex items-center gap-1"
-                      >
-                        Email Address *{" "}
-                        <Lock className="h-4 w-4 text-muted-foreground" />
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        className="mt-1 h-12 bg-muted/50"
-                        required
-                        readOnly
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="phone" className="text-base font-medium">
-                        Phone Number *
-                      </Label>
-                      <div
-                        className={`relative flex h-12 rounded-lg overflow-hidden transition-all mt-1 ${
-                          phone && phone.length > 3
-                            ? /^\+44[0-9]{9,10}$/.test(phone.replace(/-/g, ""))
-                              ? "ring-2 ring-green-500 ring-offset-1"
-                              : "ring-2 ring-destructive ring-offset-1"
-                            : "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1"
-                        }`}
-                      >
-                        <div className="flex items-center justify-center bg-muted px-4 border-r">
-                          <span className="text-base font-medium">+44</span>
-                        </div>
-                        <Input
-                          id="phone"
-                          placeholder="Enter a UK number"
-                          value={
-                            phone.startsWith("+44")
-                              ? phone.substring(3)
-                              : phone.startsWith("0")
-                              ? phone.substring(1)
-                              : phone
-                          }
-                          onChange={(e) => {
-                            // Remove any non-digit characters
-                            let value = e.target.value.replace(/[^0-9]/g, "");
-
-                            // Limit to 10 digits total
-                            if (value.length > 10) {
-                              value = value.substring(0, 10);
-                            }
-
-                            // Format with full international code
-                            setPhone(`+44${value}`);
-                          }}
-                          className="border-0 h-full focus-visible:ring-0 bg-muted/40"
-                          required
-                        />
-                        {phone && phone.length > 3 && (
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            {/^\+44[0-9]{9,10}$/.test(
-                              phone.replace(/-/g, "")
-                            ) ? (
-                              <Check className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <span className="text-destructive text-sm">
-                                Invalid
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Enter a valid UK mobile number
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Special Requests field (increased width) */}
-                  <div className="md:col-span-3 flex flex-col h-full">
-                    <Label
-                      htmlFor="specialRequests"
-                      className="text-base font-medium mb-1"
-                    >
-                      Special Requests (Optional)
-                    </Label>
-                    <Textarea
-                      id="specialRequests"
-                      placeholder="Any special requirements or notes for the driver..."
-                      value={specialRequests}
-                      onChange={(e) => setSpecialRequests(e.target.value)}
-                      className="flex-grow resize-none h-full min-h-[192px] bg-muted/40"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Booking Summary Card - No changes */}
-            <Card className="border shadow-sm flex-1 flex flex-col">
-              <CardHeader className="py-3">
-                <CardTitle className="text-xl">Booking Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-4 flex-grow">
-                <BookingDetail
-                  label="Pickup Location"
-                  value={pickupLocation?.address || "Not specified"}
-                  icon={MapPin}
-                />
-
-                {additionalStops.length > 0 && (
-                  <div className="ml-11">
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Stops ({additionalStops.length})
-                    </p>
-                    <ul className="text-base list-disc pl-4 space-y-1">
-                      {additionalStops.map((stop, index) => (
-                        <li key={index} className="text-base">
-                          {stop.address}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <BookingDetail
-                  label="Dropoff Location"
-                  value={dropoffLocation?.address || "Not specified"}
-                  icon={MapPin}
-                />
-
-                <BookingDetail
-                  label="Date & Time"
-                  value={`${formatDate(selectedDate)} at ${selectedTime}`}
-                  icon={CalendarIcon}
-                />
-
-                <BookingDetail
-                  label="Vehicle"
-                  value={selectedVehicle.name}
-                  icon={Car}
-                />
-
-                <BookingDetail
-                  label="Passengers & Luggage"
-                  value={`${passengers} passenger${
-                    passengers !== 1 ? "s" : ""
-                  } | ${checkedLuggage + mediumLuggage + handLuggage} bag${
-                    checkedLuggage + mediumLuggage + handLuggage !== 1
-                      ? "s"
-                      : ""
-                  }`}
-                  icon={User}
-                />
-
-                <div className="flex-grow"></div>
-              </CardContent>
-              <CardFooter className="bg-muted/40 flex justify-between items-center py-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Price</p>
-                  <div className="font-semibold text-2xl">
-                    {selectedVehicle.price.currency}
-                    {selectedVehicle.price.amount}
-                  </div>
-                </div>
-              </CardFooter>
-            </Card>
-
-            {/* Book Now button right under the Booking Summary card */}
-            <div className="sticky bottom-0 border-t px-3 py-3 bg-background mt-4 w-full">
-              <Button
-                className="w-full text-sm h-10"
-                disabled={!isFormValid || isSubmitting}
-                onClick={handleSubmit}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Book Now"
-                )}
-              </Button>
-              {error && (
-                <p className="text-destructive text-sm mt-2">{error}</p>
-              )}
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Booking Confirmation Screen */}
-          <div className="mb-6 flex justify-between items-center">
-            <h2 className="text-3xl font-semibold">Confirm Your Booking</h2>
-            <Button
-              variant="outline"
-              onClick={() => setShowConfirmation(false)}
-              size="lg"
-              className="gap-2 h-12"
-            >
-              <ArrowLeft size={20} />
-              Back
-            </Button>
-          </div>
-
-          <div className="flex-grow overflow-y-auto flex flex-col">
-            <Card className="border shadow-md mb-6 flex-grow flex flex-col">
-              <CardHeader className="py-4">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Check className="h-6 w-6 text-primary" />
-                  Booking Summary
-                </CardTitle>
-                <CardDescription className="text-base">
-                  Please review and confirm your booking details
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-6 py-4 flex-grow">
-                {/* Booking summary - More compact layout */}
-                <div className="grid-cols-1 gap-6 h-full flex flex-col">
-                  {/* Trip Details Section */}
-                  <div>
-                    <h3 className="font-medium text-primary text-base mb-3">
-                      Trip Details
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 mt-0.5">
-                          <MapPin className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-sm text-muted-foreground">
-                              From
-                            </p>
-                            <p className="text-base font-medium">
-                              {pickupLocation?.address || "Not specified"}
-                            </p>
-                          </div>
-
-                          {additionalStops.length > 0 && (
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Via {additionalStops.length} stop
-                                {additionalStops.length !== 1 ? "s" : ""}
-                              </p>
-                              <ul className="text-sm pl-4 space-y-1 list-disc">
-                                {additionalStops.map((stop, index) => (
-                                  <li key={index}>{stop.address}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          <div>
-                            <p className="text-sm text-muted-foreground">To</p>
-                            <p className="text-base font-medium">
-                              {dropoffLocation?.address || "Not specified"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <BookingDetail
-                          label="Date & Time"
-                          value={`${formatDate(selectedDate)}, ${selectedTime}`}
-                          icon={CalendarIcon}
-                        />
-
-                        <BookingDetail
-                          label="Passengers & Luggage"
-                          value={`${passengers} pax, ${
-                            checkedLuggage + mediumLuggage + handLuggage
-                          } bags`}
-                          icon={User}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contact Details Section */}
-                  <div>
-                    <h3 className="font-medium text-primary text-base mb-2">
-                      Contact Details
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <BookingDetail
-                        label="Full Name"
-                        value={fullName}
-                        icon={User}
-                      />
-
-                      <BookingDetail label="Phone" value={phone} icon={Phone} />
-                    </div>
-
-                    <BookingDetail
-                      label="Email Address"
-                      value={email}
-                      icon={Mail}
-                    />
-
-                    {specialRequests && (
-                      <div className="mt-2">
-                        <p className="text-sm text-muted-foreground">
-                          Special Requests:
-                        </p>
-                        <p className="text-base mt-0.5">{specialRequests}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Vehicle & Price Section */}
-                  <div className="bg-muted/40 p-4 rounded-md space-y-3 mt-auto">
-                    {/* Vehicle details with updated image */}
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex gap-4 items-center">
-                        <div className="w-40 h-40 flex items-center justify-center bg-primary/5 rounded">
-                          {selectedVehicle.id.includes("executive") ? (
-                            <Image
-                              src="/images/vehicles/xequtive-3-removebg-preview.png"
-                              alt={selectedVehicle.name}
-                              width={160}
-                              height={160}
-                              className="object-contain scale-125"
-                            />
-                          ) : selectedVehicle.id.includes("mpv") ||
-                            selectedVehicle.id.includes("van") ? (
-                            <Image
-                              src="/images/vehicles/xequtive-6-removebg-preview.png"
-                              alt={selectedVehicle.name}
-                              width={160}
-                              height={160}
-                              className="object-contain scale-125"
-                            />
-                          ) : (
-                            <Image
-                              src="/images/vehicles/xequtive-9-removebg-preview.png"
-                              alt={selectedVehicle.name}
-                              width={160}
-                              height={160}
-                              className="object-contain scale-125"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            Vehicle
-                          </p>
-                          <p className="text-lg font-medium">
-                            {selectedVehicle.name}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          Total Price
-                        </p>
-                        <p className="text-xl font-bold">
-                          {selectedVehicle.price.currency}
-                          {selectedVehicle.price.amount}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Terms and Conditions and Submit Button */}
-            <div className="space-y-6 mt-auto">
-              <Card className="border">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="pt-0.5">
-                      <Lock className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="text-sm">
-                      <p className="mb-2 font-medium">
-                        Secure Booking Confirmation
-                      </p>
-                      <p className="text-muted-foreground">
-                        By clicking &quot;Confirm Booking&quot; you agree to our{" "}
-                        <a href="#" className="text-primary underline">
-                          Terms & Conditions
-                        </a>{" "}
-                        and{" "}
-                        <a href="#" className="text-primary underline">
-                          Privacy Policy
-                        </a>
-                        .
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Button
-                className="w-full h-14 text-lg"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Confirm Booking"
-                )}
-              </Button>
-
-              {error && (
-                <p className="text-destructive text-base text-center">
-                  {error}
-                </p>
-              )}
-            </div>
-          </div>
-        </>
+    <div className="w-full">
+      {error && (
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
+          {error}
+        </div>
       )}
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(submitForm)}
+          className="space-y-6 w-full max-h-none overflow-visible pr-0"
+        >
+          <div className="grid grid-cols-12 gap-6">
+            {/* Left Column - Three Fields */}
+            <div className="col-span-12 md:col-span-5 space-y-4">
+              <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="John Doe"
+                        {...field}
+                        disabled={!!user?.displayName}
+                        className="h-11 bg-background border border-border cursor-text"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="name@example.com"
+                        {...field}
+                        disabled
+                        className="h-11 bg-muted/40 border border-border cursor-not-allowed"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <CountryPhoneInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={!!user?.phoneNumber}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Right Column - Special Requests */}
+            <div className="col-span-12 md:col-span-7">
+              <FormField
+                control={form.control}
+                name="specialRequests"
+                render={({ field }) => (
+                  <FormItem className="h-full">
+                    <h3 className="text-lg font-semibold">Special Requests</h3>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Add any additional requirements or notes (Optional)"
+                        {...field}
+                        className="min-h-[250px] max-h-[400px] resize-y border border-border cursor-text"
+                        style={{
+                          backgroundColor:
+                            "color-mix(in oklab, var(--input) 30%, transparent)",
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Flight Details Section - Conditionally Rendered */}
+          {hasAirportLocations && (
+            <div className="space-y-1.5 border-t pt-4 mb-4">
+              <div
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setIsFlightDetailsOpen(!isFlightDetailsOpen)}
+              >
+                <div className="flex items-center gap-2">
+                  <Plane className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">Flight Details</span>
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    isFlightDetailsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
+
+              {isFlightDetailsOpen && (
+                <div className="space-y-3 mt-2 p-3 bg-muted/40 rounded-md">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="w-full">
+                      <FormField
+                        control={form.control}
+                        name="flightInformation.airline"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Airline</FormLabel>
+                            <FormControl>
+                              <Select
+                                {...field}
+                                onValueChange={(selectedValue) => {
+                                  field.onChange(selectedValue);
+                                }}
+                              >
+                                <SelectTrigger className="w-full bg-muted/40 h-11 min-w-[200px]">
+                                  <SelectValue placeholder="Select Airline" />
+                                </SelectTrigger>
+                                <SelectContent className="select-content min-w-[250px] w-full">
+                                  {[
+                                    "British Airways",
+                                    "EasyJet",
+                                    "Ryanair",
+                                    "Jet2",
+                                    "TUI Airways",
+                                    "Virgin Atlantic",
+                                    "Wizz Air",
+                                    "Aer Lingus",
+                                  ].map((airline) => (
+                                    <SelectItem
+                                      key={airline}
+                                      value={airline}
+                                      className="select-item"
+                                    >
+                                      {airline}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="w-full">
+                      <FormField
+                        control={form.control}
+                        name="flightInformation.flightNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Flight Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. BA1440"
+                                className="w-full bg-muted/40 h-11 border border-input"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="w-full">
+                      <FormField
+                        control={form.control}
+                        name="flightInformation.scheduledDeparture"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Scheduled Departure</FormLabel>
+                            <FormControl>
+                              <AdvancedTimePicker
+                                datetime={
+                                  field.value
+                                    ? new Date(field.value)
+                                    : undefined
+                                }
+                                onDateTimeChange={(datetime) => {
+                                  field.onChange(
+                                    datetime
+                                      ? datetime.toISOString()
+                                      : undefined
+                                  );
+                                }}
+                                lockedDate={validLockedDate}
+                                className="bg-muted/40 h-11"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Hey, we noticed you selected airport locations. Would you
+                    like to add your flight information for a more convenient
+                    experience?
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Train Details Section - Conditionally Rendered */}
+          {hasTrainStationLocations && (
+            <div className="space-y-1.5 border-t pt-4 mb-4">
+              <div
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setIsTrainDetailsOpen(!isTrainDetailsOpen)}
+              >
+                <div className="flex items-center gap-2">
+                  <Train className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">Train Details</span>
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    isTrainDetailsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
+
+              {isTrainDetailsOpen && (
+                <div className="space-y-3 mt-2 p-3 bg-muted/40 rounded-md">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="w-full">
+                      <FormField
+                        control={form.control}
+                        name="trainInformation.trainOperator"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Train Operator</FormLabel>
+                            <FormControl>
+                              <Select
+                                {...field}
+                                onValueChange={(selectedValue) => {
+                                  field.onChange(selectedValue);
+                                }}
+                              >
+                                <SelectTrigger className="w-full bg-muted/40 h-11 min-w-[200px]">
+                                  <SelectValue placeholder="Select Operator" />
+                                </SelectTrigger>
+                                <SelectContent className="select-content min-w-[250px] w-full">
+                                  {[
+                                    "Great Western Railway",
+                                    "Avanti West Coast",
+                                    "TransPennine Express",
+                                    "LNER",
+                                    "CrossCountry",
+                                    "South Western Railway",
+                                    "Southeastern",
+                                    "Northern",
+                                    "Chiltern Railways",
+                                  ].map((operator) => (
+                                    <SelectItem
+                                      key={operator}
+                                      value={operator}
+                                      className="select-item"
+                                    >
+                                      {operator}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="w-full">
+                      <FormField
+                        control={form.control}
+                        name="trainInformation.trainNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Train Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. GWR123"
+                                className="w-full bg-muted/40 h-11 border border-input"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="w-full">
+                      <FormField
+                        control={form.control}
+                        name="trainInformation.scheduledDeparture"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Scheduled Departure</FormLabel>
+                            <FormControl>
+                              <AdvancedTimePicker
+                                datetime={
+                                  field.value
+                                    ? new Date(field.value)
+                                    : undefined
+                                }
+                                onDateTimeChange={(datetime) => {
+                                  field.onChange(
+                                    datetime
+                                      ? datetime.toISOString()
+                                      : undefined
+                                  );
+                                }}
+                                lockedDate={validLockedDate}
+                                className="bg-muted/40 h-11"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    We noticed you selected train station locations. Would you
+                    like to add your train information for a more convenient
+                    experience?
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Terms and Conditions Checkbox */}
+          <div className="flex items-start space-x-3 mt-4 bg-muted/30 p-3 rounded-lg border border-border">
+            <FormField
+              control={form.control}
+              name="termsAgreed"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-3">
+                  <FormControl>
+                    <div
+                      className={`w-5 h-5 border rounded flex items-center justify-center cursor-pointer transition-all 
+                        ${
+                          field.value
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "bg-background border-border"
+                        }`}
+                      onClick={() => field.onChange(!field.value)}
+                    >
+                      {field.value && <Check className="h-4 w-4" />}
+                    </div>
+                  </FormControl>
+                  <div className="text-sm">
+                    I agree to the{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      className="text-primary underline underline-offset-4 hover:text-primary/80"
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      className="text-primary underline underline-offset-4 hover:text-primary/80"
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                      Privacy Policy
+                    </Link>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Book Now"}
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 }

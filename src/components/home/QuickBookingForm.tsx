@@ -38,8 +38,7 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
                 onLocationSelect={(location) =>
                   setPickupLocation(location.address)
                 }
-                showInitialSuggestions={true}
-                type="pickup"
+                locationType="pickup"
                 initialSuggestionsTitle="Suggested pickup locations"
                 className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:z-[999999] [&>div>div]:z-[999999]"
               />
@@ -57,8 +56,7 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
                 onLocationSelect={(location) =>
                   setDropoffLocation(location.address)
                 }
-                showInitialSuggestions={true}
-                type="dropoff"
+                locationType="dropoff"
                 initialSuggestionsTitle="Suggested dropoff locations"
                 className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:z-[999999] [&>div>div]:z-[999999]"
               />

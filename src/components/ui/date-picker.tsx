@@ -15,13 +15,12 @@ import {
   format,
   addMonths,
   subMonths,
-  isSameDay,
   startOfToday,
   addHours,
   isToday,
   isBefore,
 } from "date-fns";
-import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,6 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export interface DatePickerProps {
   date?: Date;
@@ -56,11 +56,11 @@ export function DatePicker({
   const now = new Date();
   const minimumDate = addHours(now, 24);
 
-  const previousMonth = () => {
+  const handlePreviousMonth = () => {
     setCurrentMonth((prev) => subMonths(prev, 1));
   };
 
-  const nextMonth = () => {
+  const handleNextMonth = () => {
     setCurrentMonth((prev) => addMonths(prev, 1));
   };
 
@@ -124,13 +124,14 @@ export function DatePicker({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={previousMonth}
+                onClick={handlePreviousMonth}
                 disabled={
-                  isSameDay(currentMonth, today) || currentMonth < today
+                  currentMonth.getMonth() === today.getMonth() &&
+                  currentMonth.getFullYear() === today.getFullYear()
                 }
-                className="h-7 w-7 rounded-full p-0 text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-40"
+                className="h-15 w-15 rounded-full p-0 text-foreground hover:bg-muted/0 hover:text-accent-foreground disabled:opacity-40"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ArrowLeft size={32} />
                 <span className="sr-only">Previous month</span>
               </Button>
               <h2 className="text-sm font-medium">
@@ -139,10 +140,10 @@ export function DatePicker({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={nextMonth}
-                className="h-7 w-7 rounded-full p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
+                onClick={handleNextMonth}
+                className="h-15 w-15 rounded-full p-0 text-foreground hover:bg-muted/0 hover:text-accent-foreground"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ArrowRight size={32} />
                 <span className="sr-only">Next month</span>
               </Button>
             </div>

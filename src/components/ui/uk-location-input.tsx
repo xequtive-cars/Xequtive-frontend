@@ -38,11 +38,11 @@ interface UkLocationInputProps
   placeholder?: string;
   suggestionsTitle?: string;
   initialSuggestionsTitle?: string;
-  defaultOpen?: boolean;
   locationType?: "pickup" | "dropoff" | "stop";
   userLocation?: { latitude: number; longitude: number } | null;
   className?: string;
   onClear?: () => void;
+  showInitialSuggestions?: boolean;
 }
 
 export function UkLocationInput({
@@ -54,11 +54,11 @@ export function UkLocationInput({
   placeholder = "Search for a location",
   suggestionsTitle = "Search results",
   initialSuggestionsTitle = "Suggested locations",
-  defaultOpen = false,
   locationType,
   userLocation,
   className,
   onClear,
+  showInitialSuggestions = false,
   ...props
 }: UkLocationInputProps) {
   const [value, setValue] = useState(
@@ -72,7 +72,7 @@ export function UkLocationInput({
     );
   const [terminalOptions, setTerminalOptions] = useState<string[]>([]);
   const [showTerminals, setShowTerminals] = useState(false);
-  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(defaultOpen);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<LocationSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -238,7 +238,7 @@ export function UkLocationInput({
 
   // Handle focus on input
   const handleFocus = async () => {
-    // Show dropdown immediately
+    // Always show dropdown when input is focused
     setIsSuggestionsOpen(true);
 
     if (!selectedLocation) {
@@ -273,25 +273,27 @@ export function UkLocationInput({
     }
   };
 
-  // Load initial suggested locations
+  // Modify the initial suggestions loading logic
   useEffect(() => {
-    if (defaultOpen && suggestions.length === 0) {
-      const loadSuggestions = async () => {
-        try {
+    const loadInitialSuggestions = async () => {
+      try {
+        if (showInitialSuggestions || !value) {
           const suggestedLocations =
             await locationSearchService.getSuggestedLocations(
               locationType,
               userLocation
             );
           setSuggestions(suggestedLocations);
-        } catch {
-          // Silently handle error
+          // Do not automatically open suggestions
+          // setIsSuggestionsOpen(true);
         }
-      };
+      } catch {
+        // Silently handle error
+      }
+    };
 
-      loadSuggestions();
-    }
-  }, [defaultOpen, locationType, userLocation]);
+    loadInitialSuggestions();
+  }, [showInitialSuggestions, locationType, userLocation, value]);
 
   // Close suggestions when clicking outside
   useEffect(() => {

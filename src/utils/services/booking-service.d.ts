@@ -39,6 +39,10 @@ export interface BookingRequest {
       checkedLuggage: number;
       mediumLuggage: number;
       handLuggage: number;
+      babySeat: number;
+      childSeat: number;
+      boosterSeat: number;
+      wheelchair: number;
     };
     vehicle: {
       id: string;

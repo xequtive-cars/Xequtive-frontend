@@ -55,8 +55,11 @@ export default function RideHistoryPage() {
 
   // Fetch bookings on component mount
   useEffect(() => {
-    fetchBookingHistory();
-  }, []);
+    const loadBookings = async () => {
+      await fetchBookingHistory();
+    };
+    loadBookings();
+  }, [fetchBookingHistory]);
 
   return (
     <ProtectedRoute>

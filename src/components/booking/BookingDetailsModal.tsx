@@ -73,6 +73,9 @@ interface BookingDetailsModalProps {
     dropoffLocation: {
       address: string;
     };
+    additionalStops?: Array<{
+      address: string;
+    }>;
     vehicleType: string;
     price: number;
     status: string;
@@ -94,6 +97,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
     pickupTime,
     pickupLocation,
     dropoffLocation,
+    additionalStops,
     vehicleType,
     price,
     status,
@@ -163,6 +167,19 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {additionalStops && additionalStops.length > 0 && (
+                <div className="flex gap-2">
+                  <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-sm font-medium">Additional Stops</div>
+                    <div className="text-sm text-muted-foreground">
+                      {additionalStops.length} stop
+                      {additionalStops.length !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Navigation className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />

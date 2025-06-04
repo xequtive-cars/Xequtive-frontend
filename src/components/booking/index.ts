@@ -6,6 +6,7 @@
 
 export { PassengerLuggageForm } from "@/components/passengers/passenger-luggage-form";
 export { PersonalDetailsForm } from "./personal-details-form";
+export { EnhancedPhoneInput } from "../ui/enhanced-phone-input";
 export { default as VehicleSelection } from "./vehicle-selection";
 export { BookingSummary } from "./booking-summary";
 export { BookingForm } from "./BookingForm";

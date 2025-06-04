@@ -190,6 +190,13 @@ export default function VehicleSelection({
     }
   };
 
+  // Helper function to format duration in hours:minutes
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  };
+
   // Get journey summary
   const getJourneySummary = () => {
     if (!pickupLocation || !dropoffLocation) return null;
@@ -203,19 +210,9 @@ export default function VehicleSelection({
       typeof fareData.journey.distance_miles === "number"
     ) {
       distance = fareData.journey.distance_miles;
-    } else if (
-      fareData &&
-      "totalDistance" in fareData &&
-      typeof fareData.totalDistance === "number"
-    ) {
-      distance = fareData.totalDistance;
-    } else if (fareData?.baseFare) {
-      // Fallback approximation based on fare
-      distance = Math.round(fareData.baseFare / 3);
     }
 
-    // Extract duration with fallbacks
-    let duration = 30; // Default to 30 minutes
+    let duration = 0;
     if (
       fareData &&
       "journey" in fareData &&
@@ -223,15 +220,8 @@ export default function VehicleSelection({
       typeof fareData.journey.duration_minutes === "number"
     ) {
       duration = fareData.journey.duration_minutes;
-    } else if (
-      fareData &&
-      "estimatedTime" in fareData &&
-      typeof fareData.estimatedTime === "number"
-    ) {
-      duration = fareData.estimatedTime;
     }
 
-    // Display journey summary
     return (
       <div className="bg-muted/30 rounded-md mb-3 text-sm overflow-hidden">
         <div
@@ -276,7 +266,7 @@ export default function VehicleSelection({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Est. time:</span>
-                <span className="font-medium">{duration} min</span>
+                <span className="font-medium">{formatDuration(duration)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Passengers:</span>
@@ -313,9 +303,6 @@ export default function VehicleSelection({
     <div className="animate-in fade-in slide-in-from-left-5 duration-500 h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold">Select Vehicle</h2>
-        <Button variant="ghost" onClick={onBack} size="sm">
-          Back to Form
-        </Button>
       </div>
 
       {/* Mobile & Tablet View: Vehicle Selection First */}

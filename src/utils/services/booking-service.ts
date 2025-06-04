@@ -42,6 +42,10 @@ export interface BookingRequest {
       checkedLuggage: number;
       mediumLuggage: number;
       handLuggage: number;
+      babySeat: number;
+      childSeat: number;
+      boosterSeat: number;
+      wheelchair: number;
     };
     vehicle: {
       id: string;
@@ -102,6 +106,10 @@ interface BookingDetails {
   mediumLuggage: number;
   handLuggage: number;
   selectedVehicle: VehicleOption | null;
+  babySeat: number;
+  childSeat: number;
+  boosterSeat: number;
+  wheelchair: number;
 }
 
 interface PersonalDetails {
@@ -224,12 +232,17 @@ class BookingService {
     const endpoint = `${apiUrl}/api/bookings/create-enhanced`;
 
     try {
+      // Normalize phone number by removing spaces and non-digit characters
+      const normalizedPhone = personalDetails.phone
+        .replace(/\s+/g, "")
+        .replace(/[^\d+]/g, "");
+
       // Format the request according to the API documentation
       const requestData: BookingRequest = {
         customer: {
           fullName: personalDetails.fullName,
           email: personalDetails.email,
-          phone: personalDetails.phone,
+          phone: normalizedPhone, // Use normalized phone number
         },
         booking: {
           locations: {
@@ -247,6 +260,14 @@ class BookingService {
                 lng: bookingDetails.dropoffLocation?.longitude || 0,
               },
             },
+            additionalStops:
+              bookingDetails.additionalStops?.map((stop) => ({
+                address: stop.address || "",
+                coordinates: {
+                  lat: stop.latitude || 0,
+                  lng: stop.longitude || 0,
+                },
+              })) || [],
           },
           datetime: {
             date: bookingDetails.selectedDate
@@ -259,6 +280,10 @@ class BookingService {
             checkedLuggage: bookingDetails.checkedLuggage || 0,
             mediumLuggage: bookingDetails.mediumLuggage || 0,
             handLuggage: bookingDetails.handLuggage || 0,
+            babySeat: bookingDetails.babySeat || 0,
+            childSeat: bookingDetails.childSeat || 0,
+            boosterSeat: bookingDetails.boosterSeat || 0,
+            wheelchair: bookingDetails.wheelchair || 0,
           },
           vehicle: {
             id: bookingDetails.selectedVehicle?.id || "",
@@ -267,21 +292,6 @@ class BookingService {
           specialRequests: personalDetails.specialRequests || "",
         },
       };
-
-      // Add additional stops if present
-      if (
-        bookingDetails.additionalStops &&
-        bookingDetails.additionalStops.length > 0
-      ) {
-        requestData.booking.locations.additionalStops =
-          bookingDetails.additionalStops.map((stop) => ({
-            address: stop.address || "",
-            coordinates: {
-              lat: stop.latitude || 0,
-              lng: stop.longitude || 0,
-            },
-          }));
-      }
 
       // Make the API request
       const response = await fetch(endpoint, {

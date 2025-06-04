@@ -2,11 +2,11 @@
 
 import { useState, useEffect, memo, useRef, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MapComponent from "@/components/map/MapComponent";
 import { Location } from "@/components/map/MapComponent";
-import { Check, MapPin } from "lucide-react";
+import { Check, MapPin, ArrowLeft } from "lucide-react";
 import {
   PersonalDetailsForm,
   VehicleSelection,
@@ -35,6 +35,7 @@ import {
   setWheelchair,
 } from "@/store/slices/bookingSlice";
 import { useAppSelector, useAppDispatch } from "@/store";
+import { format } from "date-fns";
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -79,6 +80,10 @@ interface FareRequest {
     checkedLuggage: number;
     mediumLuggage: number;
     handLuggage: number;
+    babySeat: number;
+    childSeat: number;
+    boosterSeat: number;
+    wheelchair: number;
   };
 }
 
@@ -205,6 +210,26 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
 
+// Validate and correct time format
+const validateTime = (time: string): string => {
+  // If no time is provided, default to current time
+  if (!time) return "12:00";
+
+  // Split time into hours and minutes
+  const [hours, minutes] = time.split(":").map(Number);
+
+  // Validate and correct hours (0-23)
+  const validHours = Math.min(Math.max(0, Math.floor(hours)), 23);
+
+  // Validate and correct minutes (0-59)
+  const validMinutes = Math.min(Math.max(0, Math.floor(minutes)), 59);
+
+  // Format back to HH:mm with leading zeros
+  return `${validHours.toString().padStart(2, "0")}:${validMinutes
+    .toString()
+    .padStart(2, "0")}`;
+};
+
 export default function NewBookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -262,6 +287,7 @@ export default function NewBookingPage() {
   });
 
   // UI states
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [formModified, setFormModified] = useState<boolean>(false);
   const [locationPermission, setLocationPermission] = useState<{
     denied: boolean;
@@ -280,6 +306,13 @@ export default function NewBookingPage() {
 
   // Add current step state
   const [currentStep, setCurrentStep] = useState("location");
+
+  // Add state to track form validity
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isDetailsFormValid, setIsDetailsFormValid] = useState(false);
+
+  // Get date from search params
+  const bookingDate = searchParams.get("date");
 
   // Load state from query parameters on initial load
   useEffect(() => {
@@ -926,6 +959,9 @@ export default function NewBookingPage() {
         return;
       }
 
+      // Validate and correct time format
+      const formattedTime = validateTime(selectedTime);
+
       // Create a properly formatted request
       const formattedRequest: FareRequest = {
         locations: {
@@ -953,13 +989,17 @@ export default function NewBookingPage() {
         },
         datetime: {
           date: selectedDate ? formatDate(selectedDate) : "",
-          time: selectedTime || "",
+          time: formattedTime,
         },
         passengers: {
           count: passengers || 1,
           checkedLuggage: checkedLuggage || 0,
           mediumLuggage: mediumLuggage || 0,
           handLuggage: handLuggage || 0,
+          babySeat: babySeat || 0,
+          childSeat: childSeat || 0,
+          boosterSeat: boosterSeat || 0,
+          wheelchair: wheelchair || 0,
         },
       };
 
@@ -1077,6 +1117,16 @@ export default function NewBookingPage() {
     },
     agree: boolean
   ) => {
+    console.log("Booking Submission Details:", {
+      personalDetails,
+      agree,
+      pickupLocation,
+      dropoffLocation,
+      selectedDate,
+      selectedTime,
+      selectedVehicle,
+    });
+
     if (!agree) {
       setBookingError("You must agree to the terms and conditions to proceed.");
       return;
@@ -1097,6 +1147,9 @@ export default function NewBookingPage() {
     setBookingError(null);
 
     try {
+      // Validate and correct time format
+      const formattedTime = validateTime(selectedTime);
+
       // Call booking API
       const bookingResponse = await bookingService.createBooking(
         personalDetails,
@@ -1105,12 +1158,16 @@ export default function NewBookingPage() {
           dropoffLocation,
           additionalStops,
           selectedDate,
-          selectedTime,
+          selectedTime: formattedTime,
           passengers,
           checkedLuggage,
           mediumLuggage,
           handLuggage,
           selectedVehicle,
+          babySeat,
+          childSeat,
+          boosterSeat,
+          wheelchair,
         }
       );
 
@@ -1260,9 +1317,61 @@ export default function NewBookingPage() {
     return requests.length > 0 ? requests.join(", ") : "Not specified";
   };
 
+  // Add these methods to the existing NewBookingPage component
+  const hasAirportLocations = () => {
+    const airportKeywords = [
+      "airport",
+      "heathrow",
+      "gatwick",
+      "stansted",
+      "luton",
+      "city airport",
+      "manchester airport",
+    ];
+
+    const checkLocation = (address?: string) =>
+      !!address &&
+      airportKeywords.some((keyword) =>
+        address.toLowerCase().includes(keyword)
+      );
+
+    return (
+      checkLocation(pickupLocation?.address) ||
+      checkLocation(dropoffLocation?.address) ||
+      additionalStops.some((stop) => checkLocation(stop.address))
+    );
+  };
+
+  const hasTrainStationLocations = () => {
+    const trainStationKeywords = [
+      "station",
+      "train station",
+      "railway station",
+      "paddington",
+      "kings cross",
+      "euston",
+      "victoria",
+      "waterloo",
+      "liverpool street",
+      "london bridge",
+    ];
+
+    const checkLocation = (address?: string) =>
+      !!address &&
+      trainStationKeywords.some((keyword) =>
+        address.toLowerCase().includes(keyword)
+      );
+
+    return (
+      checkLocation(pickupLocation?.address) ||
+      checkLocation(dropoffLocation?.address) ||
+      additionalStops.some((stop) => checkLocation(stop.address))
+    );
+  };
+
   return (
     <ProtectedRoute>
-      <div className="h-[100vh] w-full flex flex-col pt-2 overflow-hidden">
+      <div className="h-full w-full flex flex-col pt-2 overflow-hidden">
         {/* Location Permission Banner */}
         {locationPermission.denied && (
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 mx-2">
@@ -1392,7 +1501,7 @@ export default function NewBookingPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="h-full max-h-[calc(100vh-6rem)] rounded-lg overflow-hidden border shadow-sm">
+                    <div className="h-[35vh] md:h-[87vh] max-h-[calc(100vh-0rem)] rounded-lg overflow-hidden border shadow-sm">
                       <StableMapComponent
                         className="h-full"
                         pickupLocation={pickupLocation}
@@ -1415,7 +1524,7 @@ export default function NewBookingPage() {
                   {/* Mobile: Vehicle Selection First */}
                   <div className="w-full lg:hidden flex flex-col">
                     {/* Vehicle selection container with increased height to 85vh */}
-                    <div className="w-full max-h-[85vh] flex flex-col">
+                    <div className="w-full max-h-[90vh] md:max-h-[85vh] flex flex-col">
                       <div className="p-3 border-b">
                         <h2 className="text-base font-semibold flex justify-between items-center">
                           <span>Select Vehicle</span>
@@ -1546,14 +1655,6 @@ export default function NewBookingPage() {
                           <h2 className="text-base font-semibold">
                             Journey Details
                           </h2>
-                          <Button
-                            variant="ghost"
-                            onClick={handleBackToForm}
-                            size="sm"
-                            className="h-8 text-sm p-1.5"
-                          >
-                            Back
-                          </Button>
                         </div>
 
                         {/* Journey content - made scrollable */}
@@ -1584,14 +1685,10 @@ export default function NewBookingPage() {
                               <label className="text-sm font-medium mb-1 block text-muted-foreground">
                                 Additional Stops
                               </label>
-                              {additionalStops.map((stop, index) => (
-                                <div
-                                  key={index}
-                                  className="p-2 bg-muted/40 rounded-md mb-1 text-sm"
-                                >
-                                  {stop.address}
-                                </div>
-                              ))}
+                              <div className="p-2 bg-muted/40 rounded-md text-sm">
+                                {additionalStops.length} stop
+                                {additionalStops.length !== 1 ? "s" : ""}
+                              </div>
                             </div>
                           )}
 
@@ -1658,7 +1755,11 @@ export default function NewBookingPage() {
                                 </span>
                                 <span className="font-medium">
                                   {fareData?.journey?.duration_minutes
-                                    ? `${fareData.journey.duration_minutes} min`
+                                    ? `${Math.floor(
+                                        fareData.journey.duration_minutes / 60
+                                      )}h ${
+                                        fareData.journey.duration_minutes % 60
+                                      }m`
                                     : "Not available"}
                                 </span>
                               </div>
@@ -1691,26 +1792,6 @@ export default function NewBookingPage() {
                             </div>
                           </div>
                         </div>
-
-                        {/* Re-Calculate Button - Increase height and font size by 40% */}
-                        <Button
-                          variant={formModified ? "default" : "outline"}
-                          className="w-full text-sm h-10"
-                          onClick={() => {
-                            if (formModified) {
-                              handleCalculateFare();
-                            } else {
-                              handleBackToForm();
-                            }
-                          }}
-                          disabled={isFetching}
-                        >
-                          {isFetching
-                            ? "Calculating..."
-                            : formModified
-                            ? "Re-Calculate Fare"
-                            : "Back to Form"}
-                        </Button>
                       </CardContent>
                     </Card>
                   </div>
@@ -1718,7 +1799,7 @@ export default function NewBookingPage() {
                   {/* Desktop: Journey Details First */}
                   <div className="hidden lg:block lg:w-[29%]">
                     <Card className="border shadow-sm">
-                      <CardContent className="p-3 space-y-4">
+                      <CardContent className="px-4 space-y-2 py-0 my-0">
                         <div className="flex justify-between items-center mb-2">
                           <h2 className="text-base font-semibold">
                             Journey Details
@@ -1757,16 +1838,12 @@ export default function NewBookingPage() {
                         {additionalStops.length > 0 && (
                           <div>
                             <label className="text-sm font-medium mb-1 block text-muted-foreground">
-                              Additional Stops
+                              Stops ({additionalStops.length})
                             </label>
-                            {additionalStops.map((stop, index) => (
-                              <div
-                                key={index}
-                                className="p-2 bg-muted/40 rounded-md mb-1 text-sm"
-                              >
-                                {stop.address}
-                              </div>
-                            ))}
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {additionalStops.length} stop
+                              {additionalStops.length !== 1 ? "s" : ""}
+                            </div>
                           </div>
                         )}
 
@@ -1833,7 +1910,11 @@ export default function NewBookingPage() {
                               </span>
                               <span className="font-medium">
                                 {fareData?.journey?.duration_minutes
-                                  ? `${fareData.journey.duration_minutes} min`
+                                  ? `${Math.floor(
+                                      fareData.journey.duration_minutes / 60
+                                    )}h ${
+                                      fareData.journey.duration_minutes % 60
+                                    }m`
                                   : "Not available"}
                               </span>
                             </div>
@@ -1865,32 +1946,12 @@ export default function NewBookingPage() {
                               )}
                           </div>
                         </div>
-
-                        {/* Re-Calculate Button - Increase height and font size by 40% */}
-                        <Button
-                          variant={formModified ? "default" : "outline"}
-                          className="w-full text-sm h-10"
-                          onClick={() => {
-                            if (formModified) {
-                              handleCalculateFare();
-                            } else {
-                              handleBackToForm();
-                            }
-                          }}
-                          disabled={isFetching}
-                        >
-                          {isFetching
-                            ? "Calculating..."
-                            : formModified
-                            ? "Re-Calculate Fare"
-                            : "Back to Form"}
-                        </Button>
                       </CardContent>
                     </Card>
                   </div>
 
                   {/* Desktop: Vehicle Selection Second */}
-                  <div className="hidden lg:w-[42%] lg:max-h-[calc(100vh-6rem)] overflow-hidden lg:flex lg:flex-col">
+                  <div className="hidden lg:w-[42%] lg:max-h-[calc(100vh-5.5rem)] overflow-hidden lg:flex lg:flex-col">
                     <div className="p-3 border-b">
                       <h2 className="text-base font-semibold">
                         Select Vehicle
@@ -1929,7 +1990,7 @@ export default function NewBookingPage() {
                   </div>
 
                   {/* Map Panel (for both views) */}
-                  <div className="w-full lg:w-[25%] h-[40vh] lg:h-full lg:max-h-[calc(100vh-6rem)] hidden lg:block">
+                  <div className="w-full lg:w-[25%] h-[40vh] lg:h-[100vh] lg:max-h-[calc(100vh-6rem)] hidden lg:block">
                     {showMap ? (
                       <div className="h-full rounded-lg overflow-hidden border shadow-sm">
                         <StableMapComponent
@@ -1954,54 +2015,133 @@ export default function NewBookingPage() {
                 </div>
               ) : (
                 // Personal details form - simplified layout
-                <div className="flex flex-col lg:flex-row w-full h-full gap-4">
-                  <div className="w-full lg:w-2/3 max-h-[calc(100vh-5rem)] relative">
+                <div className="flex flex-col lg:flex-row w-full h-full gap-4 pb-24">
+                  <div className="w-full lg:w-2/3 relative flex flex-col h-fit">
                     {selectedVehicle && (
-                      <div className="h-full overflow-hidden flex flex-col">
-                        <div className="flex-1 overflow-y-auto pr-2 pb-20 relative">
-                          <PersonalDetailsForm
-                            selectedVehicle={selectedVehicle}
-                            pickupLocation={pickupLocation}
-                            dropoffLocation={dropoffLocation}
-                            additionalStops={additionalStops}
-                            selectedDate={selectedDate}
-                            selectedTime={selectedTime}
-                            passengers={passengers}
-                            checkedLuggage={checkedLuggage}
-                            mediumLuggage={mediumLuggage}
-                            handLuggage={handLuggage}
-                            onBack={handleBackToVehicleSelection}
-                            onSubmit={handleSubmitBooking}
-                            isSubmitting={isCreatingBooking}
-                            error={bookingError}
-                          />
+                      <div className="flex-1 flex flex-col">
+                        <div className="flex-1 overflow-y-auto pr-2">
+                          <div className="animate-in fade-in slide-in-from-right-5 duration-500 h-full flex flex-col">
+                            {/* Contact Information Form */}
+                            <div className="space-y-6 bg-card border rounded-xl p-6 flex-1 flex flex-col justify-start">
+                              <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-semibold">
+                                  Contact Information
+                                </h3>
+                                <Button
+                                  variant="ghost"
+                                  onClick={handleBackToVehicleSelection}
+                                  size="sm"
+                                  className="gap-2 h-8"
+                                >
+                                  <ArrowLeft size={16} />
+                                  Back
+                                </Button>
+                              </div>
+                              <PersonalDetailsForm
+                                onSubmit={handleSubmitBooking}
+                                onFormValidityChange={setIsDetailsFormValid}
+                                isSubmitting={isCreatingBooking}
+                                error={bookingError}
+                                hasAirportLocations={hasAirportLocations()}
+                                hasTrainStationLocations={hasTrainStationLocations()}
+                                lockedDate={
+                                  bookingDate
+                                    ? new Date(bookingDate)
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Map display - height matching second screen */}
-                  <div className="w-full lg:w-1/3 h-[40vh] lg:h-full lg:max-h-[calc(100vh-6rem)] hidden lg:block">
-                    {showMap ? (
-                      <div className="h-full rounded-lg overflow-hidden border shadow-sm">
-                        <StableMapComponent
-                          className="h-full"
-                          pickupLocation={pickupLocation}
-                          dropoffLocation={dropoffLocation}
-                          stops={additionalStops}
-                          showCurrentLocation={true}
-                          onUserLocationChange={setUserLocation}
-                          passMapRef={handleMapRef}
-                          onLocationError={handleLocationError}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-full rounded-lg overflow-hidden border shadow-sm flex items-center justify-center">
-                        <div className="text-muted-foreground">
-                          Loading map...
+                  {/* Right side - Booking Summary */}
+                  <div className="w-full lg:w-1/3 h-fit flex flex-col">
+                    <Card className="border shadow-sm sticky top-0 flex-1 flex flex-col justify-start">
+                      <CardHeader className="py-0">
+                        <CardTitle className="text-xl">
+                          Booking Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0 space-y-4 flex-1 flex flex-col justify-start">
+                        <div>
+                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                            From
+                          </label>
+                          <div className="p-2 bg-muted/40 rounded-md text-sm">
+                            {pickupLocation?.address || "Not specified"}
+                          </div>
                         </div>
-                      </div>
-                    )}
+
+                        {additionalStops.length > 0 && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Stops ({additionalStops.length})
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {additionalStops.length} stop
+                              {additionalStops.length !== 1 ? "s" : ""}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                            To
+                          </label>
+                          <div className="p-2 bg-muted/40 rounded-md text-sm">
+                            {dropoffLocation?.address || "Not specified"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                            Date & Time
+                          </label>
+                          <div className="p-2 bg-muted/40 rounded-md text-sm">
+                            {selectedDate
+                              ? format(selectedDate, "EEE, d MMM yyyy")
+                              : "Not specified"}{" "}
+                            at {selectedTime}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                            Passengers & Luggage
+                          </label>
+                          <div className="p-2 bg-muted/40 rounded-md text-sm">
+                            {getPassengerLuggageSummary()}
+                          </div>
+                        </div>
+
+                        {/* Selected Vehicle with larger price */}
+                        {selectedVehicle && (
+                          <div className="mt-auto pt-4 border-t">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">
+                                  Selected Vehicle
+                                </label>
+                                <p className="text-base font-medium mt-1">
+                                  {selectedVehicle.name}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <label className="text-sm font-medium text-muted-foreground">
+                                  Total Price
+                                </label>
+                                <p className="text-2xl font-bold font-mono mt-1">
+                                  £{selectedVehicle.price.amount.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               )}

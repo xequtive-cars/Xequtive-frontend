@@ -265,7 +265,7 @@ export function BookingForm({
   return (
     <>
       {currentStep === "location" ? (
-        <Card className="w-[110%] booking-form-card">
+        <Card className="w-[100%] md:w-[110%] booking-form-card">
           <CardContent>
             <div className="space-y-3">
               {/* Pickup */}

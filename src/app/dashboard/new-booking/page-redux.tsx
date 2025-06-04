@@ -661,17 +661,6 @@ export default function NewBookingPageRedux() {
                 onSubmit={handleSubmitBooking}
                 isSubmitting={isCreatingBooking}
                 error={bookingError}
-                selectedVehicle={selectedVehicle}
-                pickupLocation={pickupLocation}
-                dropoffLocation={dropoffLocation}
-                additionalStops={additionalStops}
-                selectedDate={selectedDate}
-                selectedTime={selectedTime}
-                passengers={passengers}
-                checkedLuggage={checkedLuggage}
-                mediumLuggage={mediumLuggage}
-                handLuggage={handLuggage}
-                onBack={() => dispatch(handleBackToVehicleSelection())}
               />
             </div>
           </div>

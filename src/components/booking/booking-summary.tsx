@@ -171,13 +171,13 @@ export function BookingSummary({
             : "Not selected"}{" "}
           →
           {additionalStops.length > 0 &&
-            ` + ${additionalStops.length} stop${
+            ` ${additionalStops.length} stop${
               additionalStops.length > 1 ? "s" : ""
             } → `}
           {dropoffLocation?.address
             ? dropoffLocation.address.split(",")[0]
             : "Not selected"}{" "}
-          •{date ? ` ${format(date, "MMM d")}` : ""} {time ? `, ${time}` : ""} •
+          • {date ? format(date, "MMM d") : ""} {time ? `, ${time}` : ""} •
           {passengers} passenger{passengers !== 1 ? "s" : ""}
         </div>
       )}

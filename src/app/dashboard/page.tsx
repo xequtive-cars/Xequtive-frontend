@@ -181,10 +181,13 @@ export default function DashboardPage() {
 
   // Fetch bookings on component mount
   useEffect(() => {
-    fetchActiveBookings();
-    fetchBookingHistory();
-    fetchCancelledBookings();
-  }, []);
+    const loadBookings = async () => {
+      await fetchActiveBookings();
+      await fetchBookingHistory();
+      await fetchCancelledBookings();
+    };
+    loadBookings();
+  }, [fetchActiveBookings, fetchBookingHistory, fetchCancelledBookings]);
 
   return (
     <ProtectedRoute>

@@ -28,6 +28,10 @@ interface FareRequest {
     checkedLuggage: number;
     mediumLuggage: number;
     handLuggage: number;
+    babySeat: number;
+    childSeat: number;
+    boosterSeat: number;
+    wheelchair: number;
   };
 }
 
@@ -88,6 +92,10 @@ export const getFareEstimate = async (
           checkedLuggage: 0,
           mediumLuggage: 0,
           handLuggage: 0,
+          babySeat: 0,
+          childSeat: 0,
+          boosterSeat: 0,
+          wheelchair: 0,
         },
       };
     } else {
@@ -95,26 +103,22 @@ export const getFareEstimate = async (
       request = initialRequest as FareRequest;
     }
 
-    // Format date for API
+    // Validate and format date
     let formattedDate = "";
     try {
       if (request && request.datetime && request.datetime.date) {
-        if (request.datetime.date instanceof Date) {
-          // Ensure date is formatted as YYYY-MM-DD
-          formattedDate = request.datetime.date.toISOString().split("T")[0];
-        } else if (typeof request.datetime.date === "string") {
-          // If it's already a string, try to parse it properly
-          try {
-            const dateObj = new Date(request.datetime.date);
-            formattedDate = dateObj.toISOString().split("T")[0];
-          } catch {
-            // If parsing fails, use the string directly
-            formattedDate = request.datetime.date;
-          }
-        } else {
-          // Convert whatever it is to string
-          formattedDate = String(request.datetime.date);
+        const dateObj =
+          request.datetime.date instanceof Date
+            ? request.datetime.date
+            : new Date(request.datetime.date);
+
+        // Ensure valid date
+        if (isNaN(dateObj.getTime())) {
+          throw new Error("Invalid date");
         }
+
+        // Format as YYYY-MM-DD
+        formattedDate = dateObj.toISOString().split("T")[0];
       } else {
         // If no date is provided, use current date as fallback
         formattedDate = new Date().toISOString().split("T")[0];
@@ -124,30 +128,107 @@ export const getFareEstimate = async (
       formattedDate = new Date().toISOString().split("T")[0];
     }
 
-    // Prepare request payload with safeguards for missing data
+    // Validate time format (HH:mm)
+    const formattedTime = request.datetime?.time
+      ? (() => {
+          // Split the time into hours and minutes
+          const [hours, minutes] = (request.datetime.time || "12:00")
+            .split(":")
+            .map(Number);
+
+          // Validate and correct hours
+          const validHours = Math.min(Math.max(0, Math.floor(hours)), 23);
+
+          // Validate and correct minutes
+          const validMinutes = Math.min(Math.max(0, Math.floor(minutes)), 59);
+
+          // Format back to HH:mm with leading zeros
+          return `${validHours.toString().padStart(2, "0")}:${validMinutes
+            .toString()
+            .padStart(2, "0")}`;
+        })()
+      : "12:00";
+
+    // Prepare request payload with strict validation
     const payload = {
       locations: {
-        pickup: request.locations?.pickup || {
-          address: "",
-          coordinates: { lat: 0, lng: 0 },
+        pickup: {
+          address: request.locations?.pickup?.address || "",
+          coordinates: {
+            lat: request.locations?.pickup?.coordinates?.lat || 0,
+            lng: request.locations?.pickup?.coordinates?.lng || 0,
+          },
         },
-        dropoff: request.locations?.dropoff || {
-          address: "",
-          coordinates: { lat: 0, lng: 0 },
+        dropoff: {
+          address: request.locations?.dropoff?.address || "",
+          coordinates: {
+            lat: request.locations?.dropoff?.coordinates?.lat || 0,
+            lng: request.locations?.dropoff?.coordinates?.lng || 0,
+          },
         },
-        additionalStops: request.locations?.additionalStops || [],
+        additionalStops:
+          request.locations?.additionalStops?.map((stop) => ({
+            address: stop.address || "",
+            coordinates: {
+              lat: stop.coordinates?.lat || 0,
+              lng: stop.coordinates?.lng || 0,
+            },
+          })) || [],
       },
       datetime: {
         date: formattedDate,
-        time: request.datetime?.time || "12:00", // Default to noon if time not provided
+        time: formattedTime,
       },
       passengers: {
-        count: Number(request.passengers?.count) || 1,
-        checkedLuggage: Number(request.passengers?.checkedLuggage) || 0,
-        mediumLuggage: Number(request.passengers?.mediumLuggage) || 0,
-        handLuggage: Number(request.passengers?.handLuggage) || 0,
+        // Ensure all passenger fields are present and have a default of 0
+        count: Math.max(1, Math.min(Number(request.passengers?.count) || 1, 8)),
+        checkedLuggage: Math.max(
+          0,
+          Math.min(Number(request.passengers?.checkedLuggage) || 0, 8)
+        ),
+        mediumLuggage: Math.max(
+          0,
+          Math.min(Number(request.passengers?.mediumLuggage) || 0, 8)
+        ),
+        handLuggage: Math.max(
+          0,
+          Math.min(Number(request.passengers?.handLuggage) || 0, 8)
+        ),
+        babySeat: Math.max(
+          0,
+          Math.min(Number(request.passengers?.babySeat) || 0, 4)
+        ),
+        childSeat: Math.max(
+          0,
+          Math.min(Number(request.passengers?.childSeat) || 0, 4)
+        ),
+        boosterSeat: Math.max(
+          0,
+          Math.min(Number(request.passengers?.boosterSeat) || 0, 4)
+        ),
+        wheelchair: Math.max(
+          0,
+          Math.min(Number(request.passengers?.wheelchair) || 0, 2)
+        ),
       },
     };
+
+    // Validate payload before sending
+    if (
+      !payload.locations.pickup.address ||
+      !payload.locations.dropoff.address
+    ) {
+      throw new Error("Pickup and dropoff addresses are required");
+    }
+
+    if (
+      payload.locations.pickup.coordinates.lat === 0 ||
+      payload.locations.pickup.coordinates.lng === 0 ||
+      payload.locations.dropoff.coordinates.lat === 0 ||
+      payload.locations.dropoff.coordinates.lng === 0
+    ) {
+      throw new Error("Valid coordinates are required for pickup and dropoff");
+    }
 
     // Call API with enhanced request
     const response = await fetch(`${apiUrl}/api/fare-estimate/enhanced`, {
@@ -177,7 +258,23 @@ export const getFareEstimate = async (
       };
     }
 
-    const data = await response.json();
+    // Parse the response text as JSON
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      return {
+        success: false,
+        data: { fare: createEmptyFareResponse() },
+        error: {
+          code: "PARSE_ERROR",
+          message:
+            parseError instanceof Error
+              ? `Failed to parse server response: ${parseError.message}`
+              : "Failed to parse server response",
+        },
+      };
+    }
 
     if (!response.ok) {
       const errorCode = data.error?.code || "UNKNOWN_ERROR";
@@ -204,7 +301,9 @@ export const getFareEstimate = async (
       error: {
         code: "API_ERROR",
         message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+          error instanceof Error
+            ? error.message
+            : "Invalid request format. Please check your booking details.",
       },
     };
   }

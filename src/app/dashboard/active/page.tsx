@@ -115,8 +115,11 @@ export default function ActiveBookingsPage() {
 
   // Fetch bookings on component mount
   useEffect(() => {
-    fetchActiveBookings();
-  }, []);
+    const loadBookings = async () => {
+      await fetchActiveBookings();
+    };
+    loadBookings();
+  }, [fetchActiveBookings]);
 
   return (
     <ProtectedRoute>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -18,18 +18,14 @@ export const StepProgressBar: React.FC<StepProgressBarProps> = ({
   className,
   completed = false,
 }) => {
-  // Calculate percentages for each step
-  const calculateStepPercent = (step: number) => {
-    // If completed, show 100%
-    if (completed) return 100;
-
-    // First step is 5%, last step not completed is 90%
-    if (step === 1) return 5;
-    if (step === totalSteps) return 90;
-
-    // Calculate intermediate steps to spread between 5% and 90%
-    return 5 + ((step - 1) / (totalSteps - 1)) * 85;
-  };
+  const calculateStepPercent = useCallback(
+    (step: number) => {
+      if (completed) return 100;
+      const basePercent = (step / totalSteps) * 100;
+      return Math.min(basePercent, 100);
+    },
+    [totalSteps, completed]
+  );
 
   const [progress, setProgress] = useState(0);
   const prevStepRef = useRef(currentStep);
@@ -80,7 +76,12 @@ export const StepProgressBar: React.FC<StepProgressBarProps> = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [currentStep, totalSteps, progress, completed]);
+  }, [currentStep, totalSteps, progress, completed, calculateStepPercent]);
+
+  useEffect(() => {
+    const percent = calculateStepPercent(currentStep);
+    setProgress(percent);
+  }, [currentStep, calculateStepPercent]);
 
   return (
     <div className={cn("w-full fixed top-20 left-0 z-10", className)}>

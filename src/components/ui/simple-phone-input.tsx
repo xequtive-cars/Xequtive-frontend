@@ -32,11 +32,15 @@ export function SimplePhoneInput({
     const digits = input.replace(/\D/g, "");
 
     // Limit to 10 digits total (not counting the hidden +44 prefix)
-    // For display purposes, we want "7XXX XXXXXX" (10 digits total)
     const limitedDigits = digits.slice(0, 10);
 
-    // Format with spaces for UK mobile: 7911 123456
-    if (limitedDigits.length > 4) {
+    // Format with spaces for UK mobile: 7911 123 456
+    if (limitedDigits.length > 7) {
+      return `${limitedDigits.slice(0, 4)} ${limitedDigits.slice(
+        4,
+        7
+      )} ${limitedDigits.slice(7)}`;
+    } else if (limitedDigits.length > 4) {
       return `${limitedDigits.slice(0, 4)} ${limitedDigits.slice(4)}`;
     }
 
