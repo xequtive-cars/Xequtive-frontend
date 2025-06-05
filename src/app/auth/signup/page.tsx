@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -13,6 +13,9 @@ import {
   User,
   ChevronLeft,
   Loader2,
+  LogOut,
+  Settings,
+  ChevronDown,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,14 +36,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { authService } from "@/lib/auth";
-import PublicRoute from "@/components/auth/PublicRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import SimplePhoneInput from "@/components/ui/simple-phone-input";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import PublicRoute from "@/components/auth/PublicRoute";
 
 // Step 1: Email form schema
 const emailSchema = z.object({
@@ -326,7 +329,7 @@ function SignUpForm({
                             type="email"
                             placeholder="you@example.com"
                             {...field}
-                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                            className="h-14 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-base font-medium tracking-wider"
                           />
                           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
                             <Mail className="h-6 w-6 text-muted-foreground" />
@@ -606,25 +609,125 @@ function SignUpForm({
   );
 }
 
+// Add this function to render the navbar
+function Navbar() {
+  const { user, signOut, isAuthenticated } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setDropdownOpen(false);
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  return (
+    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <div className="container flex h-20 py-5 items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+              <span className="font-bold text-lg">X</span>
+            </div>
+            <span className="font-bold text-2xl tracking-tight">Xequtive</span>
+          </Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          {isAuthenticated ? (
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 md:h-9 px-2 md:px-3 rounded-md flex items-center gap-1 md:gap-2 shadow-premium"
+                onClick={toggleDropdown}
+              >
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <User className="h-3.5 w-3.5" />
+                </div>
+                <span className="font-medium text-xs hidden md:block">
+                  {user?.displayName || user?.email?.split("@")[0] || "Account"}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-background border border-border z-50">
+                  <div className="p-4 border-b border-border">
+                    <p className="font-medium">{user?.displayName || "User"}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <div className="py-2">
+                    <Link
+                      href="/dashboard/profile"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Account Settings
+                    </Link>
+                    <button
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"
+                      onClick={() => {
+                        signOut();
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <Link
+                href="/auth/signin"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link href="/auth/signup">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-10 px-4 rounded-md"
+                >
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export default function SignupPage() {
   return (
     <PublicRoute>
-      <div className="flex flex-col min-h-screen bg-background">
-        <header className="border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-20 items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-lg">X</span>
-              </div>
-              <span className="font-bold text-2xl tracking-tight">
-                Xequtive
-              </span>
-            </Link>
-            <ThemeToggle />
-          </div>
-        </header>
-
-        <SignUpFormWithProgress />
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
+          <SignUpFormWithProgress />
+        </main>
       </div>
     </PublicRoute>
   );
@@ -680,29 +783,22 @@ function SignUpFormWithProgress() {
         currentStep={currentStep}
         totalSteps={totalSteps}
         completed={isCompleted}
+        className="-mt-0"
       />
 
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
-        <Suspense
-          fallback={
-            <div className="text-center">
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-            </div>
-          }
-        >
-          <SignUpForm
-            onStepChange={(step) => {
-              // Dispatch a custom event when step changes
-              window.dispatchEvent(
-                new CustomEvent("stepChange", { detail: { step } })
-              );
-            }}
-            onComplete={() => {
-              // Dispatch a custom event when form is completed
-              window.dispatchEvent(new Event("formComplete"));
-            }}
-          />
-        </Suspense>
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
+        <SignUpForm
+          onStepChange={(step) => {
+            // Dispatch a custom event when step changes
+            window.dispatchEvent(
+              new CustomEvent("stepChange", { detail: { step } })
+            );
+          }}
+          onComplete={() => {
+            // Dispatch a custom event when form is completed
+            window.dispatchEvent(new Event("formComplete"));
+          }}
+        />
       </main>
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -28,7 +28,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { HeroSection } from "@/components/home/HeroSection";
 
-export default function Home() {
+function HomeContent() {
   const { isAuthenticated, signOut, user, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
@@ -510,5 +510,37 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col min-h-screen bg-background">
+          <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-16 items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link href="/" className="flex items-center space-x-2">
+                  <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <span className="font-bold text-lg">X</span>
+                  </div>
+                  <span className="font-bold text-2xl tracking-tight">
+                    Xequtive
+                  </span>
+                </Link>
+              </div>
+              <nav className="flex items-center gap-5">
+                <ThemeToggle />
+                <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>
+                <div className="w-16 h-10 bg-muted animate-pulse rounded"></div>
+              </nav>
+            </div>
+          </header>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -8,28 +8,23 @@ import { Toaster } from "@/components/ui/toaster";
 import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { CookieConsentProvider } from "@/components/providers/cookie-consent-provider";
 import { Toaster as SonnerToaster } from "sonner";
+import { cn } from "@/lib/utils";
+import CrispChatWrapper from "@/components/CrispChatWrapper";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Xequtive - Premium Taxi Booking",
-  description:
-    "Premium taxi booking for executive and luxury transportation services",
+  title: "Xequtive - Premium Transportation",
+  description: "Luxury transportation services for executives",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -40,21 +35,30 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased",
+          geistSans.className
+        )}
       >
         <AuthProvider>
           <ReduxProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
               <CookieConsentProvider>
                 <AnalyticsProvider>
+                  <CrispChatWrapper />
                   {children}
                   <Toaster />
+                  <SonnerToaster />
                 </AnalyticsProvider>
               </CookieConsentProvider>
             </ThemeProvider>
           </ReduxProvider>
         </AuthProvider>
-        <SonnerToaster richColors position="top-right" />
       </body>
     </html>
   );

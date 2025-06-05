@@ -276,7 +276,14 @@ export function PersonalDetailsForm({
                 name="specialRequests"
                 render={({ field }) => (
                   <FormItem className="h-full">
-                    <h3 className="text-lg font-semibold">Special Requests</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">
+                        Special Requests
+                      </h3>
+                      <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                        Optional
+                      </span>
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="Add any additional requirements or notes (Optional)"
@@ -305,6 +312,9 @@ export function PersonalDetailsForm({
                 <div className="flex items-center gap-2">
                   <Plane className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium">Flight Details</span>
+                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                    Optional
+                  </span>
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform ${
@@ -432,6 +442,9 @@ export function PersonalDetailsForm({
                 <div className="flex items-center gap-2">
                   <Train className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium">Train Details</span>
+                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                    Optional
+                  </span>
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform ${
@@ -594,7 +607,16 @@ export function PersonalDetailsForm({
               )}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={
+              !form.getValues("fullName") ||
+              !form.getValues("email") ||
+              !form.getValues("phone") ||
+              !form.getValues("termsAgreed")
+            }
+          >
             {isSubmitting ? "Submitting..." : "Book Now"}
           </Button>
         </form>

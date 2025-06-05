@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import PublicRoute from "@/components/auth/PublicRoute";
 import { authService } from "@/lib/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -49,7 +47,7 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -62,7 +60,7 @@ export default function ResetPasswordPage() {
   const [isTokenValid, setIsTokenValid] = useState<boolean>(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
 
-  // Check token validity on component mount
+  // Validate token
   useEffect(() => {
     const validateToken = () => {
       if (!token) {
@@ -247,214 +245,172 @@ export default function ResetPasswordPage() {
 
       let errorMessage = "An unexpected error occurred. Please try again.";
       if (err instanceof Error) {
-        // Check for specific error types
-        if (err.message.includes("network") || err.message.includes("fetch")) {
-          errorMessage =
-            "Network error. Please check your internet connection and try again.";
-        } else if (err.message.includes("JSON")) {
-          errorMessage = "Server response error. Please try again later.";
-        } else {
-          errorMessage = err.message;
-        }
+        errorMessage = err.message;
       }
 
       setError(errorMessage);
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
+  // Render the form
   return (
-    <PublicRoute>
-      <div className="flex flex-col min-h-screen bg-background">
-        <header className="border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-20 items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-lg">X</span>
-              </div>
-              <span className="font-bold text-2xl tracking-tight">
-                Xequtive
-              </span>
-            </Link>
-            <ThemeToggle />
-          </div>
-        </header>
+    <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-md mx-auto shadow-md border border-border/30">
+        <CardHeader>
+          <CardTitle>Reset Password</CardTitle>
+          <CardDescription>
+            Enter your new password to reset your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Token validation error */}
+          {tokenError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{tokenError}</AlertDescription>
+            </Alert>
+          )}
 
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
-          <Card className="w-full max-w-md mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300 hover:shadow-2xl">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-center">
-                Reset Password
-              </CardTitle>
-              <CardDescription className="text-center">
-                Create a new password for your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {tokenError ? (
-                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p>{tokenError}</p>
-                    <div className="mt-3">
-                      <Link
-                        href="/auth/forgot-password"
-                        className="text-primary font-medium hover:underline underline-offset-4"
-                      >
-                        Request a new reset link
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ) : success ? (
-                <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30 text-green-800 dark:text-green-300">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <AlertDescription className="ml-2">
-                    {successMessage}
-                    <div className="mt-3">
-                      <Link
-                        href="/auth/signin"
-                        className="text-primary font-medium hover:underline underline-offset-4"
-                      >
-                        Sign in now
-                      </Link>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-5"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-sm font-medium">
-                            New Password
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type={showPassword ? "text" : "password"}
-                                placeholder="••••••••"
-                                {...field}
-                                className="h-12 pl-4 pr-12 rounded-lg border-border focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                              />
-                              <button
-                                type="button"
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="h-5 w-5" />
-                                ) : (
-                                  <Eye className="h-5 w-5" />
-                                )}
-                              </button>
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                          <p className="text-xs text-muted-foreground">
-                            Must be at least 8 characters with uppercase,
-                            lowercase and numbers
-                          </p>
-                        </FormItem>
-                      )}
-                    />
+          {/* General error message */}
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-                    <FormField
-                      control={form.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-sm font-medium">
-                            Confirm Password
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type={showConfirmPassword ? "text" : "password"}
-                                placeholder="••••••••"
-                                {...field}
-                                className="h-12 pl-4 pr-12 rounded-lg border-border focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                              />
-                              <button
-                                type="button"
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                                onClick={() =>
-                                  setShowConfirmPassword(!showConfirmPassword)
-                                }
-                              >
-                                {showConfirmPassword ? (
-                                  <EyeOff className="h-5 w-5" />
-                                ) : (
-                                  <Eye className="h-5 w-5" />
-                                )}
-                              </button>
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
+          {/* Success message */}
+          {success && (
+            <Alert
+              variant="default"
+              className="mb-4 bg-green-50 text-green-800"
+            >
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          )}
 
-                    {error && (
-                      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p>{error}</p>
-                          {error.toLowerCase().includes("expired") && (
-                            <div className="mt-2">
-                              <Link
-                                href="/auth/forgot-password"
-                                className="text-primary font-medium hover:underline underline-offset-4"
-                              >
-                                Request a new reset link
-                              </Link>
-                            </div>
+          {/* Password reset form */}
+          {!success && (
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                {/* Password field */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter new password"
+                            {...field}
+                            className="pr-10"
+                          />
+                        </FormControl>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
                           )}
-                        </div>
+                        </button>
                       </div>
-                    )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                    <Button
-                      type="submit"
-                      className="w-full rounded-lg py-6 mt-4 font-medium transition-all duration-300"
-                      disabled={isLoading || !isTokenValid}
-                    >
-                      {isLoading ? "Resetting Password..." : "Reset Password"}
-                    </Button>
-                  </form>
-                </Form>
-              )}
+                {/* Confirm password field */}
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm new password"
+                            {...field}
+                            className="pr-10"
+                          />
+                        </FormControl>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Submit button */}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || !isTokenValid}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Reset Password
+                </Button>
+              </form>
+            </Form>
+          )}
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Link
+            href="/auth/signin"
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Back to Sign In
+          </Link>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
+          <Card className="w-full max-w-md mx-auto shadow-md border border-border/30">
+            <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-[400px]">
+              <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              <p className="text-lg font-medium mt-4">
+                Loading password reset...
+              </p>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4 text-center">
-              <div className="text-sm text-muted-foreground">
-                Remembered your password?{" "}
-                <Link
-                  href="/auth/signin"
-                  className="text-primary font-medium hover:underline underline-offset-4"
-                >
-                  Sign in
-                </Link>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Need a new reset link?{" "}
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-primary font-medium hover:underline underline-offset-4"
-                >
-                  Request one
-                </Link>
-              </div>
-            </CardFooter>
           </Card>
-        </main>
-      </div>
-    </PublicRoute>
+        </div>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

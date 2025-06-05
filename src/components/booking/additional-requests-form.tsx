@@ -82,7 +82,7 @@ export function AdditionalRequestsForm({
                 variant="outline"
                 size="icon"
                 className="h-7 bg-muted/0"
-                onClick={() => handleChange(babySeat - 1, setBabySeat, 0, 7)}
+                onClick={() => handleChange(babySeat - 1, setBabySeat, 0, 5)}
                 disabled={disabled || babySeat <= 0}
               >
                 <Minus className="h-4 w-4 text-foreground" />
@@ -95,8 +95,8 @@ export function AdditionalRequestsForm({
                 variant="outline"
                 size="icon"
                 className="h-7 bg-muted/0"
-                onClick={() => handleChange(babySeat + 1, setBabySeat, 0, 7)}
-                disabled={disabled || babySeat >= 7}
+                onClick={() => handleChange(babySeat + 1, setBabySeat, 0, 5)}
+                disabled={disabled || babySeat >= 5}
               >
                 <Plus className="h-4 w-4 text-foreground" />
               </Button>
@@ -122,7 +122,7 @@ export function AdditionalRequestsForm({
                 variant="outline"
                 size="icon"
                 className="h-7 bg-muted/0"
-                onClick={() => handleChange(childSeat - 1, setChildSeat, 0, 7)}
+                onClick={() => handleChange(childSeat - 1, setChildSeat, 0, 5)}
                 disabled={disabled || childSeat <= 0}
               >
                 <Minus className="h-4 w-4 text-foreground" />
@@ -135,8 +135,8 @@ export function AdditionalRequestsForm({
                 variant="outline"
                 size="icon"
                 className="h-7 bg-muted/0"
-                onClick={() => handleChange(childSeat + 1, setChildSeat, 0, 7)}
-                disabled={disabled || childSeat >= 7}
+                onClick={() => handleChange(childSeat + 1, setChildSeat, 0, 5)}
+                disabled={disabled || childSeat >= 5}
               >
                 <Plus className="h-4 w-4 text-foreground" />
               </Button>
@@ -163,7 +163,7 @@ export function AdditionalRequestsForm({
                 size="icon"
                 className="h-7 bg-muted/0"
                 onClick={() =>
-                  handleChange(boosterSeat - 1, setBoosterSeat, 0, 7)
+                  handleChange(boosterSeat - 1, setBoosterSeat, 0, 5)
                 }
                 disabled={disabled || boosterSeat <= 0}
               >
@@ -178,9 +178,9 @@ export function AdditionalRequestsForm({
                 size="icon"
                 className="h-7 bg-muted/0"
                 onClick={() =>
-                  handleChange(boosterSeat + 1, setBoosterSeat, 0, 7)
+                  handleChange(boosterSeat + 1, setBoosterSeat, 0, 5)
                 }
-                disabled={disabled || boosterSeat >= 7}
+                disabled={disabled || boosterSeat >= 5}
               >
                 <Plus className="h-4 w-4 text-foreground" />
               </Button>
@@ -207,7 +207,7 @@ export function AdditionalRequestsForm({
                 size="icon"
                 className="h-7 bg-muted/0"
                 onClick={() =>
-                  handleChange(wheelchair - 1, setWheelchair, 0, 5)
+                  handleChange(wheelchair - 1, setWheelchair, 0, 2)
                 }
                 disabled={disabled || wheelchair <= 0}
               >
@@ -222,9 +222,9 @@ export function AdditionalRequestsForm({
                 size="icon"
                 className="h-7 bg-muted/0"
                 onClick={() =>
-                  handleChange(wheelchair + 1, setWheelchair, 0, 5)
+                  handleChange(wheelchair + 1, setWheelchair, 0, 2)
                 }
-                disabled={disabled || wheelchair >= 5}
+                disabled={disabled || wheelchair >= 2}
               >
                 <Plus className="h-4 w-4 text-foreground" />
               </Button>
