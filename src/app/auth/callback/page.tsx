@@ -1,20 +1,40 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { authService } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { Suspense } from "react";
 
-function AuthCallbackContent() {
+// Skeleton loading component
+function AuthCallbackSkeleton() {
+  return (
+    <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center space-y-4">
+        <Loader2 className="h-12 w-12 text-primary animate-spin" />
+        <p className="text-lg font-medium">Completing sign in...</p>
+      </div>
+    </div>
+  );
+}
+
+// Client component for authentication callback
+function AuthCallbackContent({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    code?: string, 
+    error?: string 
+  } 
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
-    const code = searchParams?.get("code");
-    const errorMsg = searchParams?.get("error");
+    const code = searchParams.code;
+    const errorMsg = searchParams.error;
 
     if (errorMsg) {
       setError(decodeURIComponent(errorMsg));
@@ -109,19 +129,18 @@ function AuthCallbackContent() {
   );
 }
 
-export default function AuthCallbackPage() {
+// Server component with Suspense
+export default function AuthCallbackPage({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    code?: string, 
+    error?: string 
+  } 
+}) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
-          <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="h-12 w-12 text-primary animate-spin" />
-            <p className="text-lg font-medium">Completing sign in...</p>
-          </div>
-        </div>
-      }
-    >
-      <AuthCallbackContent />
+    <Suspense fallback={<AuthCallbackSkeleton />}>
+      <AuthCallbackContent searchParams={searchParams} />
     </Suspense>
   );
 }

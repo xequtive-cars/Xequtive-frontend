@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,6 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  CheckCircle2,
   Mail,
   ChevronLeft,
   Loader2,
@@ -40,7 +39,6 @@ import {
 } from "lucide-react";
 import { authService } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
-import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -62,14 +60,25 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 // Define the steps of the signin process
 type SigninStep = "email" | "password";
 
+// Skeleton loading component
+function SignInSkeleton() {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function SignInForm({
   onStepChange,
   onComplete,
-  initialSuccess = false,
 }: {
   onStepChange: (step: SigninStep) => void;
   onComplete: () => void;
-  initialSuccess?: boolean;
 }) {
   const [currentStep, setCurrentStep] = useState<SigninStep>("email");
   const [formData, setFormData] = useState({
@@ -79,16 +88,7 @@ function SignInForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(initialSuccess);
-  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
-
-  // Check for success message
-  useEffect(() => {
-    if (searchParams?.get("success") === "account_created") {
-      setShowSuccess(true);
-    }
-  }, [searchParams]);
 
   // Redirect authenticated users away from auth pages
   useEffect(() => {
@@ -356,41 +356,12 @@ function SignInForm({
         </CardDescription>
       </CardHeader>
       <CardContent className="px-7 pb-7 pt-3">
-        {showSuccess && (
-          <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg flex items-center gap-3 text-success">
-            <CheckCircle2 className="h-5 w-5" />
-            <span>
-              Account created successfully! Please sign in to continue.
-            </span>
-          </div>
-        )}
-
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-            <div className="flex-1">
+            <AlertCircle className="h-5 w-5 mt-1" />
+            <div>
+              <p className="font-semibold">Error</p>
               <p>{error}</p>
-              {error.toLowerCase().includes("no account") && (
-                <div className="mt-2">
-                  <Link
-                    href="/auth/signup"
-                    className="text-primary font-medium hover:underline underline-offset-4"
-                  >
-                    Create an account
-                  </Link>
-                </div>
-              )}
-              {error.toLowerCase().includes("password") &&
-                error.toLowerCase().includes("reset") && (
-                  <div className="mt-2">
-                    <Link
-                      href="/auth/forgot-password"
-                      className="text-primary font-medium hover:underline underline-offset-4"
-                    >
-                      Reset password
-                    </Link>
-                  </div>
-                )}
             </div>
           </div>
         )}
@@ -541,6 +512,56 @@ function SignInForm({
   );
 }
 
+function SignInFormWithProgress({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    success?: string 
+  } 
+}) {
+  // Remove the unused successParam
+  React.use(Promise.resolve(searchParams));
+
+  // Remove unused state variables
+  const handleStepChange = () => {
+    // Placeholder for step change logic if needed
+  };
+
+  const handleComplete = () => {
+    // Placeholder for completion logic if needed
+  };
+
+  return (
+    <div>
+      <SignInForm 
+        onStepChange={handleStepChange}
+        onComplete={handleComplete}
+      />
+    </div>
+  );
+}
+
+export default function SigninPage({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    success?: string 
+  } 
+}) {
+  return (
+    <PublicRoute>
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-6 mt-4">
+          <Suspense fallback={<SignInSkeleton />}>
+            <SignInFormWithProgress searchParams={searchParams} />
+          </Suspense>
+        </main>
+      </div>
+    </PublicRoute>
+  );
+}
+
 // Add this function to render the navbar
 function Navbar() {
   const { user, signOut, isAuthenticated } = useAuth();
@@ -649,63 +670,5 @@ function Navbar() {
         </div>
       </div>
     </header>
-  );
-}
-
-export default function SigninPage() {
-  return (
-    <PublicRoute>
-      <div className="flex min-h-screen flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-6 mt-4">
-          <SignInFormWithProgress />
-        </main>
-      </div>
-    </PublicRoute>
-  );
-}
-
-function SignInFormWithProgress() {
-  const searchParams = useSearchParams();
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const totalSteps = 2; // Email and password steps
-
-  // Check for success message
-  const successParam = searchParams?.get("success");
-
-  // Update progress when the step changes
-  const handleStepChange = (step: SigninStep) => {
-    if (step === "email") {
-      setCurrentStep(1);
-      setIsCompleted(false);
-    } else if (step === "password") {
-      setCurrentStep(2);
-      setIsCompleted(false);
-    }
-  };
-
-  // Handle form completion
-  const handleComplete = () => {
-    setIsCompleted(true);
-  };
-
-  return (
-    <>
-      <StepProgressBar
-        currentStep={currentStep}
-        totalSteps={totalSteps}
-        completed={isCompleted}
-        className="-mt-0"
-      />
-
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
-        <SignInForm
-          initialSuccess={successParam === "account_created"}
-          onStepChange={handleStepChange}
-          onComplete={handleComplete}
-        />
-      </main>
-    </>
   );
 }

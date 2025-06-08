@@ -1,8 +1,6 @@
-"use client";
-
-import { useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+// Utility file for Google Analytics tracking
 import { CookieConsentPreferences } from "@/components/CookieConsent";
+import { useState, useEffect } from "react";
 
 // Define the Google Analytics window object
 declare global {
@@ -124,58 +122,39 @@ export const ANALYTICS_EVENTS = {
   VEHICLE_SELECTED: "vehicle_selected",
 };
 
-// Hook to initialize GA and track page views
-export function useAnalytics(hasConsent: boolean = false) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    // Initialize or remove GA based on consent
+// Analytics tracking utility
+export const analyticsUtils = {
+  // Initialize tracking based on consent
+  initTracking: (hasConsent: boolean) => {
     if (hasConsent) {
       initGA();
     } else {
       removeGA();
     }
+  },
 
-    // Return a cleanup function
-    return () => {
-      if (!hasConsent) {
-        removeGA();
-      }
-    };
-  }, [hasConsent]);
+  // Track page view with custom URL
+  trackPageView: (
+    pathname: string, 
+    searchParamsString?: string, 
+    hasConsent: boolean = true
+  ) => {
+    if (!hasConsent) return;
 
-  // Track page views when the route changes
-  useEffect(() => {
-    if (!hasConsent || !pathname) return;
+    const url = pathname + 
+      (searchParamsString ? `?${searchParamsString}` : "");
+    
+    pageview(url);
+  },
 
-    // Wait for gtag to be ready
-    const timeout = setTimeout(() => {
-      const url =
-        pathname +
-        (searchParams?.toString() ? `?${searchParams.toString()}` : "");
-      pageview(url);
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [pathname, searchParams, hasConsent]);
-
-  // Listen for cookie consent changes
-  useEffect(() => {
+  // Listen for consent changes
+  setupConsentListener: (
+    onConsentChange: (consentGiven: boolean) => void
+  ) => {
     const handleAnalyticsConsent = (event: Event) => {
       const customEvent = event as CustomEvent<CookieConsentPreferences>;
       const consentGiven = customEvent.detail.analytics;
-
-      if (consentGiven) {
-        initGA();
-        // Track the current page immediately
-        const url =
-          pathname +
-          (searchParams?.toString() ? `?${searchParams.toString()}` : "");
-        setTimeout(() => pageview(url), 300);
-      } else {
-        removeGA();
-      }
+      onConsentChange(consentGiven);
     };
 
     window.addEventListener(
@@ -183,20 +162,47 @@ export function useAnalytics(hasConsent: boolean = false) {
       handleAnalyticsConsent as EventListener
     );
 
+    // Return cleanup function
     return () => {
       window.removeEventListener(
         "cookie-consent-analytics",
         handleAnalyticsConsent as EventListener
       );
     };
-  }, [pathname, searchParams]);
+  },
+
+  // Expose events for external use
+  events: ANALYTICS_EVENTS,
+};
+
+// New useAnalytics hook
+export function useAnalytics(enabled: boolean = true) {
+  const [isEnabled, setIsEnabled] = useState(enabled);
+
+  useEffect(() => {
+    if (isEnabled) {
+      initGA();
+    } else {
+      removeGA();
+    }
+  }, [isEnabled]);
+
+  const trackEvent = (action: string, params: Record<string, unknown> = {}) => {
+    if (isEnabled) {
+      event(action, params);
+    }
+  };
+
+  const trackPageView = (url: string) => {
+    if (isEnabled) {
+      pageview(url);
+    }
+  };
 
   return {
-    trackEvent: (action: string, params: Record<string, unknown>) => {
-      if (hasConsent) {
-        event(action, params);
-      }
-    },
-    events: ANALYTICS_EVENTS,
+    trackEvent,
+    trackPageView,
+    setEnabled: setIsEnabled,
+    isEnabled,
   };
 }

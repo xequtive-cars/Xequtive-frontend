@@ -1,7 +1,6 @@
 "use client";
-
 import { useState, useEffect, memo, useRef, useCallback, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MapComponent from "@/components/map/MapComponent";
@@ -36,6 +35,7 @@ import {
 } from "@/store/slices/bookingSlice";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { format } from "date-fns";
+import { Suspense } from 'react';
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -230,9 +230,64 @@ const validateTime = (time: string): string => {
     .padStart(2, "0")}`;
 };
 
-export default function NewBookingPage() {
+// Client Component for Dynamic Booking Interactions
+export default function UpdateBookingPage({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    pickup?: string, 
+    dropoff?: string, 
+    date?: string, 
+    time?: string, 
+    pax?: string, 
+    cl?: string, 
+    ml?: string, 
+    hl?: string, 
+    stops?: string 
+  } 
+}) {
+  return (
+    <Suspense fallback={<UpdateBookingPageSkeleton />}>
+      <UpdateBookingClientComponent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+// Skeleton component for loading state
+function UpdateBookingPageSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <Card>
+        <CardHeader>
+          <CardTitle className="h-6 bg-gray-200 rounded w-1/2"></CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-10 bg-gray-200 rounded"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Client Component with all the dynamic logic
+function UpdateBookingClientComponent({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    pickup?: string, 
+    dropoff?: string, 
+    date?: string, 
+    time?: string, 
+    pax?: string, 
+    cl?: string, 
+    ml?: string, 
+    hl?: string, 
+    stops?: string 
+  } 
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
 
   // Map ref to keep track of the map interface
@@ -311,25 +366,22 @@ export default function NewBookingPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isDetailsFormValid, setIsDetailsFormValid] = useState(false);
 
-  // Get date from search params
-  const bookingDate = searchParams.get("date");
-
-  // Load state from query parameters on initial load
+  // Load state from search parameters on initial load
   useEffect(() => {
     // Only run on client-side
     if (typeof window === "undefined") return;
 
     try {
       // Get query parameters
-      const pickup = searchParams.get("pickup");
-      const dropoff = searchParams.get("dropoff");
-      const dateParam = searchParams.get("date");
-      const timeParam = searchParams.get("time");
-      const paxParam = searchParams.get("pax");
-      const clParam = searchParams.get("cl"); // checked luggage
-      const mlParam = searchParams.get("ml"); // medium luggage
-      const hlParam = searchParams.get("hl"); // hand luggage
-      const stopsParam = searchParams.get("stops");
+      const pickup = searchParams.pickup;
+      const dropoff = searchParams.dropoff;
+      const dateParam = searchParams.date;
+      const timeParam = searchParams.time;
+      const paxParam = searchParams.pax;
+      const clParam = searchParams.cl; // checked luggage
+      const mlParam = searchParams.ml; // medium luggage
+      const hlParam = searchParams.hl; // hand luggage
+      const stopsParam = searchParams.stops;
 
       // Restore pickup location
       if (pickup) {
@@ -370,22 +422,6 @@ export default function NewBookingPage() {
           }
         } catch {
           // Error parsing dropoff location
-        }
-      }
-
-      // Restore stops
-      if (stopsParam) {
-        try {
-          const stopsData = JSON.parse(decodeURIComponent(stopsParam));
-          if (Array.isArray(stopsData) && stopsData.length > 0) {
-            const validStops = stopsData.filter(
-              (stop) => stop.address && stop.latitude && stop.longitude
-            );
-            setAdditionalStops(validStops);
-            setStopAddresses(validStops.map((stop) => stop.address));
-          }
-        } catch {
-          // Error parsing stops
         }
       }
 
@@ -435,8 +471,24 @@ export default function NewBookingPage() {
           setHandLuggage(hl);
         }
       }
-    } catch {
-      // Error restoring state from URL
+
+      // Restore stops
+      if (stopsParam) {
+        try {
+          const stopsData = JSON.parse(decodeURIComponent(stopsParam));
+          if (Array.isArray(stopsData) && stopsData.length > 0) {
+            const validStops = stopsData.filter(
+              (stop) => stop.address && stop.latitude && stop.longitude
+            );
+            setAdditionalStops(validStops);
+            setStopAddresses(validStops.map((stop) => stop.address));
+          }
+        } catch {
+          // Error parsing stops
+        }
+      }
+    } catch (error) {
+      console.error("Error initializing booking from search params", error);
     }
   }, [searchParams]);
 
@@ -2045,8 +2097,8 @@ export default function NewBookingPage() {
                                 hasAirportLocations={hasAirportLocations()}
                                 hasTrainStationLocations={hasTrainStationLocations()}
                                 lockedDate={
-                                  bookingDate
-                                    ? new Date(bookingDate)
+                                  selectedDate
+                                    ? new Date(selectedDate)
                                     : undefined
                                 }
                               />
