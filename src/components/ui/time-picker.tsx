@@ -72,8 +72,8 @@ export function TimePicker({
   }, [time]);
 
   // Get now and minimum booking time (24 hours from now)
-  const now = new Date();
-  const minBookingTime = addHours(now, 24);
+  const now = React.useMemo(() => new Date(), []);
+  const minBookingTime = React.useMemo(() => addHours(now, 24), [now]);
 
   // Check if selectedDate is today or tomorrow
   const today = new Date();
@@ -109,7 +109,7 @@ export function TimePicker({
   };
 
   // Get the minimum valid hour for today or tomorrow
-  const getMinValidHour = (): number => {
+  const getMinValidHour = React.useCallback((): number => {
     if (!selectedDate) return 0;
 
     // If selected date is earlier than minimum booking time, no valid hours
@@ -134,10 +134,10 @@ export function TimePicker({
 
     // For any future date beyond 24h, all hours are valid
     return 0;
-  };
+  }, [selectedDate, minBookingTime, isToday, isTomorrow, now]);
 
   // Get the minimum valid minute for the selected hour
-  const getMinValidMinute = (): number => {
+  const getMinValidMinute = React.useCallback((): number => {
     if (!selectedDate) return 0;
 
     const minHour = getMinValidHour();
@@ -159,7 +159,7 @@ export function TimePicker({
     }
 
     return 0;
-  };
+  }, [selectedDate, getMinValidHour, hours, isToday, isTomorrow, minBookingTime, now]);
 
   // Apply the selected time and close the picker
   const handleApplyTime = () => {

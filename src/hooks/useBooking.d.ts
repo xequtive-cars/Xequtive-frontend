@@ -1,21 +1,34 @@
-import { BookingStep } from "@/store/slices/uiSlice";
-import type { Location } from "@/components/map/MapComponent";
-import type { VehicleOption } from "@/components/booking/common/types";
+type BookingStep = string;
+
+type Location = {
+    latitude: number;
+    longitude: number;
+    address?: string;
+};
+
+type VehicleOption = {
+    id: string;
+    name: string;
+    capacity: number;
+    pricePerKm: number;
+};
+
 interface PassengerDetails {
     fullName: string;
     email: string;
     phone: string;
     specialRequests: string;
 }
+
 /**
  * Custom hook for booking-related state and actions
  * Provides a simplified interface to work with the booking flow
  */
 export declare const useBooking: () => {
-    booking: any;
-    ui: any;
-    api: any;
-    validation: any;
+    booking: Record<string, unknown>;
+    ui: Record<string, unknown>;
+    api: Record<string, unknown>;
+    validation: Record<string, unknown>;
     setPickupLocation: (location: Location) => void;
     setDropoffLocation: (location: Location) => void;
     addAdditionalStop: () => void;
@@ -38,6 +51,7 @@ export declare const useBooking: () => {
     getFareEstimate: () => void;
     createBooking: (details: PassengerDetails, agreeToTerms: boolean) => void;
     resetBookingState: () => void;
-    isCurrentStepValid: () => any;
+    isCurrentStepValid: () => boolean;
 };
+
 export {};

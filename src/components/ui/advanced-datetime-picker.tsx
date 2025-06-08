@@ -33,12 +33,13 @@ export function AdvancedTimePicker({
   // }
 
   // Convert to Date object if it's a string
-  const validLockedDate =
+  const validLockedDate = React.useMemo(() => 
     lockedDate instanceof Date
       ? lockedDate
       : lockedDate
       ? new Date(lockedDate)
-      : new Date(); // Default to current date if no date is provided
+      : new Date() // Default to current date if no date is provided
+  , [lockedDate]);
 
   const [time, setTime] = React.useState<string>(
     datetime ? format(datetime, "HH:mm") : "12:00" // Default to noon if no specific time
