@@ -834,6 +834,135 @@ class LocationSearchService {
       return 0;
     });
   }
+
+  // Location Search Enhancement Utilities
+  private normalizeTokens(query: string): string[] {
+    return query
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')  // Remove special characters
+      .split(/\s+/)             // Split into tokens
+      .filter(token => token.length > 1);  // Remove very short tokens
+  }
+
+  private extractSemanticTypes(tokens: string[]): string[] {
+    const SEMANTIC_TYPES = {
+      terminal: ['terminal', 't', 'term'],
+      airport: ['airport', 'airp', 'apt'],
+      station: ['station', 'stn'],
+      landmark: ['landmark', 'mark']
+    };
+
+    return tokens.filter(token => 
+      Object.values(SEMANTIC_TYPES)
+        .flat()
+        .includes(token)
+    );
+  }
+
+  private calculateTokenMatchScore(
+    queryTokens: string[], 
+    locationTokens: string[]
+  ): number {
+    const matchedTokens = queryTokens.filter(qt => 
+      locationTokens.some(lt => 
+        lt.includes(qt) || qt.includes(lt)
+      )
+    );
+
+    return matchedTokens.length / queryTokens.length;
+  }
+
+  private enhanceLocationResults(
+    originalResults: LocationSearchResult[], 
+    query: string
+  ): LocationSearchResult[] {
+    const tokens = this.normalizeTokens(query);
+    const semanticTypes = this.extractSemanticTypes(tokens);
+
+    // Enhance results with additional scoring
+    const enhancedResults = originalResults.map(result => {
+      const locationTokens = this.normalizeTokens(result.address);
+      
+      // Calculate base match score
+      let score = this.calculateTokenMatchScore(tokens, locationTokens);
+
+      // Semantic type boosting
+      semanticTypes.forEach(type => {
+        if (result.type.includes(type) || 
+            locationTokens.includes(type)) {
+          score *= 1.3;  // 30% boost for semantic match
+        }
+      });
+
+      // Prioritize exact matches
+      if (tokens.every(token => 
+        locationTokens.includes(token)
+      )) {
+        score *= 1.5;  // 50% boost for exact matches
+      }
+
+      return { ...result, score };
+    });
+
+    // Sort by enhanced score
+    return enhancedResults
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .map(({ score, ...result }) => result);
+  }
+
+  // Enhanced search method
+  async searchLocationsWithEnhancement(
+    query: string,
+    locationType?: "pickup" | "dropoff" | "stop",
+    userLocation?: { latitude: number; longitude: number } | null
+  ): Promise<LocationSearchResult[]> {
+    // Original search method call
+    const originalResults = await this.searchLocations(
+      query, 
+      locationType, 
+      userLocation
+    );
+
+    // If original results are empty or low confidence, enhance search
+    if (originalResults.length === 0) {
+      // Fallback to enhanced search strategies
+      const fallbackResults = this.performFallbackSearch(query);
+      
+      if (fallbackResults.length > 0) {
+        return fallbackResults;
+      }
+    }
+
+    // Enhance existing results
+    return this.enhanceLocationResults(originalResults, query);
+  }
+
+  private performFallbackSearch(query: string): LocationSearchResult[] {
+    const tokens = this.normalizeTokens(query);
+    const semanticTypes = this.extractSemanticTypes(tokens);
+
+    // Check curated locations (airports, stations)
+    const curatedLocations = [
+      ...UK_AIRPORTS,
+      ...UK_STATIONS
+    ].filter(location => 
+      tokens.every(token => 
+        this.normalizeTokens(location.address)
+          .some(lt => lt.includes(token))
+      )
+    );
+
+    // Convert curated locations to search results
+    return curatedLocations.map(location => ({
+      address: location.address,
+      coordinates: { 
+        lat: location.metadata.terminalCoordinates?.["Main Terminal"]?.lat || 0, 
+        lng: location.metadata.terminalCoordinates?.["Main Terminal"]?.lng || 0 
+      },
+      type: location.type,
+      metadata: location.metadata
+    }));
+  }
 }
 
 export const locationSearchService = new LocationSearchService();
