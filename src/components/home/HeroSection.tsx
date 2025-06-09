@@ -37,7 +37,7 @@ export function HeroSection({ isAuthenticated }: HeroSectionProps) {
         )}
       </div>
 
-      <div className="relative mt-24 md:mt-32 lg:mt-40 w-full max-w-5xl mx-auto aspect-[16/9] rounded-xl border shadow-md overflow-hidden z-10">
+      <div className="relative mt-24 md:mt-32 lg:mt-40 w-full max-w-5xl mx-auto aspect-[16/9] rounded-xl border shadow-md overflow-hidden z-0">
         <Image
           src="https://images.unsplash.com/photo-1546614042-7df3c24c9e5d?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
           alt="Luxury executive car"

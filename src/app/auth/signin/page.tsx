@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -43,6 +44,7 @@ import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import PublicRoute from "@/components/auth/PublicRoute";
+import { StepProgressBar } from "@/components/auth/StepProgressBar";
 
 // Step 1: Email form schema
 const emailSchema = z.object({
@@ -348,11 +350,11 @@ function SignInForm({
     <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
       <CardHeader className="space-y-2 pb-3">
         <CardTitle className="text-2xl font-bold text-center">
-          Sign in to your account
+          {currentStep === "email" ? "Sign in to your account" : "Enter your password"}
         </CardTitle>
         <CardDescription className="text-center text-base">
-          {currentStep === "email" && "Enter your email address to get started"}
-          {currentStep === "password" && "Enter your password to continue"}
+          {currentStep === "email" && "Enter your email to continue"}
+          {currentStep === "password" && "Verify your password to sign in"}
         </CardDescription>
       </CardHeader>
       <CardContent className="px-7 pb-7 pt-3">
@@ -391,7 +393,7 @@ function SignInForm({
                             type="email"
                             placeholder="name@example.com"
                             {...field}
-                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-base font-medium tracking-wider"
+                            className="h-14 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-base font-medium tracking-wider"
                           />
                           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
                             <Mail className="h-6 w-6 text-muted-foreground" />
@@ -451,7 +453,7 @@ function SignInForm({
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
                             {...field}
-                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                            className="h-14 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
                           />
                           <div
                             className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
@@ -504,7 +506,7 @@ function SignInForm({
             href="/auth/signup"
             className="text-primary font-medium hover:underline underline-offset-4"
           >
-            Create an account
+            Sign up
           </Link>
         </div>
       </CardFooter>
@@ -512,32 +514,82 @@ function SignInForm({
   );
 }
 
-function SignInFormWithProgress({ 
-  searchParams 
-}: { 
-  searchParams: { 
-    success?: string 
-  } 
-}) {
-  // Remove the unused successParam
-  React.use(Promise.resolve(searchParams));
+function SignInFormWithProgress() {
+  const searchParams = useSearchParams();
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const totalSteps = 2;
 
-  // Remove unused state variables
-  const handleStepChange = () => {
-    // Placeholder for step change logic if needed
-  };
+  // Handle success parameter from URL
+  useEffect(() => {
+    const success = searchParams.get('success');
+    if (success) {
+      setSuccessMessage(success);
+      console.log('Signin success:', success);
+    }
+  }, [searchParams]);
 
-  const handleComplete = () => {
-    // Placeholder for completion logic if needed
-  };
+  // Update progress when the form step changes
+  useEffect(() => {
+    const handleStepChange = (e: CustomEvent<{ step: SigninStep }>) => {
+      const step = e.detail.step;
+      if (step === "email") {
+        setCurrentStep(1);
+        setIsCompleted(false);
+      } else if (step === "password") {
+        setCurrentStep(2);
+        setIsCompleted(false);
+      }
+    };
+
+    const handleFormCompletion = () => {
+      setIsCompleted(true);
+    };
+
+    // Create event listeners
+    window.addEventListener("stepChange", handleStepChange as EventListener);
+    window.addEventListener(
+      "formComplete",
+      handleFormCompletion as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "stepChange",
+        handleStepChange as EventListener
+      );
+      window.removeEventListener(
+        "formComplete",
+        handleFormCompletion as EventListener
+      );
+    };
+  }, []);
 
   return (
-    <div>
-      <SignInForm 
-        onStepChange={handleStepChange}
-        onComplete={handleComplete}
+    <>
+      <StepProgressBar
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        completed={isCompleted}
+        className="-mt-0"
       />
-    </div>
+
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
+        <SignInForm
+          onStepChange={(step) => {
+            // Dispatch a custom event when step changes
+            window.dispatchEvent(
+              new CustomEvent("stepChange", { detail: { step } })
+            );
+          }}
+          onComplete={() => {
+            // Dispatch a custom event when form is completed
+            window.dispatchEvent(new Event("formComplete"));
+          }}
+        />
+      </main>
+    </>
   );
 }
 
@@ -552,16 +604,11 @@ export default function SigninPage({
     <PublicRoute>
       <div className="flex min-h-screen flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-6 mt-4">
-          <Suspense fallback={<SignInSkeleton />}>
-            <SignInFormWithProgress searchParams={searchParams} />
-          </Suspense>
-        </main>
+        <SignInFormWithProgress />
       </div>
     </PublicRoute>
   );
 }
-
 // Add this function to render the navbar
 function Navbar() {
   const { user, signOut, isAuthenticated } = useAuth();
@@ -672,3 +719,4 @@ function Navbar() {
     </header>
   );
 }
+

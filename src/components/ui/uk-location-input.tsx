@@ -77,36 +77,7 @@ export function UkLocationInput({
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
-    null
-  );
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  // Initialize portal container when component mounts
-  useEffect(() => {
-    // Only run in browser
-    if (typeof document !== "undefined") {
-      setPortalContainer(document.body);
-    }
-  }, []);
-
-  // Update dropdown position when it's opened or input changes position
-  useEffect(() => {
-    if ((isSuggestionsOpen || showTerminals) && inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
-    }
-  }, [isSuggestionsOpen, showTerminals]);
 
   // Handle input change
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,21 +288,15 @@ export function UkLocationInput({
 
   // Render dropdown in portal
   const renderDropdown = () => {
-    if (!portalContainer || (!isSuggestionsOpen && !showTerminals)) return null;
+    if (!isSuggestionsOpen && !showTerminals) return null;
 
-    return createPortal(
+    return (
       <div
         ref={suggestionsRef}
         className={cn(
-          "fixed bg-background border border-border rounded-md shadow-lg max-h-[480px] overflow-y-auto", // Increased by 20% from 400px
+          "absolute z-50 w-full bg-background border border-border rounded-md shadow-lg max-h-[480px] overflow-y-auto", // Increased by 20% from 400px
           locationType === "stop" && "location-dropdown-stop"
         )}
-        style={{
-          top: `${dropdownPosition.top}px`,
-          left: `${dropdownPosition.left}px`,
-          width: `${dropdownPosition.width}px`,
-          zIndex: 9999,
-        }}
       >
         {showTerminals ? (
           <>
@@ -406,8 +371,7 @@ export function UkLocationInput({
             )}
           </>
         )}
-      </div>,
-      portalContainer
+      </div>
     );
   };
 

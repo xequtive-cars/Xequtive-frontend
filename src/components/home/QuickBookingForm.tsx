@@ -28,7 +28,7 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
 
         <div className="space-y-6">
           {/* Pickup location */}
-          <div className="relative flex items-start">
+          <div className="relative flex items-start z-50">
             <div className="absolute left-0 top-3 w-6 h-6 rounded-full bg-primary"></div>
             <div className="pl-12 w-full">
               <UkLocationInput
@@ -40,13 +40,13 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
                 }
                 locationType="pickup"
                 initialSuggestionsTitle="Suggested pickup locations"
-                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:z-[999999] [&>div>div]:z-[999999]"
+                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-50 [&>div>div]:z-50"
               />
             </div>
           </div>
 
           {/* Dropoff location */}
-          <div className="relative flex items-start">
+          <div className="relative flex items-start z-40">
             <div className="absolute left-0 top-3 w-6 h-6 rounded-full bg-red-500"></div>
             <div className="pl-12 w-full">
               <UkLocationInput
@@ -58,7 +58,7 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
                 }
                 locationType="dropoff"
                 initialSuggestionsTitle="Suggested dropoff locations"
-                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:z-[999999] [&>div>div]:z-[999999]"
+                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-40 [&>div>div]:z-40"
               />
             </div>
           </div>

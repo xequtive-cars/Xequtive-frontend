@@ -53,9 +53,9 @@ export function PassengerLuggageForm({
 
   return (
     <Card
-      className={cn("border border-border/60 rounded-md shadow-sm", className)}
+      className={cn("w-[110%] border border-border/60 rounded-md shadow-sm", className)}
     >
-      <CardContent className="p-4 py-0 space-y-3">
+      <CardContent className=" p-4 py-2 px-6 space-y-3">
         {/* Back button */}
         <div className="flex items-center mb-1">
           <Button
@@ -70,8 +70,8 @@ export function PassengerLuggageForm({
         </div>
 
         {/* Passenger selection */}
-        <div className="space-y-3">
-          <div className="space-y-1.5">
+        <div className="space-y-4">
+          <div className="space-y-2.5">
             <label className="text-sm font-medium block">
               Number of Passengers
             </label>

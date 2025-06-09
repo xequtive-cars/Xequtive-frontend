@@ -17,6 +17,7 @@ import {
   Settings,
   ChevronDown,
 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,18 +95,40 @@ function SignUpForm({
   onStepChange: (step: SignupStep) => void;
   onComplete: () => void;
 }) {
-  const [currentStep, setCurrentStep] = useState<SignupStep>("email");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Read initial state from query parameters
+  const [currentStep, setCurrentStep] = useState<SignupStep>(
+    (searchParams.get('step') as SignupStep) || "email"
+  );
   const prevStepRef = useRef<SignupStep>("email");
   const [formData, setFormData] = useState({
-    email: "",
-    fullName: "",
-    password: "",
-    confirmPassword: "",
-    phoneNumber: "",
+    email: searchParams.get('email') || "",
+    fullName: searchParams.get('fullName') || "",
+    password: searchParams.get('password') || "",
+    confirmPassword: searchParams.get('confirmPassword') || "",
+    phoneNumber: searchParams.get('phoneNumber') || "",
   });
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { isAuthenticated } = useAuth();
+
+  // Update query parameters when form data or step changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    // Add current step
+    params.set('step', currentStep);
+    
+    // Add form data to query parameters
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+
+    // Update URL without triggering a page reload
+    router.replace(`/auth/signup?${params.toString()}`, { scroll: false });
+  }, [currentStep, formData, router]);
 
   // Notify parent about step changes
   useEffect(() => {
@@ -150,10 +173,10 @@ function SignUpForm({
     setError(null);
 
     // Update the form data with the email
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       email: data.email,
-    });
+    }));
 
     // Move to the next step
     setCurrentStep("credentials");
@@ -164,11 +187,11 @@ function SignUpForm({
     setError(null);
 
     // Update the form data with credentials
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       password: data.password,
       confirmPassword: data.confirmPassword,
-    });
+    }));
 
     // Move to the next step
     setCurrentStep("phone");
@@ -178,21 +201,21 @@ function SignUpForm({
   const onPhoneSubmit = async (data: PhoneFormData) => {
     setError(null);
 
-    // Update the form data with phone
-    const completeFormData = {
-      ...formData,
+    // Update the form data with phone details
+    setFormData(prev => ({
+      ...prev,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
-    };
+    }));
 
     try {
       // Use auth service to register
       const response = await authService.register(
-        completeFormData.fullName,
-        completeFormData.email,
-        completeFormData.password,
-        completeFormData.confirmPassword,
-        completeFormData.phoneNumber
+        formData.fullName,
+        formData.email,
+        formData.password,
+        formData.confirmPassword,
+        formData.phoneNumber
       );
 
       if (!response.success) {
@@ -550,6 +573,7 @@ function SignUpForm({
                           error={Boolean(
                             phoneForm.formState.errors.phoneNumber
                           )}
+                          className="text-base md:text-2xl"
                         />
                       </FormControl>
                       <FormMessage className="text-xs" />

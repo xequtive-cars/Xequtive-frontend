@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, ChevronDown, Plane, Train } from "lucide-react";
-import { CountryPhoneInput } from "@/components/ui/country-phone-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -25,6 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
+import { cn } from "@/lib/utils";
 
 // Define types for travel information
 interface FlightInformation {
@@ -216,16 +217,16 @@ export function PersonalDetailsForm({
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel className="text-sm">Full Name</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="John Doe"
                         {...field}
                         disabled={!!user?.displayName}
-                        className="h-11 bg-background border border-border cursor-text"
+                        className="h-10 bg-background border border-border cursor-text text-xs md:text-sm"
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -235,17 +236,17 @@ export function PersonalDetailsForm({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel className="text-sm">Email Address</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="name@example.com"
                         {...field}
                         disabled
-                        className="h-11 bg-muted/40 border border-border cursor-not-allowed"
+                        className="h-10 bg-muted/40 border border-border cursor-not-allowed text-xs md:text-sm"
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -255,15 +256,21 @@ export function PersonalDetailsForm({
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel className="text-sm">Phone Number</FormLabel>
                     <FormControl>
-                      <CountryPhoneInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        disabled={!!user?.phoneNumber}
+                      <SimplePhoneInput
+                        {...field}
+                        onChange={(value) => {
+                          form.setValue('phone', value, { 
+                            shouldValidate: true,
+                            shouldDirty: true
+                          });
+                        }}
+                        error={!!form.formState.errors.phone}
+                        className="w-full text-xs md:text-sm"
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -470,10 +477,16 @@ export function PersonalDetailsForm({
                                   field.onChange(selectedValue);
                                 }}
                               >
-                                <SelectTrigger className="w-full bg-muted/40 h-11 min-w-[200px]">
+                                <SelectTrigger className={cn(
+                                  "w-full bg-muted/40 h-10",
+                                  "min-w-[100px] text-xs md:text-sm"
+                                )}>
                                   <SelectValue placeholder="Select Operator" />
                                 </SelectTrigger>
-                                <SelectContent className="select-content min-w-[250px] w-full">
+                                <SelectContent className={cn(
+                                  "select-content",
+                                  "min-w-[120px] w-full"
+                                )}>
                                   {[
                                     "Great Western Railway",
                                     "Avanti West Coast",
@@ -488,7 +501,10 @@ export function PersonalDetailsForm({
                                     <SelectItem
                                       key={operator}
                                       value={operator}
-                                      className="select-item"
+                                      className={cn(
+                                        "select-item",
+                                        "text-xs md:text-sm"
+                                      )}
                                     >
                                       {operator}
                                     </SelectItem>

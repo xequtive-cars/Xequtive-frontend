@@ -112,62 +112,62 @@ function ResetPasswordContent({
 
     setIsLoading(true);
 
-    try {
-      // Use auth service to reset password
-      const response = await authService.resetPassword(
-        token,
-        data.password,
-        data.confirmPassword
-      );
+      try {
+        // Use auth service to reset password
+        const response = await authService.resetPassword(
+          token,
+          data.password,
+          data.confirmPassword
+        );
 
-      if (!response.success) {
-        // Format error message for display
-        let errorMessage = response.error?.message || "Password reset failed";
+        if (!response.success) {
+          // Format error message for display
+          let errorMessage = response.error?.message || "Password reset failed";
 
-        // Map API error codes to user-friendly messages
-        const errorCodeMap: Record<string, string> = {
-          INVALID_TOKEN:
-            "The reset link is invalid or has expired. Please request a new password reset link.",
-          EXPIRED_TOKEN:
-            "The reset link has expired. Please request a new password reset link.",
-          WEAK_PASSWORD:
-            "Password is too weak. It must be at least 8 characters with uppercase, lowercase and numbers.",
-          PASSWORD_MISMATCH:
-            "Passwords do not match. Please check both password fields.",
-          USER_NOT_FOUND:
-            "User account not found. The reset link may be invalid.",
-          USER_DISABLED:
-            "This account has been disabled. Please contact support for assistance.",
-          TOO_MANY_REQUESTS: "Too many requests. Please try again later.",
-          SERVER_ERROR:
-            "Our services are temporarily unavailable. Please try again later.",
-          NETWORK_ERROR:
-            "Network error. Please check your internet connection and try again.",
-        };
+          // Map API error codes to user-friendly messages
+          const errorCodeMap: Record<string, string> = {
+            INVALID_TOKEN:
+              "The reset link is invalid or has expired. Please request a new password reset link.",
+            EXPIRED_TOKEN:
+              "The reset link has expired. Please request a new password reset link.",
+            WEAK_PASSWORD:
+              "Password is too weak. It must be at least 8 characters with uppercase, lowercase and numbers.",
+            PASSWORD_MISMATCH:
+              "Passwords do not match. Please check both password fields.",
+            USER_NOT_FOUND:
+              "User account not found. The reset link may be invalid.",
+            USER_DISABLED:
+              "This account has been disabled. Please contact support for assistance.",
+            TOO_MANY_REQUESTS: "Too many requests. Please try again later.",
+            SERVER_ERROR:
+              "Our services are temporarily unavailable. Please try again later.",
+            NETWORK_ERROR:
+              "Network error. Please check your internet connection and try again.",
+          };
 
-        // Check for specific error codes first
-        const errorCode = errorMessage.toUpperCase().replace(/[^A-Z_]/g, "_");
-        if (errorCodeMap[errorCode]) {
-          errorMessage = errorCodeMap[errorCode];
+          // Check for specific error codes first
+          const errorCode = errorMessage.toUpperCase().replace(/[^A-Z_]/g, "_");
+          if (errorCodeMap[errorCode]) {
+            errorMessage = errorCodeMap[errorCode];
 
-          // Set form-specific errors based on the error code
-          if (errorCode === "WEAK_PASSWORD") {
-            form.setError("password", {
-              type: "manual",
-              message: "Password is too weak",
-            });
-          } else if (errorCode === "PASSWORD_MISMATCH") {
-            form.setError("confirmPassword", {
-              type: "manual",
-              message: "Passwords do not match",
-            });
+            // Set form-specific errors based on the error code
+            if (errorCode === "WEAK_PASSWORD") {
+              form.setError("password", {
+                type: "manual",
+                message: "Password is too weak",
+              });
+            } else if (errorCode === "PASSWORD_MISMATCH") {
+              form.setError("confirmPassword", {
+                type: "manual",
+                message: "Passwords do not match",
+              });
+            }
           }
-        }
 
-        form.setError("password", {
-          type: "manual",
-          message: errorMessage,
-        });
+              form.setError("password", {
+                type: "manual",
+                message: errorMessage,
+              });
         setIsLoading(false);
         return;
       }
@@ -203,21 +203,21 @@ function ResetPasswordContent({
               <AlertDescription>{tokenError}</AlertDescription>
             </Alert>
           )}
-          <Form {...form}>
+            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter new password"
-                          {...field}
-                        />
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter new password"
+                            {...field}
+                          />
                         <Button
                           type="button"
                           variant="ghost"
@@ -229,40 +229,40 @@ function ResetPasswordContent({
                         </Button>
                       </div>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input
+                        <FormControl>
+                          <Input
                         type="password"
-                        placeholder="Confirm new password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button 
-                type="submit" 
-                className="w-full" 
+                            placeholder="Confirm new password"
+                            {...field}
+                          />
+                        </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
                 disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   "Reset Password"
                 )}
-              </Button>
-            </form>
-          </Form>
+                </Button>
+              </form>
+            </Form>
         </CardContent>
       </Card>
     </div>

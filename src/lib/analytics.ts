@@ -144,7 +144,7 @@ export const analyticsUtils = {
     const url = pathname + 
       (searchParamsString ? `?${searchParamsString}` : "");
     
-    pageview(url);
+      pageview(url);
   },
 
   // Listen for consent changes
