@@ -137,42 +137,20 @@ function SignInForm({
 
     // Update the form data with password
     const completeFormData = {
-      ...formData,
+      email: formData.email,
       password: data.password,
     };
 
     try {
-      // Basic client-side validation before sending request
-      if (
-        !completeFormData.email.includes("@") ||
-        !completeFormData.email.includes(".")
-      ) {
-        emailForm.setError("email", {
-          type: "manual",
-          message: "Please enter a valid email address",
-        });
-        setError("Please enter a valid email address");
-        setIsLoading(false);
-        setCurrentStep("email");
-        onStepChange("email");
-        return;
-      }
+      // Prepare request body exactly as per documentation
+      const requestBody = {
+        email: completeFormData.email,
+        password: completeFormData.password,
+      };
 
-      if (completeFormData.password.length < 1) {
-        passwordForm.setError("password", {
-          type: "manual",
-          message: "Password is required",
-        });
-        setError("Password is required");
-        setIsLoading(false);
-        return;
-      }
-
-      // Network error handling
-      try {
         const result = await authService.signIn(
-          completeFormData.email,
-          completeFormData.password
+        requestBody.email,
+        requestBody.password
         );
 
         if (!result.success) {
@@ -196,7 +174,7 @@ function SignInForm({
               "This account has been disabled. Please contact support for assistance.",
             EXPIRED_SESSION: "Your session has expired. Please sign in again.",
             INVALID_SESSION: "Your session is invalid. Please sign in again.",
-            AUTH_ERROR: "Authentication error. Please try signing in again.",
+          AUTH_ERROR: "Authentication error. Please sign in again.",
             NETWORK_ERROR:
               "Network error. Please check your internet connection and try again.",
             SERVER_ERROR:
@@ -293,30 +271,6 @@ function SignInForm({
         setError(
           "Unable to connect to our services. Please check your internet connection and try again."
         );
-        setIsLoading(false);
-        return;
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-
-      let errorMessage =
-        "An unexpected error occurred. Please try again later.";
-      if (error instanceof Error) {
-        // Check for specific error types
-        if (
-          error.message.includes("network") ||
-          error.message.includes("fetch")
-        ) {
-          errorMessage =
-            "Network error. Please check your internet connection and try again.";
-        } else if (error.message.includes("JSON")) {
-          errorMessage = "Server response error. Please try again later.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
-      setError(errorMessage);
       setIsLoading(false);
     }
   };

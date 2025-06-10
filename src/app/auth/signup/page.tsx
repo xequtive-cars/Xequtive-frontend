@@ -67,15 +67,10 @@ const credentialsSchema = z
     path: ["confirmPassword"],
   });
 
-// Step 3: Phone number and full name form schema
+// Step 3: Phone verification form schema (keep fullName as required)
 const phoneSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
-  phoneNumber: z
-    .string()
-    .refine(
-      (val) => /^\+44[0-9]{10}$/.test(val.replace(/\s/g, "")),
-      "Please enter a valid UK mobile number starting with +44"
-    ),
+  fullName: z.string().min(1, "Full name is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
 });
 
 type EmailFormData = z.infer<typeof emailSchema>;
@@ -113,6 +108,7 @@ function SignUpForm({
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { isAuthenticated } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update query parameters when form data or step changes
   useEffect(() => {
@@ -178,15 +174,16 @@ function SignUpForm({
       email: data.email,
     }));
 
-    // Move to the next step
+    // Move directly to the credentials step
     setCurrentStep("credentials");
+    onStepChange("credentials");
   };
 
   // Handle credentials step submission
   const onCredentialsSubmit = async (data: CredentialsFormData) => {
     setError(null);
 
-    // Update the form data with credentials
+    // Update the form data with credentials and full name
     setFormData(prev => ({
       ...prev,
       password: data.password,
@@ -195,105 +192,49 @@ function SignUpForm({
 
     // Move to the next step
     setCurrentStep("phone");
+    onStepChange("phone");
   };
 
-  // Handle phone step (final) submission
+  // Handle phone step submission
   const onPhoneSubmit = async (data: PhoneFormData) => {
     setError(null);
 
-    // Update the form data with phone details
-    setFormData(prev => ({
-      ...prev,
-      fullName: data.fullName,
+    // Ensure all required data from previous steps is present before submitting
+    if (!formData.email || !formData.password) {
+      setError("Please complete all previous steps");
+      setCurrentStep("credentials");
+      onStepChange("credentials");
+      return;
+    }
+
+    // Update form data with phone step info
+    const completeFormData = {
+      ...formData,
+      fullName: data.fullName,  // Keep fullName from this step
       phoneNumber: data.phoneNumber,
-    }));
+    };
 
+    // Proceed with submission
+    setIsLoading(true);
     try {
-      // Use auth service to register
-      const response = await authService.register(
-        formData.fullName,
-        formData.email,
-        formData.password,
-        formData.confirmPassword,
-        formData.phoneNumber
+      const result = await authService.register(
+        completeFormData.fullName,
+        completeFormData.email,
+        completeFormData.password,
+        completeFormData.password,  // Use password for confirmation
+        completeFormData.phoneNumber
       );
 
-      if (!response.success) {
-        // Format error message for display
-        let errorMessage = response.error?.message || "Registration failed";
-
-        // Map API error codes to user-friendly messages
-        const errorCodeMap: Record<string, string> = {
-          EMAIL_ALREADY_EXISTS:
-            "This email address is already registered. Please use a different email or try signing in.",
-          EMAIL_ALREADY_IN_USE:
-            "This email address is already registered. Please use a different email or try signing in.",
-          FAILED_TO_CREATE_USER:
-            "This email address is already registered. Please use a different email or try signing in.",
-          USER_CREATION_FAILED:
-            "This email address is already registered. Please use a different email or try signing in.",
-          EMAIL_EXISTS:
-            "This email address is already registered. Please use a different email or try signing in.",
-          DUPLICATE_USER:
-            "This email address is already registered. Please use a different email or try signing in.",
-          INVALID_EMAIL: "Please enter a valid email address.",
-          WEAK_PASSWORD:
-            "Password is too weak. It must be at least 8 characters with uppercase, lowercase and numbers.",
-          PASSWORD_MISMATCH:
-            "Passwords do not match. Please check both password fields.",
-          INVALID_PHONE_NUMBER:
-            "The phone number format is invalid. Please enter a valid UK mobile number.",
-          MISSING_REQUIRED_FIELD: "Please fill in all required fields.",
-          TOO_MANY_REQUESTS:
-            "Too many registration attempts. Please try again later.",
-        };
-
-        // Check for specific error codes first
-        const errorCode = errorMessage.toUpperCase().replace(/[^A-Z_]/g, "_");
-
-        if (errorCodeMap[errorCode]) {
-          errorMessage = errorCodeMap[errorCode];
-
-          // If error is related to email, go back to email step
-          if (errorCode.includes("EMAIL")) {
-            setCurrentStep("email");
-          }
-          // If error is related to password, go back to credentials step
-          else if (errorCode.includes("PASSWORD")) {
-            setCurrentStep("credentials");
-          }
-          // If error is related to phone, stay on phone step
-          else if (errorCode.includes("PHONE")) {
-            // Stay on current step
-          }
-        }
-        // Pattern matching for common error messages
-        else if (
-          errorMessage.toLowerCase().includes("email") &&
-          (errorMessage.toLowerCase().includes("already") ||
-            errorMessage.toLowerCase().includes("exists") ||
-            errorMessage.toLowerCase().includes("in use"))
-        ) {
-          errorMessage =
-            "This email address is already registered. Please use a different email or try signing in.";
-          setCurrentStep("email");
-        }
-        // Other pattern matching logic from original code...
-
-        setError(errorMessage);
-        return;
+      if (result.success) {
+        onComplete();  // Still call onComplete if needed for other logic
+        window.location.href = "/dashboard";  // Explicitly redirect
+      } else {
+        setError(result.error?.message || "Sign up failed");
       }
-
-      // Form completed successfully
-      onComplete();
-
-      // Handle successful registration by navigating to dashboard
-      window.location.href = "/dashboard";
-    } catch (networkError) {
-      console.error("Network error during registration:", networkError);
-      setError(
-        "Unable to connect to our services. Please check your internet connection and try again."
-      );
+    } catch (error) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -318,11 +259,13 @@ function SignUpForm({
     <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
       <CardHeader className="space-y-2 pb-3">
         <CardTitle className="text-2xl font-bold text-center">
-          Create your account
+          {currentStep === "email" && "Create your account"}
+          {currentStep === "credentials" && "Create your profile"}
+          {currentStep === "phone" && "Verify your phone number"}
         </CardTitle>
         <CardDescription className="text-center text-base">
           {currentStep === "email" && "Enter your email to get started"}
-          {currentStep === "credentials" && "Create a secure password"}
+          {currentStep === "credentials" && "Set up your name and password"}
           {currentStep === "phone" && "Verify your phone number"}
         </CardDescription>
       </CardHeader>
@@ -389,9 +332,7 @@ function SignUpForm({
 
           <FormTransition
             isActive={currentStep === "credentials"}
-            direction={
-              prevStepRef.current > currentStep ? "backward" : "forward"
-            }
+            direction="forward"
             animationKey="credentials-step"
           >
             <Form {...credentialsForm}>
@@ -516,9 +457,7 @@ function SignUpForm({
 
           <FormTransition
             isActive={currentStep === "phone"}
-            direction={
-              prevStepRef.current > currentStep ? "backward" : "forward"
-            }
+            direction="forward"
             animationKey="phone-step"
           >
             <Form {...phoneForm}>
@@ -530,6 +469,10 @@ function SignUpForm({
                   <div className="flex items-center gap-2 font-medium mb-1">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span>{formData.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>{formData.fullName}</span>
                   </div>
                 </div>
 
