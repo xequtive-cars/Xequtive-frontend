@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/card";
 import { authService } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import SimplePhoneInput from "@/components/ui/simple-phone-input";
 import FormTransition from "@/components/auth/FormTransition";
@@ -52,7 +53,7 @@ const emailSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
-// Step 2: Password and name form schema
+// Step 2: Password form schema
 const credentialsSchema = z
   .object({
     password: z
@@ -66,20 +67,13 @@ const credentialsSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
-  });
-
-// Step 3: Phone verification form schema (keep fullName as required)
-const phoneSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  phoneNumber: z.string().min(1, "Phone number is required"),
 });
 
 type EmailFormData = z.infer<typeof emailSchema>;
 type CredentialsFormData = z.infer<typeof credentialsSchema>;
-type PhoneFormData = z.infer<typeof phoneSchema>;
 
-// Define the steps of the signup process
-type SignupStep = "email" | "credentials" | "phone";
+// Define the steps of the signup process (now only 2 steps)
+type SignupStep = "email" | "credentials";
 
 // Fix type issues with CustomEvent
 type StepChangeEvent = CustomEvent<{ step: SignupStep }>;
@@ -101,14 +95,13 @@ function SignUpForm({
   const prevStepRef = useRef<SignupStep>("email");
   const [formData, setFormData] = useState({
     email: searchParams.get('email') || "",
-    fullName: searchParams.get('fullName') || "",
     password: searchParams.get('password') || "",
     confirmPassword: searchParams.get('confirmPassword') || "",
-    phoneNumber: searchParams.get('phoneNumber') || "",
   });
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { showLoading } = useAuthLoading();
   const [isLoading, setIsLoading] = useState(false);
 
   // Update query parameters when form data or step changes
@@ -157,14 +150,6 @@ function SignUpForm({
     },
   });
 
-  const phoneForm = useForm<PhoneFormData>({
-    resolver: zodResolver(phoneSchema),
-    defaultValues: {
-      fullName: formData.fullName,
-      phoneNumber: formData.phoneNumber,
-    },
-  });
-
   // Handle email step submission
   const onEmailSubmit = async (data: EmailFormData) => {
     setError(null);
@@ -175,63 +160,40 @@ function SignUpForm({
       email: data.email,
     }));
 
-    // Move directly to the credentials step
+    // Move to the credentials step
     setCurrentStep("credentials");
     onStepChange("credentials");
   };
 
-  // Handle credentials step submission
+  // Handle credentials step submission (final step)
   const onCredentialsSubmit = async (data: CredentialsFormData) => {
     setError(null);
+    setIsLoading(true);
 
-    // Update the form data with credentials and full name
-    setFormData(prev => ({
-      ...prev,
-      password: data.password,
-      confirmPassword: data.confirmPassword,
-    }));
-
-    // Move to the next step
-    setCurrentStep("phone");
-    onStepChange("phone");
-  };
-
-  // Handle phone step submission
-  const onPhoneSubmit = async (data: PhoneFormData) => {
-    setError(null);
-
-    // Ensure all required data from previous steps is present before submitting
-    if (!formData.email || !formData.password) {
-      setError("Please complete all previous steps");
-      setCurrentStep("credentials");
-      onStepChange("credentials");
-      return;
-    }
-
-    // Update form data with phone step info
+    // Update form data with credentials
     const completeFormData = {
       ...formData,
-      fullName: data.fullName,  // Keep fullName from this step
-      phoneNumber: data.phoneNumber,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
     };
 
-    // Proceed with submission
-    setIsLoading(true);
     try {
+      // Register user with email and password only (no name or phone required)
       const result = await authService.register(
-        completeFormData.fullName,
+        "", // Empty fullName - will be collected later
         completeFormData.email,
         completeFormData.password,
-        completeFormData.password,  // Use password for confirmation
-        completeFormData.phoneNumber
+        completeFormData.confirmPassword,
+        "" // Empty phoneNumber - will be collected later
       );
 
       if (result.success) {
-        onComplete();  // Still call onComplete if needed for other logic
-        window.location.href = "/dashboard";  // Explicitly redirect
+        showLoading("redirecting");
+        onComplete();
+        window.location.href = "/dashboard";
       } else {
         setError(result.error?.message || "Sign up failed");
-      }
+        }
     } catch (error) {
       setError("An error occurred. Please try again.");
     } finally {
@@ -257,20 +219,18 @@ function SignUpForm({
   );
 
   return (
-    <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
-      <CardHeader className="space-y-2 pb-3">
-        <CardTitle className="text-2xl font-bold text-center">
+    <Card className="w-full max-w-sm mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
+      <CardHeader className="space-y-1 pb-2 px-4 pt-4">
+        <CardTitle className="text-xl font-bold text-center">
           {currentStep === "email" && "Create your account"}
-          {currentStep === "credentials" && "Create your profile"}
-          {currentStep === "phone" && "Verify your phone number"}
+          {currentStep === "credentials" && "Set your password"}
         </CardTitle>
-        <CardDescription className="text-center text-base">
+        <CardDescription className="text-center text-sm">
           {currentStep === "email" && "Enter your email to get started"}
-          {currentStep === "credentials" && "Set up your name and password"}
-          {currentStep === "phone" && "Verify your phone number"}
+          {currentStep === "credentials" && "Create a secure password for your account"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-7 pb-7 pt-3">
+      <CardContent className="px-4 pb-4 pt-2">
         <div className="relative">
           <FormTransition
             isActive={currentStep === "email"}
@@ -280,14 +240,14 @@ function SignUpForm({
             <Form {...emailForm}>
               <form
                 onSubmit={emailForm.handleSubmit(onEmailSubmit)}
-                className="space-y-6"
+                className="space-y-4"
               >
                 <FormField
                   control={emailForm.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-base font-semibold">
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-sm font-semibold">
                         Email
                       </FormLabel>
                       <FormControl>
@@ -296,10 +256,10 @@ function SignUpForm({
                             type="email"
                             placeholder="you@example.com"
                             {...field}
-                            className="h-14 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-base font-medium tracking-wider"
+                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
                           />
-                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                            <Mail className="h-6 w-6 text-muted-foreground" />
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                       </FormControl>
@@ -317,11 +277,11 @@ function SignUpForm({
 
                 <Button
                   type="submit"
-                  className="w-full h-11 text-base font-semibold"
+                  className="w-full h-9 text-sm font-semibold"
                   disabled={emailForm.formState.isSubmitting}
                 >
                   {emailForm.formState.isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
                     "Continue"
                   )}
@@ -336,21 +296,35 @@ function SignUpForm({
             direction="forward"
             animationKey="credentials-step"
           >
+            {/* Back button - top left */}
+            <div className="flex justify-start mb-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="p-2 h-8 text-xs font-medium"
+                onClick={() => setCurrentStep("email")}
+              >
+                <ChevronLeft className="h-3 w-3 mr-1" />
+                Back
+              </Button>
+            </div>
+            
             <Form {...credentialsForm}>
               <form
                 onSubmit={credentialsForm.handleSubmit(onCredentialsSubmit)}
-                className="space-y-6"
+                className="space-y-4"
               >
-                <div className="mb-3 text-base flex justify-between items-center">
+                <div className="mb-2 text-sm flex justify-between items-center">
                   <div className="flex items-center gap-2 font-medium">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{formData.email}</span>
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-sm">{formData.email}</span>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-primary h-6 px-2"
+                    className="text-xs text-primary h-5 px-2"
                     onClick={() => setCurrentStep("email")}
                   >
                     Change
@@ -361,8 +335,8 @@ function SignUpForm({
                   control={credentialsForm.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-base font-semibold">
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-sm font-semibold">
                         Password
                       </FormLabel>
                       <FormControl>
@@ -371,16 +345,16 @@ function SignUpForm({
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
                             {...field}
-                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
                           />
                           <div
-                            className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
+                            className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             {showPassword ? (
-                              <EyeOff className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                             ) : (
-                              <Eye className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                             )}
                           </div>
                         </div>
@@ -394,8 +368,8 @@ function SignUpForm({
                   control={credentialsForm.control}
                   name="confirmPassword"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-base font-semibold">
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-sm font-semibold">
                         Confirm Password
                       </FormLabel>
                       <FormControl>
@@ -404,16 +378,16 @@ function SignUpForm({
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
                             {...field}
-                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
                           />
                           <div
-                            className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
+                            className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             {showPassword ? (
-                              <EyeOff className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                             ) : (
-                              <Eye className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                             )}
                           </div>
                         </div>
@@ -430,140 +404,24 @@ function SignUpForm({
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="sm:flex-1 h-11 text-base font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                    onClick={() => setCurrentStep("email")}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="sm:flex-1 h-11 text-base font-semibold"
-                    disabled={credentialsForm.formState.isSubmitting}
-                  >
-                    {credentialsForm.formState.isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      "Continue"
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </FormTransition>
-
-          <FormTransition
-            isActive={currentStep === "phone"}
-            direction="forward"
-            animationKey="phone-step"
-          >
-            <Form {...phoneForm}>
-              <form
-                onSubmit={phoneForm.handleSubmit(onPhoneSubmit)}
-                className="space-y-6"
-              >
-                <div className="mb-3 text-base">
-                  <div className="flex items-center gap-2 font-medium mb-1">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{formData.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 font-medium">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{formData.fullName}</span>
-                  </div>
-                </div>
-
-                <FormField
-                  control={phoneForm.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-base font-semibold">
-                        Full Name
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type="text"
-                            placeholder="John Doe"
-                            {...field}
-                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
-                          />
-                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                            <User className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
+                <Button
+                  type="submit"
+                  className="w-full h-9 text-sm font-semibold"
+                  disabled={credentialsForm.formState.isSubmitting || isLoading}
+                >
+                  {credentialsForm.formState.isSubmitting || isLoading ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "Create account"
                   )}
-                />
-
-                <FormField
-                  control={phoneForm.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-base font-semibold">
-                        Phone Number
-                      </FormLabel>
-                      <FormControl>
-                        <SimplePhoneInput
-                          {...field}
-                          error={Boolean(
-                            phoneForm.formState.errors.phoneNumber
-                          )}
-                          className="text-base md:text-2xl"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                      <p className="text-xs text-muted-foreground">
-                        We&apos;ll use this number to confirm bookings
-                      </p>
-                    </FormItem>
-                  )}
-                />
-
-                {error && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3 text-destructive text-sm">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="sm:flex-1 h-11 text-base font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                    onClick={() => setCurrentStep("credentials")}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="sm:flex-1 h-11 text-base font-semibold"
-                    disabled={phoneForm.formState.isSubmitting}
-                  >
-                    {phoneForm.formState.isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      "Create account"
-                    )}
-                  </Button>
-                </div>
+                </Button>
               </form>
             </Form>
           </FormTransition>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-center border-t p-4">
-        <div className="text-sm text-center">
+      <CardFooter className="flex justify-center border-t p-3">
+        <div className="text-xs text-center">
           Already have an account?{" "}
           <Link
             href="/auth/signin"
@@ -584,10 +442,10 @@ function Navbar() {
       <div className="container flex h-20 py-5 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              <span className="font-bold text-lg">X</span>
+            <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+              <span className="font-bold text-sm md:text-lg">X</span>
             </div>
-            <span className="font-bold text-2xl tracking-tight">Xequtive</span>
+            <span className="font-bold text-lg md:text-2xl tracking-tight">Xequtive</span>
           </Link>
         </div>
         <AuthAwareNavigation />
@@ -612,7 +470,7 @@ export default function SignupPage() {
 function SignUpFormWithProgress() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isCompleted, setIsCompleted] = useState(false);
-  const totalSteps = 3;
+  const totalSteps = 2;
 
   // Update progress when the form step changes
   useEffect(() => {
@@ -623,9 +481,6 @@ function SignUpFormWithProgress() {
         setIsCompleted(false);
       } else if (step === "credentials") {
         setCurrentStep(2);
-        setIsCompleted(false);
-      } else if (step === "phone") {
-        setCurrentStep(3);
         setIsCompleted(false);
       }
     };

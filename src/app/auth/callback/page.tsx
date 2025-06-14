@@ -6,16 +6,13 @@ import { authService } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
-import { Loading3DOverlay } from "@/components/ui/loading-3d";
+import { Loading3D, Loading3DOverlay } from "@/components/ui/loading-3d";
 
 // Skeleton loading component
 function AuthCallbackSkeleton() {
   return (
     <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-lg font-medium">Completing sign in...</p>
-      </div>
+      <Loading3D size="lg" message="Completing sign in..." />
     </div>
   );
 }
@@ -65,13 +62,8 @@ function AuthCallbackContent({
 
         // Check if user needs to complete their profile
         const userData = response.data;
-        if (userData && !userData.phoneNumber) {
-          // Redirect to profile completion
-          setTimeout(() => router.push("/auth/complete-profile"), 1000);
-        } else {
-          // Redirect to dashboard
-          setTimeout(() => router.push("/dashboard"), 1000);
-        }
+        // Always redirect to dashboard - missing profile info will be collected through booking form or profile page
+        setTimeout(() => router.push("/dashboard"), 1000);
       } catch (err) {
         console.error("Error processing authentication callback:", err);
         setError(
@@ -92,9 +84,9 @@ function AuthCallbackContent({
         <Loading3DOverlay message="Completing sign in..." />
       )}
       
-      <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto shadow-md border border-border/30">
-          <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-[200px]">
+    <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-md mx-auto shadow-md border border-border/30">
+        <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-[200px]">
             {!isProcessing && error ? (
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="rounded-full bg-destructive/10 p-3">

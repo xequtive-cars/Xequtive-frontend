@@ -1,9 +1,9 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Loading3DOverlay } from "@/components/ui/loading-3d";
 
 // PublicRoute is for auth pages that should not be accessible when logged in
 // It works with the middleware to ensure users are redirected properly
@@ -13,6 +13,7 @@ export default function PublicRoute({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const { showLoading, hideLoading } = useAuthLoading();
   const [checked, setChecked] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -25,20 +26,23 @@ export default function PublicRoute({
         // Instead of an immediate redirect, we use router.push to avoid loops
         // We also check we're not already redirecting to avoid infinite loops
         if (!pathname.includes("?redirecting=true")) {
+          showLoading("redirecting");
           router.push("/dashboard?redirecting=true");
         }
       } else {
         // User is not authenticated, mark as checked to render children
         setChecked(true);
+        hideLoading();
       }
+    } else {
+      // Show checking state while loading
+      showLoading("checking");
     }
-  }, [isLoading, isAuthenticated, router, pathname]);
+  }, [isLoading, isAuthenticated, router, pathname, showLoading, hideLoading]);
 
-  // Show loading state while authentication is being checked
+  // Don't render anything while loading states are active - the unified loading will handle it
   if (isLoading || (!checked && isAuthenticated)) {
-    return (
-      <Loading3DOverlay message="Checking authentication..." />
-    );
+    return null;
   }
 
   // Only render children if not authenticated and check is complete

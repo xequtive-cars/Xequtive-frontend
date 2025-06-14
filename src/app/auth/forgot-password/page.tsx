@@ -44,10 +44,10 @@ export default function ForgotPasswordPage() {
         <header className="border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-20 items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-lg">X</span>
+              <div className="relative w-6 h-6 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                <span className="font-bold text-xs md:text-lg">X</span>
               </div>
-              <span className="font-bold text-2xl tracking-tight">
+              <span className="font-bold text-base md:text-2xl tracking-tight">
                 Xequtive
               </span>
             </Link>

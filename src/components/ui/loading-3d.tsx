@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 interface Loading3DProps {
   className?: string;
@@ -189,5 +190,73 @@ export function Loading3DOverlay({
         <Loading3D size="lg" message={message} />
       </motion.div>
     </motion.div>
+  );
+}
+
+// New unified auth loading component with smooth transitions
+interface UnifiedAuthLoadingProps {
+  stage: "checking" | "redirecting" | "loading-dashboard" | "complete";
+  className?: string;
+}
+
+export function UnifiedAuthLoading({ 
+  stage, 
+  className 
+}: UnifiedAuthLoadingProps) {
+  const [currentMessage, setCurrentMessage] = useState("");
+
+  const messages = {
+    checking: "Checking authentication...",
+    redirecting: "Signing you in...",
+    "loading-dashboard": "Loading dashboard...",
+    complete: "Welcome back!"
+  };
+
+  useEffect(() => {
+    setCurrentMessage(messages[stage]);
+  }, [stage]);
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center bg-background",
+        className
+      )}
+    >
+      <div className="flex flex-col items-center justify-center space-y-6">
+        {/* Beautiful 3D Loading Animation */}
+        <Loading3D size="lg" message="" showMessage={false} />
+
+        {/* Smooth message transitions */}
+        <div className="h-6 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={currentMessage}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="text-lg font-medium text-foreground"
+            >
+              {currentMessage}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="w-48 h-1 bg-muted rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-primary rounded-full"
+            initial={{ width: "0%" }}
+            animate={{ 
+              width: stage === "checking" ? "25%" : 
+                     stage === "redirecting" ? "50%" : 
+                     stage === "loading-dashboard" ? "75%" : "100%" 
+            }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+          />
+        </div>
+      </div>
+    </div>
   );
 } 

@@ -133,6 +133,22 @@ export function PersonalDetailsForm({
     mode: "onChange",
   });
 
+  // Update form values when user data changes
+  useEffect(() => {
+    if (user) {
+      // Only update if the field is currently empty
+      if (!form.getValues("fullName") && user.displayName) {
+        form.setValue("fullName", user.displayName);
+      }
+      if (!form.getValues("email") && user.email) {
+        form.setValue("email", user.email);
+      }
+      if (!form.getValues("phone") && user.phoneNumber) {
+        form.setValue("phone", user.phoneNumber);
+      }
+    }
+  }, [user, form]);
+
   // Add useEffect to track form validity
   useEffect(() => {
     // Check form validity and notify parent component
@@ -169,12 +185,9 @@ export function PersonalDetailsForm({
       e.stopPropagation();
     }
 
-    console.log("Submit Form Called - Preventing Default", {
-      event: e,
-      data,
-    });
+    console.log("Submit Form Called - Full Data:", data);
 
-    const { fullName, email, phone, specialRequests, termsAgreed } = data;
+    const { fullName, email, phone, specialRequests, termsAgreed, flightInformation, trainInformation } = data;
 
     // Explicitly check terms agreement
     if (!termsAgreed) {
@@ -185,16 +198,29 @@ export function PersonalDetailsForm({
       return;
     }
 
-    onSubmit(
-      {
-        fullName,
-        email,
-        phone,
-        specialRequests: specialRequests || "",
-      },
-      termsAgreed,
-      e
-    );
+    // Prepare the submission data with optional flight/train information
+    const submissionData = {
+      fullName,
+      email,
+      phone,
+      specialRequests: specialRequests || "",
+      ...(flightInformation && (flightInformation.airline || flightInformation.flightNumber || flightInformation.scheduledDeparture) && {
+        flightInformation: {
+          airline: flightInformation.airline || "",
+          flightNumber: flightInformation.flightNumber || "",
+          scheduledDeparture: flightInformation.scheduledDeparture || "",
+        }
+      }),
+      ...(trainInformation && (trainInformation.trainOperator || trainInformation.trainNumber || trainInformation.scheduledDeparture) && {
+        trainInformation: {
+          trainOperator: trainInformation.trainOperator || "",
+          trainNumber: trainInformation.trainNumber || "",
+          scheduledDeparture: trainInformation.scheduledDeparture || "",
+        }
+      }),
+    };
+
+    onSubmit(submissionData, termsAgreed, e);
   };
 
   return (
@@ -222,11 +248,16 @@ export function PersonalDetailsForm({
                       <Input
                         placeholder="John Doe"
                         {...field}
-                        disabled={!!user?.displayName}
+                        disabled={false}
                         className="h-10 bg-background border border-border cursor-text text-xs md:text-sm"
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
+                    {!user?.displayName && (
+                      <p className="text-xs text-muted-foreground">
+                        This information will be saved to your profile
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -271,6 +302,11 @@ export function PersonalDetailsForm({
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
+                    {!user?.phoneNumber && (
+                      <p className="text-xs text-muted-foreground">
+                        This information will be saved to your profile
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -342,15 +378,18 @@ export function PersonalDetailsForm({
                             <FormLabel>Airline</FormLabel>
                             <FormControl>
                               <Select
-                                {...field}
+                                value={field.value || ""}
                                 onValueChange={(selectedValue) => {
+                                  console.log("Airline selected:", selectedValue);
                                   field.onChange(selectedValue);
+                                  // Force form to trigger validation update
+                                  form.trigger("flightInformation.airline");
                                 }}
                               >
-                                <SelectTrigger className="w-full bg-muted/40 h-11 min-w-[200px]">
+                                <SelectTrigger className="w-full bg-background h-11 min-w-[200px]">
                                   <SelectValue placeholder="Select Airline" />
                                 </SelectTrigger>
-                                <SelectContent className="select-content min-w-[250px] w-full">
+                                <SelectContent className="z-50 max-h-[300px] overflow-auto">
                                   {[
                                     "British Airways",
                                     "EasyJet",
@@ -364,7 +403,7 @@ export function PersonalDetailsForm({
                                     <SelectItem
                                       key={airline}
                                       value={airline}
-                                      className="select-item"
+                                      className="cursor-pointer hover:bg-muted"
                                     >
                                       {airline}
                                     </SelectItem>
@@ -388,8 +427,13 @@ export function PersonalDetailsForm({
                             <FormControl>
                               <Input
                                 placeholder="e.g. BA1440"
-                                className="w-full bg-muted/40 h-11 border border-input"
-                                {...field}
+                                className="w-full bg-background h-11"
+                                value={field.value || ""}
+                                onChange={(e) => {
+                                  console.log("Flight number changed:", e.target.value);
+                                  field.onChange(e.target.value);
+                                  form.trigger("flightInformation.flightNumber");
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -472,21 +516,17 @@ export function PersonalDetailsForm({
                             <FormLabel>Train Operator</FormLabel>
                             <FormControl>
                               <Select
-                                {...field}
+                                value={field.value || ""}
                                 onValueChange={(selectedValue) => {
+                                  console.log("Train operator selected:", selectedValue);
                                   field.onChange(selectedValue);
+                                  form.trigger("trainInformation.trainOperator");
                                 }}
                               >
-                                <SelectTrigger className={cn(
-                                  "w-full bg-muted/40 h-10",
-                                  "min-w-[100px] text-xs md:text-sm"
-                                )}>
+                                <SelectTrigger className="w-full bg-background h-10 min-w-[100px] text-xs md:text-sm">
                                   <SelectValue placeholder="Select Operator" />
                                 </SelectTrigger>
-                                <SelectContent className={cn(
-                                  "select-content",
-                                  "min-w-[120px] w-full"
-                                )}>
+                                <SelectContent className="z-50 max-h-[300px] overflow-auto">
                                   {[
                                     "Great Western Railway",
                                     "Avanti West Coast",
@@ -501,10 +541,7 @@ export function PersonalDetailsForm({
                                     <SelectItem
                                       key={operator}
                                       value={operator}
-                                      className={cn(
-                                        "select-item",
-                                        "text-xs md:text-sm"
-                                      )}
+                                      className="cursor-pointer hover:bg-muted text-xs md:text-sm"
                                     >
                                       {operator}
                                     </SelectItem>
@@ -528,8 +565,13 @@ export function PersonalDetailsForm({
                             <FormControl>
                               <Input
                                 placeholder="e.g. GWR123"
-                                className="w-full bg-muted/40 h-11 border border-input"
-                                {...field}
+                                className="w-full bg-background h-11"
+                                value={field.value || ""}
+                                onChange={(e) => {
+                                  console.log("Train number changed:", e.target.value);
+                                  field.onChange(e.target.value);
+                                  form.trigger("trainInformation.trainNumber");
+                                }}
                               />
                             </FormControl>
                             <FormMessage />

@@ -13,9 +13,11 @@ import { auth } from "./firebase/config";
 import { FirebaseError } from "firebase/app";
 
 // =================================================================
-// IMPORTANT: This file is now complete and should not be modified.
-// All authentication functionality is finalized.
+// SECURE: Environment variable handling without hardcoded fallbacks
+// All URLs must be properly configured via environment variables
 // =================================================================
+
+import { getApiBaseUrl } from "./env-validation";
 
 // Types for auth data
 interface UserData {
@@ -78,10 +80,10 @@ export const authService = {
     if (!isBrowser) return false;
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = getApiBaseUrl();
       const response = await fetch(`${apiUrl}/api/auth/me`, {
         method: "GET",
-        credentials: "include", // Important for sending cookies
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       return response.ok; // If 200, user is authenticated
@@ -129,24 +131,24 @@ export const authService = {
         };
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = getApiBaseUrl();
+      
+      // TEMPORARY: We've simplified the signup process to only require email and password
+      // Name and phone are now optional and can be collected later through the booking form or profile page
       const requestBody = {
-        fullName,
+        fullName: fullName || "", // Optional - can be empty
         email,
-        phone: phoneNumber.replace(/-/g, ""), // Remove dashes and send only digits with country code
+        phone: phoneNumber ? phoneNumber.replace(/-/g, "") : "", // Optional - can be empty
         password,
         confirmPassword,
       };
 
-      // URL includes /api prefix
-      const fullUrl = `${apiUrl}/api/auth/signup`;
-
       // Call the API endpoint with correct path including /api prefix
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
-        credentials: "include", // Important for cookie handling
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       // Handle 404 specifically
@@ -156,7 +158,7 @@ export const authService = {
           error: {
             message:
               "Registration endpoint not found (404). Please check API configuration.",
-            details: `The endpoint ${fullUrl} could not be reached.`,
+            details: `The endpoint ${apiUrl}/api/auth/signup could not be reached.`,
           },
         };
       }
@@ -195,21 +197,18 @@ export const authService = {
   // Sign in user using the API
   signIn: async (email: string, password: string): Promise<AuthResponse> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = getApiBaseUrl();
       const requestBody = {
         email,
         password,
       };
 
-      // URL includes /api prefix
-      const fullUrl = `${apiUrl}/api/auth/signin`;
-
       // Call the API endpoint with correct path including /api prefix
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
-        credentials: "include", // Important for cookie handling
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       // Handle 404 specifically
@@ -219,7 +218,7 @@ export const authService = {
           error: {
             message:
               "Sign in endpoint not found (404). Please check API configuration.",
-            details: `The endpoint ${fullUrl} could not be reached.`,
+            details: `The endpoint ${apiUrl}/api/auth/signin could not be reached.`,
           },
         };
       }
@@ -261,13 +260,12 @@ export const authService = {
   // Sign out user
   signOut: async (): Promise<void> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const fullUrl = `${apiUrl}/api/auth/signout`;
+      const apiUrl = getApiBaseUrl();
 
       // Call the signout endpoint to clear the HttpOnly cookie
-      await fetch(fullUrl, {
+      await fetch(`${apiUrl}/api/auth/signout`, {
         method: "POST",
-        credentials: "include", // Important for cookie handling
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       // Notify UI of auth change
@@ -318,18 +316,15 @@ export const authService = {
   // Request password reset
   forgotPassword: async (email: string): Promise<AuthResponse> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = getApiBaseUrl();
       const requestBody = { email };
 
-      // URL includes /api prefix
-      const fullUrl = `${apiUrl}/api/auth/forgot-password`;
-
       // Call the API endpoint
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
-        credentials: "include", // Consistent with our approach
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       // Handle 404 specifically
@@ -339,7 +334,7 @@ export const authService = {
           error: {
             message:
               "Forgot password endpoint not found (404). Please check API configuration.",
-            details: `The endpoint ${fullUrl} could not be reached.`,
+            details: `The endpoint ${apiUrl}/api/auth/forgot-password could not be reached.`,
           },
         };
       }
@@ -388,22 +383,19 @@ export const authService = {
         };
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = getApiBaseUrl();
       const requestBody = {
         token,
         newPassword,
         confirmPassword,
       };
 
-      // URL includes /api prefix
-      const fullUrl = `${apiUrl}/api/auth/reset-password`;
-
       // Call the API endpoint
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
-        credentials: "include", // Consistent with our approach
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       // Handle 404 specifically
@@ -413,7 +405,7 @@ export const authService = {
           error: {
             message:
               "Reset password endpoint not found (404). Please check API configuration.",
-            details: `The endpoint ${fullUrl} could not be reached.`,
+            details: `The endpoint ${apiUrl}/api/auth/reset-password could not be reached.`,
           },
         };
       }
@@ -450,12 +442,11 @@ export const authService = {
   // Check authentication status
   checkAuthStatus: async (): Promise<UserData | null> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const fullUrl = `${apiUrl}/api/auth/me`;
+      const apiUrl = getApiBaseUrl();
 
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
         method: "GET",
-        credentials: "include", // Important for cookie handling
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       if (!response.ok) {
@@ -479,7 +470,7 @@ export const authService = {
   initiateGoogleAuth: () => {
     if (!isBrowser) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const apiUrl = getApiBaseUrl();
     const redirectUrl = `${window.location.origin}/auth/callback`;
     window.location.href = `${apiUrl}/api/auth/google/login?redirect_url=${encodeURIComponent(
       redirectUrl
@@ -489,15 +480,14 @@ export const authService = {
   // Exchange temporary code for session
   exchangeCodeForSession: async (code: string): Promise<AuthResponse> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const fullUrl = `${apiUrl}/api/auth/google/callback`;
+      const apiUrl = getApiBaseUrl();
 
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/google/callback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Important for cookie handling
+        credentials: "include", // CRITICAL: Required for cookies
         body: JSON.stringify({ code }),
       });
 
@@ -552,15 +542,14 @@ export const authService = {
     phoneNumber: string
   ): Promise<AuthResponse> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const fullUrl = `${apiUrl}/api/auth/complete-profile`;
+      const apiUrl = getApiBaseUrl();
 
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${apiUrl}/api/auth/complete-profile`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Important for cookie handling
+        credentials: "include", // CRITICAL: Required for cookies
         body: JSON.stringify({
           fullName,
           phoneNumber: phoneNumber.replace(/-/g, ""), // Remove dashes
@@ -602,6 +591,76 @@ export const authService = {
             error instanceof Error
               ? error.message
               : "Failed to complete profile",
+        },
+      };
+    }
+  },
+
+  // Update user profile
+  updateProfile: async (profileData: {
+    fullName?: string;
+    phoneNumber?: string;
+    notifications?: {
+      email: boolean;
+      sms: boolean;
+    };
+  }): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/auth/update-profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // CRITICAL: Required for cookies
+        body: JSON.stringify({
+          fullName: profileData.fullName,
+          phoneNumber: profileData.phoneNumber ? profileData.phoneNumber.replace(/-/g, "") : undefined,
+          notifications: profileData.notifications,
+        }),
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: {
+            message: "Failed to update profile",
+            details: "API request failed",
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to update profile",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      // Notify UI of profile change to refresh user data
+      if (isBrowser) {
+        window.dispatchEvent(new Event("profile_updated"));
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Profile update error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to update profile",
         },
       };
     }

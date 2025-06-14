@@ -1,14 +1,16 @@
+/**
+ * Firebase Auth Context Provider
+ * Handles authentication state management with secure HTTP-only cookies
+ * All URLs must be configured via environment variables
+ */
+
 "use client";
 
-import {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-  useEffect,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "./config";
-import { authService } from "@/lib/auth";
+
+import { getApiBaseUrl } from "../env-validation";
 
 // Check if we're in the browser environment
 const isBrowser = typeof window !== "undefined";
@@ -45,7 +47,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 // Auth provider component - NON-BLOCKING with SSR protection
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   // State for user and loading status
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(false); // Start false - don't block
@@ -62,13 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Only set loading if this is not the initial check
       if (isInitialized) {
-        setIsLoading(true);
+      setIsLoading(true);
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = getApiBaseUrl();
       const response = await fetch(`${apiUrl}/api/auth/me`, {
         method: "GET",
-        credentials: "include", // Important for sending cookies
+        credentials: "include", // CRITICAL: Required for cookies
       });
 
       if (response.status === 401) {
@@ -140,6 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticated(false);
       setIsLoading(false);
       setIsInitialized(true);
+      
+      // Redirect to login on auth error (401)
+      if (isBrowser && !window.location.pathname.startsWith('/auth/')) {
+        window.location.href = '/auth/signin';
+      }
     };
 
     const handleAuthSignout = () => {
@@ -149,14 +156,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsInitialized(true);
     };
 
+    const handleProfileUpdate = async () => {
+      // Refresh user data when profile is updated
+      if (isAuthenticated) {
+        await checkAuthStatus();
+      }
+    };
+
     window.addEventListener("auth_success", handleAuthSuccess);
     window.addEventListener("auth_error", handleAuthError);
     window.addEventListener("auth_signout", handleAuthSignout);
+    window.addEventListener("profile_updated", handleProfileUpdate);
 
     // Check auth status periodically (every 5 minutes) - but don't block
     const checkInterval = setInterval(() => {
       if (isInitialized) {
-        checkAuthStatus();
+      checkAuthStatus();
       }
     }, 5 * 60 * 1000);
 
@@ -165,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("auth_success", handleAuthSuccess);
       window.removeEventListener("auth_error", handleAuthError);
       window.removeEventListener("auth_signout", handleAuthSignout);
+      window.removeEventListener("profile_updated", handleProfileUpdate);
       clearInterval(checkInterval);
     };
   }, [isInitialized]);
@@ -174,17 +190,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Call the signout endpoint to clear cookies
-      await authService.signOut();
+      const apiUrl = getApiBaseUrl();
+      
+      // Call the signout endpoint to clear the HttpOnly cookie
+      await fetch(`${apiUrl}/api/auth/signout`, {
+        method: "POST",
+        credentials: "include", // CRITICAL: Required for cookies
+      });
 
       // Update local state immediately
       setUser(null);
       setIsAuthenticated(false);
       setIsLoading(false);
 
+      // Notify UI of auth change
+      if (isBrowser) {
+        window.dispatchEvent(new Event("auth_signout"));
+      }
+
       // Force a hard redirect to the homepage after signout to reset all state
       if (isBrowser) {
-        window.location.href = "/";
+      window.location.href = "/";
       }
     } catch (error) {
       console.error("Sign out error:", error);
@@ -195,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Still redirect on error
       if (isBrowser) {
-        window.location.href = "/";
+      window.location.href = "/";
       }
     }
   };

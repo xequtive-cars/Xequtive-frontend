@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthLoadingProvider } from "@/contexts/AuthLoadingContext";
 import ReduxProvider from "@/providers/redux-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AnalyticsProvider } from "@/components/providers/analytics-provider";
@@ -44,6 +45,7 @@ export default function RootLayout({
         )}
       >
         <AuthProvider>
+          <AuthLoadingProvider>
           <ReduxProvider>
             <ThemeProvider
               attribute="class"
@@ -61,6 +63,7 @@ export default function RootLayout({
               </CookieConsentProvider>
             </ThemeProvider>
           </ReduxProvider>
+          </AuthLoadingProvider>
         </AuthProvider>
       </body>
     </html>

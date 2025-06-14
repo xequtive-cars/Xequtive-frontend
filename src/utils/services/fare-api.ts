@@ -1,9 +1,15 @@
-import {
-  FareResponse,
-  ApiResponse,
-} from "../../components/booking/common/types";
-import { Location } from "../../components/map/MapComponent";
-import { authService } from "../../lib/auth";
+/**
+ * Fare API service for handling fare calculations
+ * Uses secure HTTP-only cookies for authentication
+ * All URLs must be configured via environment variables
+ */
+
+import { VehicleOption } from "@/components/booking/common/types";
+import { Location } from "@/components/map/MapComponent";
+import { authService } from "@/lib/auth";
+import { apiClient, ApiResponse } from "@/lib/api-client";
+
+import { getApiBaseUrl } from "@/lib/env-validation";
 
 interface LocationData {
   address: string;
@@ -35,10 +41,9 @@ interface FareRequest {
   };
 }
 
-// Type for enhanced fare response from API
 type EnhancedFareResponse = ApiResponse<{ fare: FareResponse }>;
 
-// Convert Location to LocationData
+// Helper function to convert Location to LocationData
 export const locationToLocationData = (location: Location): LocationData => {
   return {
     address: location.address || "",
@@ -49,43 +54,23 @@ export const locationToLocationData = (location: Location): LocationData => {
   };
 };
 
-// Function to get fare estimate
+// Main fare estimation function
 export const getFareEstimate = async (
   initialRequest: FareRequest | Location
 ): Promise<EnhancedFareResponse> => {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    // Create a mutable copy of the request that we can modify
+    // If the request is a Location object, convert it to a FareRequest
     let request: FareRequest;
-
-    // Check if initialRequest is actually a Location object instead of a proper FareRequest
-    if (
-      initialRequest &&
-      "address" in initialRequest &&
-      "latitude" in initialRequest &&
-      "longitude" in initialRequest &&
-      !("locations" in initialRequest)
-    ) {
-      // We need to convert this Location object to a proper FareRequest
-      // This is a fix for when the frontend is passing a single Location object
-      // instead of a properly structured FareRequest
-      const pickup = initialRequest;
-
-      // Get today's date
-      const today = new Date();
-
-      // Create a properly structured request
+    if ("latitude" in initialRequest && "longitude" in initialRequest) {
+      // This is a Location object, convert it
       request = {
         locations: {
-          pickup: locationToLocationData(pickup),
-          // We need to have a dropoff - using same location for now
-          dropoff: locationToLocationData(pickup),
-          additionalStops: [],
+          pickup: locationToLocationData(initialRequest),
+          dropoff: locationToLocationData(initialRequest), // Same as pickup for now
         },
         datetime: {
-          date: today,
-          time: "12:00", // Default to noon
+          date: new Date(),
+          time: "12:00",
         },
         passengers: {
           count: 1,
@@ -99,32 +84,17 @@ export const getFareEstimate = async (
         },
       };
     } else {
-      // It's already a FareRequest
-      request = initialRequest as FareRequest;
+      request = initialRequest;
     }
 
     // Validate and format date
-    let formattedDate = "";
-    try {
-      if (request && request.datetime && request.datetime.date) {
-        const dateObj =
-          request.datetime.date instanceof Date
-            ? request.datetime.date
-            : new Date(request.datetime.date);
-
-        // Ensure valid date
-        if (isNaN(dateObj.getTime())) {
-          throw new Error("Invalid date");
-        }
-
-        // Format as YYYY-MM-DD
-        formattedDate = dateObj.toISOString().split("T")[0];
+    let formattedDate: string;
+    if (request.datetime?.date instanceof Date) {
+      formattedDate = request.datetime.date.toISOString().split("T")[0];
+    } else if (typeof request.datetime?.date === "string") {
+      formattedDate = request.datetime.date;
       } else {
-        // If no date is provided, use current date as fallback
-        formattedDate = new Date().toISOString().split("T")[0];
-      }
-    } catch {
-      // Use current date as fallback
+      // Default to today's date
       formattedDate = new Date().toISOString().split("T")[0];
     }
 
@@ -230,76 +200,57 @@ export const getFareEstimate = async (
       throw new Error("Valid coordinates are required for pickup and dropoff");
     }
 
-    // Call API with enhanced request
-    const response = await fetch(`${apiUrl}/api/fare-estimate/enhanced`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-      // Add these options to ensure our request actually goes through
-      cache: "no-store",
-      credentials: "include", // Important for cookie-based auth
-    });
-
-    // Check for 401 Unauthorized responses
-    if (response.status === 401) {
-      // Use auth service to handle the 401 error (clears auth data)
-      authService.handleAuthError(response.status);
-
-      return {
-        success: false,
-        data: { fare: createEmptyFareResponse() },
-        error: {
-          code: "AUTH_ERROR",
-          message:
-            "Your session has expired. Please sign in again to continue.",
-        },
-      };
-    }
-
-    // Parse the response text as JSON
-    let data;
+    // Use the API client for the request
     try {
-      data = await response.json();
-    } catch (parseError) {
+      const response = await apiClient.post<{ success: boolean; data: { fare: FareResponse } }>(
+        "/api/fare-estimate/enhanced",
+        payload
+      );
+
+      // The API client returns the full backend response, so we need to extract the fare data
+      if (response.success && response.data && response.data.fare) {
+        return {
+          success: true,
+          data: { fare: response.data.fare },
+        };
+      } else {
       return {
         success: false,
         data: { fare: createEmptyFareResponse() },
         error: {
-          code: "PARSE_ERROR",
+            message: "Invalid response format from server",
+        },
+      };
+    }
+    } catch (error) {
+      // Handle 401 Unauthorized responses
+      if (error instanceof Error && error.message === 'Unauthorized') {
+      return {
+        success: false,
+        data: { fare: createEmptyFareResponse() },
+        error: {
           message:
-            parseError instanceof Error
-              ? `Failed to parse server response: ${parseError.message}`
-              : "Failed to parse server response",
+              "Your session has expired. Please sign in again to continue.",
         },
       };
     }
-
-    if (!response.ok) {
-      const errorCode = data.error?.code || "UNKNOWN_ERROR";
-      const errorMessage =
-        data.error?.message || "Failed to retrieve fare estimate";
-      const errorDetails = data.error?.details || "";
 
       return {
         success: false,
         data: { fare: createEmptyFareResponse() },
         error: {
-          code: errorCode,
-          message: errorMessage,
-          details: errorDetails,
+           message:
+             error instanceof Error
+               ? error.message
+               : "Failed to retrieve fare estimate",
         },
       };
     }
-
-    return data as EnhancedFareResponse;
   } catch (error) {
     return {
       success: false,
       data: { fare: createEmptyFareResponse() },
       error: {
-        code: "API_ERROR",
         message:
           error instanceof Error
             ? error.message
@@ -323,4 +274,18 @@ function createEmptyFareResponse(): FareResponse {
     },
     notifications: [],
   };
+}
+
+// FareResponse interface
+interface FareResponse {
+  baseFare: number;
+  totalDistance: number;
+  estimatedTime: number;
+  currency: string;
+  vehicleOptions: VehicleOption[];
+  journey: {
+    distance_miles: number;
+    duration_minutes: number;
+  };
+  notifications: string[];
 }

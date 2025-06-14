@@ -6,9 +6,22 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Loading3DOverlay } from "@/components/ui/loading-3d";
+
+// Helper function to check if profile is incomplete
+function isProfileIncomplete(user: any): boolean {
+  if (!user) return false;
+  
+  // Check if name or phone is missing or empty
+  const hasName = user.displayName && user.displayName.trim() !== "";
+  const hasPhone = user.phoneNumber && user.phoneNumber.trim() !== "";
+  
+  // Profile is incomplete if either name or phone is missing
+  return !hasName || !hasPhone;
+}
 
 export default function DashboardLayout({
   children,
@@ -17,8 +30,12 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const { user, signOut, isLoading } = useAuth();
+  const { showLoading, hideLoading } = useAuthLoading();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Check if profile is incomplete
+  const profileIncomplete = isProfileIncomplete(user);
 
   // Check if the current path is a booking flow path
   const isBookingFlow = pathname?.includes("/new-booking");
@@ -26,6 +43,16 @@ export default function DashboardLayout({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (isLoading) {
+      showLoading("loading-dashboard");
+    } else {
+      hideLoading();
+    }
+  }, [isLoading, mounted, showLoading, hideLoading]);
 
   const handleSignOut = async () => {
     try {
@@ -56,11 +83,9 @@ export default function DashboardLayout({
     setDropdownOpen(!dropdownOpen);
   };
 
-  // Show loading state while auth is loading
+  // Don't render anything while loading - the unified loading will handle it
   if (!mounted || isLoading) {
-    return (
-      <Loading3DOverlay message="Loading dashboard..." />
-    );
+    return null;
   }
 
   return (
@@ -84,7 +109,7 @@ export default function DashboardLayout({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 md:h-9 px-2 md:px-3 rounded-md flex items-center gap-1 md:gap-2 shadow-premium"
+                  className="h-8 md:h-9 px-2 md:px-3 rounded-md flex items-center gap-1 md:gap-2 shadow-premium relative"
                   onClick={toggleDropdown}
                 >
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -96,6 +121,11 @@ export default function DashboardLayout({
                       "Account"}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  
+                  {/* Notification dot for incomplete profile */}
+                  {profileIncomplete && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-background"></div>
+                  )}
                 </Button>
 
                 {dropdownOpen && (
@@ -107,15 +137,24 @@ export default function DashboardLayout({
                       <p className="text-sm text-muted-foreground mt-1">
                         {user?.email}
                       </p>
+                      {profileIncomplete && (
+                        <p className="text-xs text-amber-600 mt-1 font-medium">
+                          Profile incomplete
+                        </p>
+                      )}
                     </div>
                     <div className="py-2">
                       <Link
                         href="/dashboard/profile"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors relative"
                         onClick={() => setDropdownOpen(false)}
                       >
                         <Settings className="h-4 w-4 text-muted-foreground" />
                         Account Settings
+                        {/* Notification dot for account settings */}
+                        {profileIncomplete && (
+                          <div className="w-2 h-2 bg-red-500 rounded-full ml-auto"></div>
+                        )}
                       </Link>
                       <button
                         className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"

@@ -1,9 +1,9 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Loading3DOverlay } from "@/components/ui/loading-3d";
 
 // ProtectedRoute ensures pages are only accessible to authenticated users
 // It works with middleware to provide a double layer of protection
@@ -13,6 +13,7 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading, isInitialized } = useAuth();
+  const { showLoading, hideLoading } = useAuthLoading();
   const [checked, setChecked] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
@@ -28,34 +29,29 @@ export default function ProtectedRoute({
             !isRedirecting && 
             !pathname.startsWith("/auth/")) {
           setIsRedirecting(true);
+          showLoading("redirecting");
           const returnUrl = encodeURIComponent(pathname);
           
           // Add a small delay to prevent immediate redirect loops
           setTimeout(() => {
-            router.push(`/auth/signin?returnUrl=${returnUrl}&redirecting=true`);
+          router.push(`/auth/signin?returnUrl=${returnUrl}&redirecting=true`);
           }, 100);
         }
       } else {
         // User is authenticated, mark as checked to render children
         setChecked(true);
         setIsRedirecting(false);
+        hideLoading();
       }
+    } else if (isLoading || !isInitialized) {
+      // Show checking authentication state
+      showLoading("checking");
     }
-  }, [isInitialized, isLoading, isAuthenticated, router, pathname, isRedirecting]);
+  }, [isInitialized, isLoading, isAuthenticated, router, pathname, isRedirecting, showLoading, hideLoading]);
 
-  // Show beautiful loading state while authentication is being checked or redirecting
+  // Don't render anything while loading states are active - the unified loading will handle it
   if (isLoading || !isInitialized || isRedirecting || (!checked && !isAuthenticated)) {
-    return (
-      <Loading3DOverlay 
-        message={
-          isRedirecting 
-            ? "Redirecting..." 
-            : isLoading 
-            ? "Checking authentication..." 
-            : "Loading..."
-        } 
-      />
-    );
+    return null;
   }
 
   // Only render children if authenticated and check is complete

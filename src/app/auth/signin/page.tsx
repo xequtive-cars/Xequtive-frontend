@@ -38,9 +38,10 @@ import {
   Settings,
   ChevronDown,
 } from "lucide-react";
-import { Loading3DOverlay } from "@/components/ui/loading-3d";
+import { Loading3D, Loading3DOverlay } from "@/components/ui/loading-3d";
 import { authService } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -70,7 +71,7 @@ function SignInSkeleton() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardContent className="pt-6 flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <Loading3D size="md" message="Loading sign in..." showMessage={false} />
         </CardContent>
       </Card>
     </div>
@@ -94,6 +95,7 @@ function SignInForm({
   const [showPassword, setShowPassword] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { showLoading } = useAuthLoading();
 
   // Redirect authenticated users away from auth pages
   useEffect(() => {
@@ -257,8 +259,9 @@ function SignInForm({
           return;
         }
 
-        // Show beautiful loading state before redirect
+        // Show unified loading state for redirect
         setIsRedirecting(true);
+        showLoading("redirecting");
         
         // Complete the form
         onComplete();
@@ -274,9 +277,9 @@ function SignInForm({
 
         // Add a small delay to show the beautiful loading animation and let auth context update
         setTimeout(() => {
-          // Use window.location for a hard navigation instead of router.push
-          // This ensures we reload the page and check auth status properly
-          window.location.href = returnUrl || "/dashboard";
+        // Use window.location for a hard navigation instead of router.push
+        // This ensures we reload the page and check auth status properly
+        window.location.href = returnUrl || "/dashboard";
         }, 800); // Reduced to 800ms for faster redirect
       } catch (networkError) {
         console.error("Network error during sign in:", networkError);
@@ -314,28 +317,23 @@ function SignInForm({
 
   return (
     <>
-      {/* Beautiful 3D Loading Overlay */}
-      {isRedirecting && (
-        <Loading3DOverlay message="Signing you in..." />
-      )}
-      
-      <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
-        <CardHeader className="space-y-2 pb-3">
-          <CardTitle className="text-2xl font-bold text-center">
-            {currentStep === "email" ? "Sign in to your account" : "Enter your password"}
-          </CardTitle>
-          <CardDescription className="text-center text-base">
-            {currentStep === "email" && "Enter your email to continue"}
-            {currentStep === "password" && "Verify your password to sign in"}
-          </CardDescription>
-        </CardHeader>
-      <CardContent className="px-7 pb-7 pt-3">
+    <Card className="w-full max-w-sm mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
+      <CardHeader className="space-y-1 pb-2 px-4 pt-4">
+        <CardTitle className="text-xl font-bold text-center">
+          {currentStep === "email" ? "Sign in to your account" : "Enter your password"}
+        </CardTitle>
+        <CardDescription className="text-center text-sm">
+          {currentStep === "email" && "Enter your email to continue"}
+          {currentStep === "password" && "Verify your password to sign in"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 pb-4 pt-2">
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5 mt-1" />
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5" />
             <div>
-              <p className="font-semibold">Error</p>
-              <p>{error}</p>
+              <p className="font-semibold text-sm">Error</p>
+              <p className="text-sm">{error}</p>
             </div>
           </div>
         )}
@@ -349,14 +347,14 @@ function SignInForm({
             <Form {...emailForm}>
               <form
                 onSubmit={emailForm.handleSubmit(onEmailSubmit)}
-                className="space-y-6"
+                className="space-y-4"
               >
                 <FormField
                   control={emailForm.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-base font-semibold">
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-sm font-semibold">
                         Email address
                       </FormLabel>
                       <FormControl>
@@ -365,10 +363,10 @@ function SignInForm({
                             type="email"
                             placeholder="name@example.com"
                             {...field}
-                            className="h-14 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-base font-medium tracking-wider"
+                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
                           />
-                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                            <Mail className="h-6 w-6 text-muted-foreground" />
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                       </FormControl>
@@ -379,11 +377,11 @@ function SignInForm({
 
                 <Button
                   type="submit"
-                  className="w-full h-11 text-base font-semibold"
+                  className="w-full h-9 text-sm font-semibold"
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
                     "Continue"
                   )}
@@ -398,18 +396,32 @@ function SignInForm({
             direction="forward"
             animationKey="password-step"
           >
+            {/* Back button - top left */}
+            <div className="flex justify-start mb-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="p-2 h-8 text-xs font-medium"
+                onClick={goBack}
+              >
+                <ChevronLeft className="h-3 w-3 mr-1" />
+                Back
+              </Button>
+            </div>
+            
             <Form {...passwordForm}>
               <form
                 onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
-                className="space-y-6"
+                className="space-y-4"
               >
                 <FormField
                   control={passwordForm.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
+                    <FormItem className="space-y-1">
                       <div className="flex justify-between">
-                        <FormLabel className="text-base font-semibold">
+                        <FormLabel className="text-sm font-semibold">
                           Password
                         </FormLabel>
                         <Link
@@ -425,16 +437,16 @@ function SignInForm({
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
                             {...field}
-                            className="h-14 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-2xl font-medium tracking-wider"
+                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
                           />
                           <div
-                            className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
+                            className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             {showPassword ? (
-                              <EyeOff className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                             ) : (
-                              <Eye className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
+                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                             )}
                           </div>
                         </div>
@@ -444,35 +456,24 @@ function SignInForm({
                   )}
                 />
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="sm:flex-1 h-11 text-base font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                    onClick={goBack}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="sm:flex-1 h-11 text-base font-semibold"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      "Sign in"
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-9 text-sm font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "Sign in"
+                  )}
+                </Button>
               </form>
             </Form>
           </FormTransition>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-center border-t p-4">
-        <div className="text-sm text-center">
+      <CardFooter className="flex justify-center border-t p-3">
+        <div className="text-xs text-center">
           Don&apos;t have an account?{" "}
           <Link
             href="/auth/signup"
@@ -589,10 +590,10 @@ function Navbar() {
       <div className="container flex h-20 py-5 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              <span className="font-bold text-lg">X</span>
+            <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+              <span className="font-bold text-sm md:text-lg">X</span>
             </div>
-            <span className="font-bold text-2xl tracking-tight">Xequtive</span>
+            <span className="font-bold text-lg md:text-2xl tracking-tight">Xequtive</span>
           </Link>
         </div>
         <AuthAwareNavigation />

@@ -8,7 +8,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { PhoneInput } from "@/components/ui/phone-input";
+import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { FormData } from "@/types/form";
 
@@ -21,6 +21,9 @@ export default function ContactForm() {
     if (user) {
       form.setValue("fullName", user.displayName || "");
       form.setValue("email", user.email || "");
+      if (user.phoneNumber) {
+        form.setValue("phone", user.phoneNumber);
+      }
     }
   }, [user, form]);
 
@@ -72,10 +75,16 @@ export default function ContactForm() {
             <FormItem className="space-y-2">
               <FormLabel className="text-sm">Phone Number</FormLabel>
               <FormControl>
-                <PhoneInput
-                  placeholder="Enter phone number"
-                  className="h-9 text-sm"
+                <SimplePhoneInput
                   {...field}
+                  onChange={(value) => {
+                    form.setValue('phone', value, { 
+                      shouldValidate: true,
+                      shouldDirty: true
+                    });
+                  }}
+                  error={!!form.formState.errors.phone}
+                  className="h-9 text-sm"
                 />
               </FormControl>
               <FormMessage className="text-xs" />

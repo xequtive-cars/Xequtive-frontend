@@ -1,6 +1,15 @@
+/**
+ * Booking service for handling all booking-related API calls
+ * Uses secure HTTP-only cookies for authentication
+ * All URLs must be configured via environment variables
+ */
+
 import { VehicleOption } from "@/components/booking/common/types";
 import { Location } from "@/components/map/MapComponent";
 import { format } from "date-fns";
+import { apiClient, ApiResponse } from "@/lib/api-client";
+
+import { getApiBaseUrl } from "@/lib/env-validation";
 
 // Enhanced booking interfaces - exported for documentation and future reference
 export interface BookingRequest {
@@ -217,291 +226,211 @@ export interface GetUserBookingsResponse {
   };
 }
 
+// Booking service class with updated API client usage
 class BookingService {
+  private apiUrl: string;
+
+  constructor() {
+    this.apiUrl = getApiBaseUrl();
+  }
+
   async createBooking(
     personalDetails: PersonalDetails,
     bookingDetails: BookingDetails
   ): Promise<EnhancedBookingResponse["data"]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    if (!apiUrl) {
-      throw new Error("API URL not configured");
+    try {
+      if (!bookingDetails.pickupLocation || !bookingDetails.dropoffLocation) {
+        throw new Error("Pickup and dropoff locations are required");
     }
 
-    // Make sure we're using the exact endpoint from the documentation
-    const endpoint = `${apiUrl}/api/bookings/create-enhanced`;
+      if (!bookingDetails.selectedDate) {
+        throw new Error("Date is required");
+      }
 
-    try {
-      // Normalize phone number by removing spaces and non-digit characters
-      const normalizedPhone = personalDetails.phone
-        .replace(/\s+/g, "")
-        .replace(/[^\d+]/g, "");
+      if (!bookingDetails.selectedVehicle) {
+        throw new Error("Vehicle selection is required");
+      }
 
-      // Format the request according to the API documentation
-      const requestData: BookingRequest = {
+      // Format the date properly
+      const formattedDate = format(bookingDetails.selectedDate, "yyyy-MM-dd");
+
+      // Prepare the booking request
+      const bookingRequest: BookingRequest = {
         customer: {
           fullName: personalDetails.fullName,
           email: personalDetails.email,
-          phone: normalizedPhone, // Use normalized phone number
+          phone: personalDetails.phone,
         },
         booking: {
           locations: {
             pickup: {
-              address: bookingDetails.pickupLocation?.address || "",
+              address: bookingDetails.pickupLocation.address || "",
               coordinates: {
-                lat: bookingDetails.pickupLocation?.latitude || 0,
-                lng: bookingDetails.pickupLocation?.longitude || 0,
+                lat: bookingDetails.pickupLocation.latitude,
+                lng: bookingDetails.pickupLocation.longitude,
               },
             },
             dropoff: {
-              address: bookingDetails.dropoffLocation?.address || "",
+              address: bookingDetails.dropoffLocation.address || "",
               coordinates: {
-                lat: bookingDetails.dropoffLocation?.latitude || 0,
-                lng: bookingDetails.dropoffLocation?.longitude || 0,
+                lat: bookingDetails.dropoffLocation.latitude,
+                lng: bookingDetails.dropoffLocation.longitude,
               },
             },
-            additionalStops:
-              bookingDetails.additionalStops?.map((stop) => ({
+            additionalStops: bookingDetails.additionalStops.map((stop) => ({
                 address: stop.address || "",
                 coordinates: {
-                  lat: stop.latitude || 0,
-                  lng: stop.longitude || 0,
+                lat: stop.latitude,
+                lng: stop.longitude,
                 },
-              })) || [],
+            })),
           },
           datetime: {
-            date: bookingDetails.selectedDate
-              ? format(bookingDetails.selectedDate, "yyyy-MM-dd")
-              : "",
-            time: bookingDetails.selectedTime || "",
+            date: formattedDate,
+            time: bookingDetails.selectedTime,
           },
           passengers: {
-            count: bookingDetails.passengers || 1,
-            checkedLuggage: bookingDetails.checkedLuggage || 0,
-            mediumLuggage: bookingDetails.mediumLuggage || 0,
-            handLuggage: bookingDetails.handLuggage || 0,
-            babySeat: bookingDetails.babySeat || 0,
-            childSeat: bookingDetails.childSeat || 0,
-            boosterSeat: bookingDetails.boosterSeat || 0,
-            wheelchair: bookingDetails.wheelchair || 0,
+            count: bookingDetails.passengers,
+            checkedLuggage: bookingDetails.checkedLuggage,
+            mediumLuggage: bookingDetails.mediumLuggage,
+            handLuggage: bookingDetails.handLuggage,
+            babySeat: bookingDetails.babySeat,
+            childSeat: bookingDetails.childSeat,
+            boosterSeat: bookingDetails.boosterSeat,
+            wheelchair: bookingDetails.wheelchair,
           },
           vehicle: {
-            id: bookingDetails.selectedVehicle?.id || "",
-            name: bookingDetails.selectedVehicle?.name || "",
+            id: bookingDetails.selectedVehicle.id,
+            name: bookingDetails.selectedVehicle.name,
           },
-          specialRequests: personalDetails.specialRequests || "",
+          specialRequests: personalDetails.specialRequests,
         },
       };
 
-      // Make the API request
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Use cookies for authentication
-        body: JSON.stringify(requestData),
-      });
+      console.log("Creating booking with request:", bookingRequest);
 
-      // Handle 401 unauthorized response
-      if (response.status === 401) {
-        throw new Error("Authentication required");
+      // Use the API client for the request
+      const response = await apiClient.post<EnhancedBookingResponse>(
+        "/api/bookings",
+        bookingRequest
+      );
+
+      if (!response.success) {
+        throw new Error(response.error?.message || "Failed to create booking");
       }
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error(
-          "Booking creation failed:",
-          data.error?.message || response.statusText
-        );
-
-        // Handle rate limiting errors specifically
-        if (response.status === 429) {
-          console.error("Rate limit exceeded:", data.error?.message);
-          throw new Error(
-            data.error?.message || "Too many requests, please try again later"
-          );
-        }
-
-        // Extract detailed error information from the API response
-        if (data.error) {
-          const message = data.error.message || "Failed to create booking";
-          const details = data.error.details ? `: ${data.error.details}` : "";
-          throw new Error(`${message}${details}`);
-        }
-
-        throw new Error(response.statusText || "Failed to create booking");
-      }
-
-      // Add notification handling for any important messages returned with the booking
-      if (data.data.notifications && data.data.notifications.length > 0) {
-        // You could store these notifications in state or display them to the user
-      }
-
-      return data.data;
+      return response.data;
     } catch (error) {
       console.error("Error creating booking:", error);
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "An error occurred while creating your booking"
-      );
+      throw error;
     }
   }
 
-  // Get all user bookings with optional status filtering
   async getUserBookings(
     statusFilter?: string
   ): Promise<GetUserBookingsResponse> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    if (!apiUrl) {
-      throw new Error("API URL not configured");
-    }
-
     try {
-      // Construct the URL with optional status filter
-      let url = `${apiUrl}/api/bookings/user`;
+      let endpoint = "/api/bookings/user";
       if (statusFilter) {
-        url += `?status=${encodeURIComponent(statusFilter)}`;
+        endpoint += `?status=${encodeURIComponent(statusFilter)}`;
       }
 
-      const response = await fetch(url, {
-        credentials: "include", // Use cookies for authentication
-      });
+      // Use the API client for the request
+      const response = await apiClient.get<GetUserBookingsResponse>(endpoint);
 
-      // Handle 401 unauthorized response
-      if (response.status === 401) {
-        throw new Error("Authentication required");
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle rate limiting errors specifically
-        if (response.status === 429) {
-          console.error("Rate limit exceeded:", data.error?.message);
-          throw new Error(
-            data.error?.message || "Too many requests, please try again later"
-          );
-        }
-
-        throw new Error(data.error?.message || "Failed to fetch user bookings");
-      }
-
-      return data;
+      return response;
     } catch (error) {
-      console.error("Error getting user bookings:", error);
-      throw new Error(
+      console.error("Error fetching user bookings:", error);
+      return {
+        success: false,
+        data: [],
+        error: {
+          code: "FETCH_ERROR",
+          message:
         error instanceof Error
           ? error.message
-          : "An error occurred while fetching your bookings"
-      );
+              : "Failed to fetch bookings",
+        },
+      };
     }
   }
 
-  /**
-   * @deprecated Use getUserBookings() instead
-   */
   async getActiveBookings(): Promise<ActiveBookingsResponse> {
-    console.warn("This method is deprecated. Use getUserBookings() instead.");
-    return this.getUserBookings(
-      "pending,confirmed"
-    ) as Promise<ActiveBookingsResponse>;
+    try {
+      // Use the API client for the request
+      const response = await apiClient.get<ActiveBookingsResponse>(
+        "/api/bookings/active"
+      );
+
+      return response;
+    } catch (error) {
+      console.error("Error fetching active bookings:", error);
+      throw error;
+    }
   }
 
-  /**
-   * @deprecated Use getUserBookings() instead
-   */
   async getBookingHistory(): Promise<BookingHistoryResponse> {
-    console.warn("This method is deprecated. Use getUserBookings() instead.");
-    return this.getUserBookings(
-      "assigned,in_progress,completed,cancelled,declined,no_show"
-    ) as Promise<BookingHistoryResponse>;
+    try {
+      // Use the API client for the request
+      const response = await apiClient.get<BookingHistoryResponse>(
+        "/api/bookings/history"
+      );
+
+      return response;
+    } catch (error) {
+      console.error("Error fetching booking history:", error);
+      throw error;
+    }
   }
 
-  // Cancel a booking
   async cancelBooking(
     bookingId: string,
     reason: string = "Cancelled by user"
   ): Promise<CancelBookingResponse> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    if (!apiUrl) {
-      throw new Error("API URL not configured");
-    }
-
     try {
-      // Ensure we're using the correct URL format with /api prefix
-      // If NEXT_PUBLIC_API_URL doesn't include /api, we need to add it
-      const url = `${apiUrl}/api/bookings/user/bookings/${bookingId}/cancel`;
+      // Use the API client for the request
+      const response = await apiClient.post<CancelBookingResponse>(
+        `/api/bookings/${bookingId}/cancel`,
+        { reason }
+      );
 
-      const body = JSON.stringify({ cancellationReason: reason });
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Use cookies for authentication
-        body,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error(
-          "Booking cancellation failed:",
-          data.error?.message || response.statusText
-        );
-
-        // Handle rate limiting errors specifically
-        if (response.status === 429) {
-          console.error("Rate limit exceeded:", data.error?.message);
-          throw new Error(
-            data.error?.message || "Too many requests, please try again later"
-          );
-        }
-
-        // Handle 404 errors specifically
-        if (response.status === 404) {
-          throw new Error(
-            "The booking could not be found or the cancellation endpoint is unavailable. Please refresh and try again."
-          );
-        }
-
-        // Extract detailed error information from the API response
-        if (data.error) {
-          const message = data.error.message || "Failed to cancel booking";
-          const details = data.error.details ? `: ${data.error.details}` : "";
-          throw new Error(`${message}${details}`);
-        }
-
-        throw new Error(response.statusText || "Failed to cancel booking");
-      }
-
-      return data;
+      return response;
     } catch (error) {
       console.error("Error cancelling booking:", error);
-
-      // Check for specific SyntaxError that indicates HTML response
-      if (
-        error instanceof SyntaxError &&
-        error.message.includes("Unexpected token")
-      ) {
-        throw new Error(
-          "Received invalid response from server. The cancellation service may be unavailable."
-        );
-      }
-
-      throw new Error(
+      return {
+        success: false,
+        error: {
+          code: "CANCEL_ERROR",
+          message:
         error instanceof Error
           ? error.message
-          : "An error occurred while cancelling your booking"
-      );
+              : "Failed to cancel booking",
+        },
+      };
     }
+  }
+
+  // Legacy methods for backward compatibility - now using the unified getUserBookings
+  async getActiveBookingsLegacy(): Promise<ActiveBookingsResponse> {
+    const response = await this.getUserBookings("pending,confirmed");
+    return {
+      success: response.success,
+      data: response.data,
+      error: response.error,
+    };
+  }
+
+  async getBookingHistoryLegacy(): Promise<BookingHistoryResponse> {
+    const response = await this.getUserBookings(
+      "assigned,in_progress,completed,cancelled,declined,no_show"
+      );
+    return {
+      success: response.success,
+      data: response.data,
+      error: response.error,
+    };
   }
 }
 
+// Create and export a singleton instance
 export const bookingService = new BookingService();
