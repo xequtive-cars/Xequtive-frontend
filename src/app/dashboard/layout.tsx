@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Loading3DOverlay } from "@/components/ui/loading-3d";
 
 export default function DashboardLayout({
   children,
@@ -58,12 +59,7 @@ export default function DashboardLayout({
   // Show loading state while auth is loading
   if (!mounted || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
+      <Loading3DOverlay message="Loading dashboard..." />
     );
   }
 

@@ -25,6 +25,7 @@ import {
   BookOpen,
   UserCheck,
 } from "lucide-react";
+import { Loading3D } from "@/components/ui/loading-3d";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,10 +130,7 @@ export default function ProfilePage() {
   if (!mounted || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-6rem)] space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">
-          Loading your profile...
-        </p>
+        <Loading3D size="lg" message="Loading your profile..." />
       </div>
     );
   }
@@ -381,7 +379,7 @@ export default function ProfilePage() {
                               >
                                 {isSaving ? (
                                   <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                                     Saving...
                                   </>
                                 ) : (

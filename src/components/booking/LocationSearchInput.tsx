@@ -74,7 +74,7 @@ export function LocationSearchInput({
         />
         {isLoading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>

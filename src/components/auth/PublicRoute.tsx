@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { Loading3DOverlay } from "@/components/ui/loading-3d";
 
 // PublicRoute is for auth pages that should not be accessible when logged in
 // It works with the middleware to ensure users are redirected properly
@@ -36,9 +37,7 @@ export default function PublicRoute({
   // Show loading state while authentication is being checked
   if (isLoading || (!checked && isAuthenticated)) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <Loading3DOverlay message="Checking authentication..." />
     );
   }
 

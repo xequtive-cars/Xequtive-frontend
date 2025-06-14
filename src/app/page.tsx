@@ -13,79 +13,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   CheckCircle2,
   ChevronRight,
   Shield,
   Clock,
   Map,
-  LogOut,
-  User,
-  ChevronDown,
-  Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HeroSection } from "@/components/home/HeroSection";
+import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
 
 function HomeContent() {
-  const { isAuthenticated, signOut, user, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Refresh auth state when component mounts or route changes
+  // Set mounted state for hydration
   useEffect(() => {
     setMounted(true);
   }, [pathname]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setDropdownOpen(false);
-    };
-
-    if (dropdownOpen) {
-      document.addEventListener("click", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [dropdownOpen]);
-
-  const toggleDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the document click from immediately closing the dropdown
-    setDropdownOpen(!dropdownOpen);
-  };
-
-  // Show loading/not-mounted state
-  if (!mounted || isLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                  <span className="font-bold text-lg">X</span>
-                </div>
-                <span className="font-bold text-2xl tracking-tight">
-                  Xequtive
-                </span>
-              </Link>
-            </div>
-            <nav className="flex items-center gap-5">
-              <ThemeToggle />
-              <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>
-              <div className="w-16 h-10 bg-muted animate-pulse rounded"></div>
-            </nav>
-          </div>
-        </header>
-      </div>
-    );
-  }
-
+  // Render immediately - no more blocking on auth state!
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -100,83 +49,8 @@ function HomeContent() {
               </span>
             </Link>
           </div>
-          <nav className="flex items-center gap-5">
-            <ThemeToggle />
-
-            {isAuthenticated ? (
-              // User profile dropdown
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 md:h-10 px-2 md:px-4 rounded-md flex items-center gap-1 md:gap-2"
-                  onClick={toggleDropdown}
-                >
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <User className="h-4 w-4" />
-                  </div>
-                  <span className="font-medium text-sm hidden md:block">
-                    {user?.displayName ||
-                      user?.email?.split("@")[0] ||
-                      "Account"}
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-background border border-border z-50">
-                    <div className="p-4 border-b border-border">
-                      <p className="font-medium">
-                        {user?.displayName || "User"}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {user?.email}
-                      </p>
-                    </div>
-                    <div className="py-2">
-                      <Link
-                        href="/dashboard/profile"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <Settings className="h-4 w-4 text-muted-foreground" />
-                        Account Settings
-                      </Link>
-                      <button
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"
-                        onClick={() => {
-                          signOut();
-                          setDropdownOpen(false);
-                        }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              // Show sign in/up for unauthenticated users
-              <>
-                <Link
-                  href="/auth/signin"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link href="/auth/signup">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-10 px-4 rounded-md"
-                  >
-                    Sign Up
-                  </Button>
-                </Link>
-              </>
-            )}
-          </nav>
+          {/* Only the navigation is auth-aware, everything else renders immediately */}
+          <AuthAwareNavigation />
         </div>
       </header>
 
@@ -531,7 +405,6 @@ export default function Home() {
                 </Link>
               </div>
               <nav className="flex items-center gap-5">
-                <ThemeToggle />
                 <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>
                 <div className="w-16 h-10 bg-muted animate-pulse rounded"></div>
               </nav>

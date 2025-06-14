@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
+import { Loading3DOverlay } from "@/components/ui/loading-3d";
 
 // Skeleton loading component
 function AuthCallbackSkeleton() {
   return (
     <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
       <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-12 w-12 text-primary animate-spin" />
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-lg font-medium">Completing sign in...</p>
       </div>
     </div>
@@ -21,16 +22,19 @@ function AuthCallbackSkeleton() {
 
 // Client component for authentication callback
 function AuthCallbackContent({ 
-  searchParams 
+  searchParamsPromise 
 }: { 
-  searchParams: { 
+  searchParamsPromise: Promise<{ 
     code?: string, 
     error?: string 
-  } 
+  }>
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
+  
+  // Use React.use() to unwrap the searchParams promise
+  const searchParams = use(searchParamsPromise);
 
   useEffect(() => {
     const code = searchParams.code;
@@ -63,10 +67,10 @@ function AuthCallbackContent({
         const userData = response.data;
         if (userData && !userData.phoneNumber) {
           // Redirect to profile completion
-          router.push("/auth/complete-profile");
+          setTimeout(() => router.push("/auth/complete-profile"), 1000);
         } else {
           // Redirect to dashboard
-          router.push("/dashboard");
+          setTimeout(() => router.push("/dashboard"), 1000);
         }
       } catch (err) {
         console.error("Error processing authentication callback:", err);
@@ -83,15 +87,15 @@ function AuthCallbackContent({
   }, [router, searchParams]);
 
   return (
-    <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto shadow-md border border-border/30">
-        <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-[200px]">
-          {isProcessing ? (
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="h-12 w-12 text-primary animate-spin" />
-              <p className="text-lg font-medium">Completing sign in...</p>
-            </div>
-          ) : error ? (
+    <>
+      {isProcessing && (
+        <Loading3DOverlay message="Completing sign in..." />
+      )}
+      
+      <div className="flex min-h-screen bg-background flex-col items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto shadow-md border border-border/30">
+          <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-[200px]">
+            {!isProcessing && error ? (
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="rounded-full bg-destructive/10 p-3">
                 <svg
@@ -126,6 +130,7 @@ function AuthCallbackContent({
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
 
@@ -133,14 +138,14 @@ function AuthCallbackContent({
 export default function AuthCallbackPage({ 
   searchParams 
 }: { 
-  searchParams: { 
+  searchParams: Promise<{ 
     code?: string, 
     error?: string 
-  } 
+  }>
 }) {
   return (
     <Suspense fallback={<AuthCallbackSkeleton />}>
-      <AuthCallbackContent searchParams={searchParams} />
+      <AuthCallbackContent searchParamsPromise={searchParams} />
     </Suspense>
   );
 }

@@ -16,6 +16,7 @@ const defaultOptions: RequestInit = {
   headers: {
     "Content-Type": "application/json",
   },
+  credentials: "include",
 };
 
 // API response type definition
@@ -70,6 +71,7 @@ export const apiService = {
       ...defaultOptions,
       ...customOptions,
       method,
+      credentials: "include",
       headers: {
         ...defaultOptions.headers,
         ...(customOptions?.headers || {}),

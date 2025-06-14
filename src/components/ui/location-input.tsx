@@ -270,7 +270,7 @@ export function LocationInput({
       {/* Loading indicator */}
       {isLoading && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 

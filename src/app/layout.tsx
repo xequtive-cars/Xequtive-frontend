@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description: "Luxury transportation services for executives",
 };
 
+// Force dynamic rendering to avoid React 19 SSR useContext bug
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {

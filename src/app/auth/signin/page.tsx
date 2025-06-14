@@ -38,6 +38,7 @@ import {
   Settings,
   ChevronDown,
 } from "lucide-react";
+import { Loading3DOverlay } from "@/components/ui/loading-3d";
 import { authService } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import FormTransition from "@/components/auth/FormTransition";
@@ -45,6 +46,7 @@ import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import PublicRoute from "@/components/auth/PublicRoute";
 import { StepProgressBar } from "@/components/auth/StepProgressBar";
+import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
 
 // Step 1: Email form schema
 const emailSchema = z.object({
@@ -68,7 +70,7 @@ function SignInSkeleton() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardContent className="pt-6 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </CardContent>
       </Card>
     </div>
@@ -90,6 +92,7 @@ function SignInForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { isAuthenticated } = useAuth();
 
   // Redirect authenticated users away from auth pages
@@ -254,18 +257,27 @@ function SignInForm({
           return;
         }
 
+        // Show beautiful loading state before redirect
+        setIsRedirecting(true);
+        
+        // Complete the form
+        onComplete();
+
+        // Immediately trigger auth success event to update context
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth_success"));
+        }
+
         // Check for return URL in the query string
         const searchParams = new URLSearchParams(window.location.search);
         const returnUrl = searchParams.get("returnUrl");
 
-        // Use window.location for a hard navigation instead of router.push
-        // This ensures we reload the page and check auth status properly
-        window.location.href = returnUrl || "/dashboard";
-
-        // Complete the form before navigation
-        onComplete();
-
-        // Don't set isLoading to false since we're reloading the page
+        // Add a small delay to show the beautiful loading animation and let auth context update
+        setTimeout(() => {
+          // Use window.location for a hard navigation instead of router.push
+          // This ensures we reload the page and check auth status properly
+          window.location.href = returnUrl || "/dashboard";
+        }, 800); // Reduced to 800ms for faster redirect
       } catch (networkError) {
         console.error("Network error during sign in:", networkError);
         setError(
@@ -301,16 +313,22 @@ function SignInForm({
   );
 
   return (
-    <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
-      <CardHeader className="space-y-2 pb-3">
-        <CardTitle className="text-2xl font-bold text-center">
-          {currentStep === "email" ? "Sign in to your account" : "Enter your password"}
-        </CardTitle>
-        <CardDescription className="text-center text-base">
-          {currentStep === "email" && "Enter your email to continue"}
-          {currentStep === "password" && "Verify your password to sign in"}
-        </CardDescription>
-      </CardHeader>
+    <>
+      {/* Beautiful 3D Loading Overlay */}
+      {isRedirecting && (
+        <Loading3DOverlay message="Signing you in..." />
+      )}
+      
+      <Card className="w-[110%] max-w-[28rem] mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
+        <CardHeader className="space-y-2 pb-3">
+          <CardTitle className="text-2xl font-bold text-center">
+            {currentStep === "email" ? "Sign in to your account" : "Enter your password"}
+          </CardTitle>
+          <CardDescription className="text-center text-base">
+            {currentStep === "email" && "Enter your email to continue"}
+            {currentStep === "password" && "Verify your password to sign in"}
+          </CardDescription>
+        </CardHeader>
       <CardContent className="px-7 pb-7 pt-3">
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3 text-destructive">
@@ -365,7 +383,7 @@ function SignInForm({
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
                     "Continue"
                   )}
@@ -442,7 +460,7 @@ function SignInForm({
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     ) : (
                       "Sign in"
                     )}
@@ -465,6 +483,7 @@ function SignInForm({
         </div>
       </CardFooter>
     </Card>
+    </>
   );
 }
 
@@ -563,31 +582,8 @@ export default function SigninPage({
     </PublicRoute>
   );
 }
-// Add this function to render the navbar
+// Simplified navbar using the reusable AuthAwareNavigation component
 function Navbar() {
-  const { user, signOut, isAuthenticated } = useAuth();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  const toggleDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDropdownOpen(!dropdownOpen);
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setDropdownOpen(false);
-    };
-
-    if (dropdownOpen) {
-      document.addEventListener("click", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [dropdownOpen]);
-
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container flex h-20 py-5 items-center justify-between">
@@ -599,76 +595,7 @@ function Navbar() {
             <span className="font-bold text-2xl tracking-tight">Xequtive</span>
           </Link>
         </div>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          {isAuthenticated ? (
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 md:h-9 px-2 md:px-3 rounded-md flex items-center gap-1 md:gap-2 shadow-premium"
-                onClick={toggleDropdown}
-              >
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <User className="h-3.5 w-3.5" />
-                </div>
-                <span className="font-medium text-xs hidden md:block">
-                  {user?.displayName || user?.email?.split("@")[0] || "Account"}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-background border border-border z-50">
-                  <div className="p-4 border-b border-border">
-                    <p className="font-medium">{user?.displayName || "User"}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {user?.email}
-                    </p>
-                  </div>
-                  <div className="py-2">
-                    <Link
-                      href="/dashboard/profile"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      Account Settings
-                    </Link>
-                    <button
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"
-                      onClick={() => {
-                        signOut();
-                        setDropdownOpen(false);
-                      }}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <Link
-                href="/auth/signin"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link href="/auth/signup">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-10 px-4 rounded-md"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-            </>
-          )}
-        </div>
+        <AuthAwareNavigation />
       </div>
     </header>
   );

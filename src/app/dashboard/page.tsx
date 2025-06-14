@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Clock, Car, RefreshCw } from "lucide-react";
+import { Loading3D } from "@/components/ui/loading-3d";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import BookingCard from "@/components/booking/BookingCard";
 import { useEffect, useState, useCallback } from "react";
@@ -265,10 +266,7 @@ export default function DashboardPage() {
 
               {loadingActive ? (
                 <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground mt-2">
-                    Loading your bookings...
-                  </p>
+                  <Loading3D size="md" message="Loading your bookings..." />
                 </div>
               ) : activeBookings.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -324,10 +322,7 @@ export default function DashboardPage() {
 
               {loadingHistory ? (
                 <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground mt-2">
-                    Loading your booking history...
-                  </p>
+                  <Loading3D size="md" message="Loading your booking history..." />
                 </div>
               ) : historyBookings.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -382,10 +377,7 @@ export default function DashboardPage() {
 
               {loadingCancelled ? (
                 <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground mt-2">
-                    Loading your cancelled bookings...
-                  </p>
+                  <Loading3D size="md" message="Loading your cancelled bookings..." />
                 </div>
               ) : cancelledBookings.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

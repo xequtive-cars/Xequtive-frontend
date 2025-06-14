@@ -68,12 +68,12 @@ export default function CompleteProfilePage() {
           </div>
         </header>
 
-        <Suspense
-          fallback={
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          }
+                  <Suspense
+            fallback={
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            }
         >
           <CompleteProfileContent />
         </Suspense>
@@ -171,7 +171,7 @@ function CompleteProfileContent() {
         <CardContent className="px-7 pb-7 pt-3">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               <p className="mt-4 text-sm text-muted-foreground">
                 Loading user profile...
               </p>
@@ -244,7 +244,7 @@ function CompleteProfileContent() {
                   disabled={form.formState.isSubmitting}
                 >
                   {form.formState.isSubmitting ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
                     "Complete Profile"
                   )}

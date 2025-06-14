@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { RefreshCw, Car } from "lucide-react";
+import { Loading3D } from "@/components/ui/loading-3d";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import BookingCard from "@/components/booking/BookingCard";
 import { useEffect, useState, useCallback } from "react";
@@ -142,10 +143,7 @@ export default function ActiveBookingsPage() {
         <div className="space-y-4">
           {loadingActive ? (
             <div className="text-center py-8">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground mt-2">
-                Loading your bookings...
-              </p>
+              <Loading3D size="md" message="Loading your bookings..." />
             </div>
           ) : activeBookings.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
