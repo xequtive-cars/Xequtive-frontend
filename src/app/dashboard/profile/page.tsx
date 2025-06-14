@@ -63,6 +63,7 @@ export default function ProfilePage() {
   // Load user data when available and trigger refresh on profile_updated events
   useEffect(() => {
     if (user) {
+      console.log("📱 Profile Load - Retrieved user phone number:", user.phoneNumber);
       setFormData((prevData) => ({
         ...prevData,
         fullName: user.displayName || "",
@@ -115,6 +116,8 @@ export default function ProfilePage() {
     setIsSaving(true);
 
     try {
+      console.log("📱 Profile Update - Sending phone number:", formData.phoneNumber);
+      
       // Call the auth service to update the user profile
       const response = await authService.updateProfile({
         fullName: formData.fullName,
@@ -135,7 +138,7 @@ export default function ProfilePage() {
     toast.success("Profile updated successfully");
     setIsEditing(false);
       
-      // Trigger a refresh of user data in the auth context
+      // Trigger a refresh of user data in the auth context with force
       window.dispatchEvent(new Event("profile_updated"));
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -374,7 +377,8 @@ export default function ProfilePage() {
                               </p>
                             </div>
                           )}
-                          <div className="grid grid-cols-1 gap-2 md:gap-5">
+                          {/* Mobile: Stack fields vertically, Desktop: Show in one row */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
                             <div className="space-y-1 md:space-y-2">
                               <Label
                                 htmlFor="fullName"
@@ -392,6 +396,7 @@ export default function ProfilePage() {
                                 className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm"
                               />
                             </div>
+                            
                             <div className="space-y-1 md:space-y-2">
                               <Label
                                 htmlFor="email"
@@ -409,11 +414,12 @@ export default function ProfilePage() {
                                 disabled={true} // Email cannot be edited
                                 className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm"
                               />
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground md:hidden">
                                 Email cannot be changed directly. Contact
                                 support for assistance.
                               </p>
                             </div>
+                            
                             <div className="space-y-1 md:space-y-2">
                               <Label
                                 htmlFor="phoneNumber"
@@ -425,9 +431,16 @@ export default function ProfilePage() {
                                 value={formData.phoneNumber}
                                 onChange={handlePhoneChange}
                                 disabled={!isEditing || isSaving}
-                                className="transition-all duration-300 h-8 md:h-12"
+                                className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm [&_input]:text-xs [&_input]:md:text-sm [&_input]:font-mono [&_input]:tracking-wide"
                               />
                             </div>
+                          </div>
+                          
+                          {/* Desktop: Show email help text below the grid */}
+                          <div className="hidden md:block">
+                            <p className="text-xs text-muted-foreground">
+                              Email cannot be changed directly. Contact support for assistance.
+                            </p>
                           </div>
 
                           {isEditing && (

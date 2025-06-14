@@ -30,9 +30,9 @@ export function middleware(request: NextRequest) {
   // Case 1: Protect dashboard routes from unauthenticated users
   if (protectedRoutes.some((route) => path.startsWith(route))) {
     if (!isAuthenticated) {
-      // Check if we're already in the process of redirecting
+      // Check if we're already in the process of redirecting or already on signin
       const isRedirecting = request.nextUrl.searchParams.get("redirecting");
-      if (isRedirecting) {
+      if (isRedirecting || path.startsWith("/auth/")) {
         // Avoid infinite redirect loop
         return NextResponse.next();
       }
@@ -40,7 +40,6 @@ export function middleware(request: NextRequest) {
       // User is not authenticated, redirect to signin
       const url = new URL("/auth/signin", request.url);
       url.searchParams.set("returnUrl", path);
-      url.searchParams.set("redirecting", "true");
       return NextResponse.redirect(url);
     }
   }
@@ -48,16 +47,15 @@ export function middleware(request: NextRequest) {
   // Case 2: Redirect authenticated users away from auth pages
   if (publicAuthRoutes.some((route) => path === route)) {
     if (isAuthenticated) {
-      // Check if we're already in the process of redirecting
+      // Check if we're already in the process of redirecting or already on dashboard
       const isRedirecting = request.nextUrl.searchParams.get("redirecting");
-      if (isRedirecting) {
+      if (isRedirecting || path.startsWith("/dashboard")) {
         // Avoid infinite redirect loop
         return NextResponse.next();
       }
 
       // User is authenticated, redirect to dashboard
       const url = new URL("/dashboard", request.url);
-      url.searchParams.set("redirecting", "true");
       return NextResponse.redirect(url);
     }
   }

@@ -66,6 +66,20 @@ export function SimplePhoneInput({
     countryCodeService.getDefaultCountryCode()
   );
 
+  // Initialize country code from value if provided
+  React.useEffect(() => {
+    if (value && !isTouched) {
+      // Try to detect country from the provided value
+      const allCountries = countryCodeService.getAllCountryCodes();
+      const detectedCountry = allCountries.find(country => 
+        value.startsWith(country.dialCode)
+      );
+      if (detectedCountry) {
+        setSelectedCountry(detectedCountry);
+      }
+    }
+  }, [value, isTouched]);
+
   // Dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -255,6 +269,7 @@ export function SimplePhoneInput({
           type="tel"
           value={displayValue}
           onChange={(e) => {
+            setIsTouched(true); // Mark as touched when user interacts
             const formattedValue = formatPhoneNumber(e.target.value);
 
             // Always store with selected country's dial code prefix
@@ -269,7 +284,8 @@ export function SimplePhoneInput({
           className={cn(
             "flex-1 h-full w-full border-none rounded-none pl-4 pr-12",
             "focus-visible:ring-0 focus-visible:ring-offset-0",
-            "text-xs md:text-base lg:text-xl font-medium tracking-wider"
+            "text-sm font-mono tracking-wide", // Smaller text, monospace font for numbers
+            error ? "text-destructive" : ""
           )}
           placeholder={countryFormat.placeholder}
           maxLength={countryFormat.maxLength}

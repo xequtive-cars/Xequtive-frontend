@@ -616,7 +616,7 @@ export const authService = {
         credentials: "include", // CRITICAL: Required for cookies
         body: JSON.stringify({
           fullName: profileData.fullName,
-          phoneNumber: profileData.phoneNumber ? profileData.phoneNumber.replace(/-/g, "") : undefined,
+          phoneNumber: profileData.phoneNumber ? profileData.phoneNumber.replace(/[-\s]/g, "") : undefined,
           notifications: profileData.notifications,
         }),
       });

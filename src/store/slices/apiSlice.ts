@@ -93,7 +93,12 @@ export const calculateFare = createAsyncThunk<
       passengers: {
         count: passengers || 1,
         checkedLuggage: checkedLuggage || 0,
+        mediumLuggage: 0,
         handLuggage: handLuggage || 0,
+        babySeat: 0,
+        childSeat: 0,
+        boosterSeat: 0,
+        wheelchair: 0,
       },
     };
 
@@ -107,6 +112,9 @@ export const calculateFare = createAsyncThunk<
     }
 
     // Return the fare data
+    if (!response.data?.fare) {
+      return rejectWithValue("No fare data received from server");
+    }
     return response.data.fare;
   } catch (error) {
     if (error instanceof Error) {
@@ -180,7 +188,12 @@ export const submitBooking = createAsyncThunk<
           selectedTime,
           passengers,
           checkedLuggage,
+          mediumLuggage: 0,
           handLuggage,
+          babySeat: 0,
+          childSeat: 0,
+          boosterSeat: 0,
+          wheelchair: 0,
           selectedVehicle,
         }
       );

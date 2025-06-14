@@ -127,10 +127,17 @@ function SignUpForm({
     prevStepRef.current = currentStep;
   }, [currentStep, onStepChange]);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but prevent loops)
   useEffect(() => {
     if (isAuthenticated) {
-      window.location.href = "/dashboard";
+      // Check if we're already in a redirect process to prevent loops
+      const searchParams = new URLSearchParams(window.location.search);
+      const isRedirecting = searchParams.get("redirecting");
+      
+      if (!isRedirecting) {
+        console.log("🔄 SignUpForm - User already authenticated, redirecting to dashboard");
+        window.location.href = "/dashboard";
+      }
     }
   }, [isAuthenticated]);
 

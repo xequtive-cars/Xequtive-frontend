@@ -97,11 +97,18 @@ function SignInForm({
   const { isAuthenticated } = useAuth();
   const { showLoading } = useAuthLoading();
 
-  // Redirect authenticated users away from auth pages
+  // Redirect authenticated users away from auth pages (but prevent loops)
   useEffect(() => {
     if (isAuthenticated) {
-      // Use window.location for consistent auth redirection pattern
-      window.location.href = "/dashboard";
+      // Check if we're already in a redirect process to prevent loops
+      const searchParams = new URLSearchParams(window.location.search);
+      const isRedirecting = searchParams.get("redirecting");
+      
+      if (!isRedirecting) {
+        console.log("🔄 SignInForm - User already authenticated, redirecting to dashboard");
+        // Use window.location for consistent auth redirection pattern
+        window.location.href = "/dashboard";
+      }
     }
   }, [isAuthenticated]);
 

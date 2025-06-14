@@ -20,9 +20,12 @@ export default function ProtectedRoute({
   const pathname = usePathname();
 
   useEffect(() => {
+    console.log("🛡️ ProtectedRoute - Auth state:", { isInitialized, isLoading, isAuthenticated, pathname });
+    
     // Only perform the check once auth is initialized and not loading
     if (isInitialized && !isLoading) {
       if (!isAuthenticated) {
+        console.log("🛡️ ProtectedRoute - User not authenticated, redirecting to signin");
         // User is not authenticated, redirect to sign in
         // Store the current path to redirect back after login
         if (!pathname.includes("?redirecting=true") && 
@@ -38,12 +41,14 @@ export default function ProtectedRoute({
           }, 100);
         }
       } else {
+        console.log("🛡️ ProtectedRoute - User authenticated, allowing access");
         // User is authenticated, mark as checked to render children
         setChecked(true);
         setIsRedirecting(false);
         hideLoading();
       }
     } else if (isLoading || !isInitialized) {
+      console.log("🛡️ ProtectedRoute - Still loading or not initialized");
       // Show checking authentication state
       showLoading("checking");
     }
