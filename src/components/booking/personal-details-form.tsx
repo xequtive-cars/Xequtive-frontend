@@ -153,10 +153,7 @@ export function PersonalDetailsForm({
   // Add useEffect to track form validity
   useEffect(() => {
     // Check form validity and notify parent component
-    const { isValid, errors } = form.formState;
-
-    console.log("Form Validity:", isValid);
-    console.log("Form Errors:", errors);
+    const { isValid } = form.formState;
 
     // Explicitly check required fields
     const requiredFieldsFilled =
@@ -164,8 +161,6 @@ export function PersonalDetailsForm({
       !!form.getValues("email") &&
       !!form.getValues("phone") &&
       form.getValues("termsAgreed") === true;
-
-    console.log("Required Fields Filled:", requiredFieldsFilled);
 
     onFormValidityChange?.(isValid && requiredFieldsFilled);
   }, [
@@ -186,9 +181,7 @@ export function PersonalDetailsForm({
       e.stopPropagation();
     }
 
-    console.log("Submit Form Called - Full Data:", data);
-    console.log("✈️ Flight Information from form:", data.flightInformation);
-    console.log("🚂 Train Information from form:", data.trainInformation);
+
 
     const { fullName, email, phone, specialRequests, termsAgreed, flightInformation, trainInformation } = data;
 
@@ -223,9 +216,7 @@ export function PersonalDetailsForm({
       }),
     };
 
-    console.log("📤 Final submission data:", submissionData);
-    console.log("✈️ Flight info included:", !!submissionData.flightInformation);
-    console.log("🚂 Train info included:", !!submissionData.trainInformation);
+
 
     onSubmit(submissionData, termsAgreed, e);
   };
@@ -387,7 +378,6 @@ export function PersonalDetailsForm({
                               <SearchableInput
                                 value={field.value || ""}
                                 onChange={(value: string) => {
-                                  console.log("✈️ Airline selected:", value);
                                   field.onChange(value);
                                   form.trigger("flightInformation.airline");
                                 }}
@@ -430,7 +420,6 @@ export function PersonalDetailsForm({
                                 className="w-full bg-background h-11"
                                 value={field.value || ""}
                                 onChange={(e) => {
-                                  console.log("Flight number changed:", e.target.value);
                                   field.onChange(e.target.value);
                                   form.trigger("flightInformation.flightNumber");
                                 }}
@@ -518,7 +507,6 @@ export function PersonalDetailsForm({
                               <SearchableInput
                                 value={field.value || ""}
                                 onChange={(value: string) => {
-                                  console.log("🚂 Train operator selected:", value);
                                   field.onChange(value);
                                   form.trigger("trainInformation.trainOperator");
                                 }}
@@ -561,7 +549,6 @@ export function PersonalDetailsForm({
                                 className="w-full bg-background h-11"
                                 value={field.value || ""}
                                 onChange={(e) => {
-                                  console.log("Train number changed:", e.target.value);
                                   field.onChange(e.target.value);
                                   form.trigger("trainInformation.trainNumber");
                                 }}

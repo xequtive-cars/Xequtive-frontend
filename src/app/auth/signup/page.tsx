@@ -135,7 +135,7 @@ function SignUpForm({
       const isRedirecting = searchParams.get("redirecting");
       
       if (!isRedirecting) {
-        console.log("🔄 SignUpForm - User already authenticated, redirecting to dashboard");
+  
         window.location.href = "/dashboard";
       }
     }

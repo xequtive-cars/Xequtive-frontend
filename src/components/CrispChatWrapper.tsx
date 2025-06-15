@@ -63,7 +63,7 @@ export default function CrispChatWrapper() {
           window.$crisp.push(["do", "chat:close"]);
         }
       } catch (error) {
-        console.log("Crisp cleanup error:", error);
+        // Silently handle cleanup error
       }
     };
   }, []);

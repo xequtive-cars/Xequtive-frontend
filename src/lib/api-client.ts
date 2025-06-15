@@ -29,9 +29,13 @@ const createApiClient = () => {
         ...options,
       };
 
+
+
       try {
         const response = await fetch(url, config);
         
+
+
         // Handle 401 errors by dispatching auth error event
         if (response.status === 401) {
           if (typeof window !== 'undefined') {
@@ -41,13 +45,21 @@ const createApiClient = () => {
         }
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          // Try to get error details from response body
+          let errorDetails = null;
+          try {
+            const errorText = await response.text();
+            errorDetails = errorText ? JSON.parse(errorText) : null;
+          } catch (e) {
+            // Silently handle error parsing
+          }
+          
+          throw new Error(`HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${JSON.stringify(errorDetails)}` : ''}`);
         }
         
         const data = await response.json();
         return data;
       } catch (error) {
-        console.error(`API request failed: ${endpoint}`, error);
         throw error;
       }
     },

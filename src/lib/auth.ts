@@ -38,6 +38,8 @@ interface AuthResponse {
     token?: string;
     expiresIn?: string;
     phoneNumber: string;
+    profileComplete?: boolean;
+    authProvider?: string;
   };
   error?: {
     message: string;
@@ -138,7 +140,7 @@ export const authService = {
       const requestBody = {
         fullName: fullName || "", // Optional - can be empty
         email,
-        phone: phoneNumber ? phoneNumber.replace(/-/g, "") : "", // Optional - can be empty
+        phone: phoneNumber ? phoneNumber.replace(/[-\s]/g, "") : "", // Remove dashes and spaces
         password,
         confirmPassword,
       };
@@ -466,18 +468,7 @@ export const authService = {
     }
   },
 
-  // Initiate Google OAuth flow
-  initiateGoogleAuth: () => {
-    if (!isBrowser) return;
-
-    const apiUrl = getApiBaseUrl();
-    const redirectUrl = `${window.location.origin}/auth/callback`;
-    window.location.href = `${apiUrl}/api/auth/google/login?redirect_url=${encodeURIComponent(
-      redirectUrl
-    )}`;
-  },
-
-  // Exchange temporary code for session
+  // Exchange temporary code for session (server-side OAuth flow)
   exchangeCodeForSession: async (code: string): Promise<AuthResponse> => {
     try {
       const apiUrl = getApiBaseUrl();
@@ -495,8 +486,8 @@ export const authService = {
         return {
           success: false,
           error: {
-            message: "Authentication failed",
-            details: "Failed to exchange code for session",
+            message: "Failed to exchange code for session",
+            details: "Authentication code exchange failed",
           },
         };
       }
@@ -523,14 +514,14 @@ export const authService = {
         data: data.data,
       };
     } catch (error) {
-      console.error("Session exchange error:", error);
+      console.error("Code exchange error:", error);
       return {
         success: false,
         error: {
           message:
             error instanceof Error
               ? error.message
-              : "Failed to exchange code for session",
+              : "Failed to exchange authentication code",
         },
       };
     }
@@ -552,7 +543,7 @@ export const authService = {
         credentials: "include", // CRITICAL: Required for cookies
         body: JSON.stringify({
           fullName,
-          phoneNumber: phoneNumber.replace(/-/g, ""), // Remove dashes
+          phoneNumber: phoneNumber.replace(/[-\s]/g, ""), // Remove dashes and spaces
         }),
       });
 

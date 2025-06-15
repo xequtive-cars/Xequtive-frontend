@@ -164,6 +164,7 @@ function HomeContent() {
                       src={vehicle.image}
                       alt={vehicle.name}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -199,6 +200,7 @@ function HomeContent() {
               src="https://images.unsplash.com/photo-1462396881884-de2c07cb95ed?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="Luxury pattern"
               fill
+              sizes="100vw"
               className="object-cover"
             />
           </div>

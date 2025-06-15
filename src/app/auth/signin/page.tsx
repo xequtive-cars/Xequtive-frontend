@@ -105,7 +105,7 @@ function SignInForm({
       const isRedirecting = searchParams.get("redirecting");
       
       if (!isRedirecting) {
-        console.log("🔄 SignInForm - User already authenticated, redirecting to dashboard");
+  
         // Use window.location for consistent auth redirection pattern
         window.location.href = "/dashboard";
       }
@@ -507,7 +507,7 @@ function SignInFormWithProgress() {
     const success = searchParams.get('success');
     if (success) {
       setSuccessMessage(success);
-      console.log('Signin success:', success);
+      
     }
   }, [searchParams]);
 

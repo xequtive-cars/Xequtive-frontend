@@ -19,12 +19,9 @@ export default function PublicRoute({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log("🌐 PublicRoute - Auth state:", { isLoading, isAuthenticated, pathname });
-    
     // Only perform the check once loading is complete
     if (!isLoading) {
       if (isAuthenticated) {
-        console.log("🌐 PublicRoute - User authenticated, redirecting to dashboard");
         // User is authenticated, they shouldn't access auth pages
         // Instead of an immediate redirect, we use router.push to avoid loops
         // We also check we're not already redirecting to avoid infinite loops
@@ -33,13 +30,11 @@ export default function PublicRoute({
           router.push("/dashboard?redirecting=true");
         }
       } else {
-        console.log("🌐 PublicRoute - User not authenticated, allowing access");
         // User is not authenticated, mark as checked to render children
         setChecked(true);
         hideLoading();
       }
     } else {
-      console.log("🌐 PublicRoute - Still loading");
       // Show checking state while loading
       showLoading("checking");
     }

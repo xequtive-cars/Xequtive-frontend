@@ -1169,15 +1169,7 @@ function UpdateBookingClientComponent({
     },
     agree: boolean
   ) => {
-    console.log("Booking Submission Details:", {
-      personalDetails,
-      agree,
-      pickupLocation,
-      dropoffLocation,
-      selectedDate,
-      selectedTime,
-      selectedVehicle,
-    });
+
 
     if (!agree) {
       setBookingError("You must agree to the terms and conditions to proceed.");

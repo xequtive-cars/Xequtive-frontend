@@ -16,7 +16,7 @@ export interface BookingRequest {
   customer?: {
     fullName: string;
     email: string;
-    phone: string;
+    phoneNumber: string;
   };
   booking: {
     locations: {
@@ -49,11 +49,11 @@ export interface BookingRequest {
     passengers: {
       count: number;
       checkedLuggage: number;
-      mediumLuggage: number;
       handLuggage: number;
+      mediumLuggage: number;
       babySeat: number;
-      childSeat: number;
       boosterSeat: number;
+      childSeat: number;
       wheelchair: number;
     };
     vehicle: {
@@ -254,12 +254,17 @@ class BookingService {
       // Format the date properly
       const formattedDate = format(bookingDetails.selectedDate, "yyyy-MM-dd");
 
+      // Strip spaces from phone number for backend validation
+      const cleanedPhoneNumber = personalDetails.phone.replace(/\s+/g, '');
+
       // Prepare the booking request
       const bookingRequest: BookingRequest = {
+        // Customer object is optional when user is authenticated
+        // The backend will use the stored profile data if customer is omitted
         customer: {
           fullName: personalDetails.fullName,
           email: personalDetails.email,
-          phone: personalDetails.phone,
+          phoneNumber: cleanedPhoneNumber,
         },
         booking: {
           locations: {
@@ -277,13 +282,15 @@ class BookingService {
                 lng: bookingDetails.dropoffLocation.longitude,
               },
             },
-            additionalStops: bookingDetails.additionalStops.map((stop) => ({
+            ...(bookingDetails.additionalStops?.length > 0 && {
+              additionalStops: bookingDetails.additionalStops.map((stop) => ({
                 address: stop.address || "",
                 coordinates: {
-                lat: stop.latitude,
-                lng: stop.longitude,
+                  lat: stop.latitude,
+                  lng: stop.longitude,
                 },
-            })),
+              }))
+            }),
           },
           datetime: {
             date: formattedDate,
@@ -292,11 +299,11 @@ class BookingService {
           passengers: {
             count: bookingDetails.passengers,
             checkedLuggage: bookingDetails.checkedLuggage,
-            mediumLuggage: bookingDetails.mediumLuggage,
             handLuggage: bookingDetails.handLuggage,
+            mediumLuggage: bookingDetails.mediumLuggage,
             babySeat: bookingDetails.babySeat,
-            childSeat: bookingDetails.childSeat,
             boosterSeat: bookingDetails.boosterSeat,
+            childSeat: bookingDetails.childSeat,
             wheelchair: bookingDetails.wheelchair,
           },
           vehicle: {
@@ -307,15 +314,16 @@ class BookingService {
         },
       };
 
-      console.log("Creating booking with request:", bookingRequest);
+
 
       // Use the API client for the request
       const response = await apiClient.post<EnhancedBookingResponse>(
-        "/api/bookings",
+        "/api/bookings/create-enhanced",
         bookingRequest
       );
 
       if (!response.success) {
+        console.error("Booking creation failed:", response.error);
         throw new Error(response.error?.message || "Failed to create booking");
       }
 
@@ -391,7 +399,7 @@ class BookingService {
       // Use the API client for the request
       const response = await apiClient.post<CancelBookingResponse>(
         `/api/bookings/${bookingId}/cancel`,
-        { reason }
+        { cancellationReason: reason }
       );
 
       return response;

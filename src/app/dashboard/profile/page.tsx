@@ -63,11 +63,7 @@ export default function ProfilePage() {
   // Load user data when available and trigger refresh on profile_updated events
   useEffect(() => {
     if (user) {
-      console.log("📱 Profile Load - Full user object:", user);
-      console.log("📱 Profile Load - User phone number specifically:", user.phoneNumber);
-      console.log("📱 Profile Load - User phone number type:", typeof user.phoneNumber);
-      console.log("📱 Profile Load - User phone number length:", user.phoneNumber?.length);
-      console.log("📱 Profile Load - All user properties:", Object.keys(user));
+
       
       setFormData((prevData) => ({
         ...prevData,
@@ -76,13 +72,9 @@ export default function ProfilePage() {
         phoneNumber: user.phoneNumber || "",
       }));
       
-      console.log("📱 Profile Load - Form data after setting:", {
-        fullName: user.displayName || "",
-        email: user.email || "",
-        phoneNumber: user.phoneNumber || "",
-      });
+      
     } else {
-      console.log("📱 Profile Load - No user data available");
+      
     }
   }, [user]);
 
@@ -129,7 +121,7 @@ export default function ProfilePage() {
     setIsSaving(true);
 
     try {
-      console.log("📱 Profile Update - Sending phone number:", formData.phoneNumber);
+
       
       // Call the auth service to update the user profile
       const response = await authService.updateProfile({

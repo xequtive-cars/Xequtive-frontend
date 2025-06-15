@@ -1117,15 +1117,7 @@ export default function NewBookingPage() {
     },
     agree: boolean
   ) => {
-    console.log("Booking Submission Details:", {
-      personalDetails,
-      agree,
-      pickupLocation,
-      dropoffLocation,
-      selectedDate,
-      selectedTime,
-      selectedVehicle,
-    });
+
 
     if (!agree) {
       setBookingError("You must agree to the terms and conditions to proceed.");
@@ -1150,25 +1142,30 @@ export default function NewBookingPage() {
       // Validate and correct time format
       const formattedTime = validateTime(selectedTime);
 
+      // Prepare booking data for logging
+      const bookingData = {
+        pickupLocation,
+        dropoffLocation,
+        additionalStops,
+        selectedDate,
+        selectedTime: formattedTime,
+        passengers,
+        checkedLuggage,
+        mediumLuggage,
+        handLuggage,
+        selectedVehicle,
+        babySeat,
+        childSeat,
+        boosterSeat,
+        wheelchair,
+      };
+
+
+
       // Call booking API
       const bookingResponse = await bookingService.createBooking(
         personalDetails,
-        {
-          pickupLocation,
-          dropoffLocation,
-          additionalStops,
-          selectedDate,
-          selectedTime: formattedTime,
-          passengers,
-          checkedLuggage,
-          mediumLuggage,
-          handLuggage,
-          selectedVehicle,
-          babySeat,
-          childSeat,
-          boosterSeat,
-          wheelchair,
-        }
+        bookingData
       );
 
       // Update success state with the booking ID and notifications if any

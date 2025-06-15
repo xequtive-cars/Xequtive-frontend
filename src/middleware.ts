@@ -10,22 +10,15 @@ import type { NextRequest } from "next/server";
 const protectedRoutes = ["/dashboard"];
 // Public routes that authenticated users shouldn't access
 const publicAuthRoutes = ["/auth/signin", "/auth/signup"];
+// Special routes that need authentication but don't redirect authenticated users
+const specialAuthRoutes = ["/auth/complete-profile"];
 
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Check for authentication cookies - try multiple possible names
-  // Different APIs might use different cookie names
-  const possibleCookieNames = ["token", "auth-token", "authToken", "session"];
-  let isAuthenticated = false;
-
-  // Check if any of the possible auth cookies exist
-  for (const cookieName of possibleCookieNames) {
-    if (request.cookies.get(cookieName)?.value) {
-      isAuthenticated = true;
-      break;
-    }
-  }
+  // Check for authentication cookie - API uses "token" as per documentation
+  const authCookie = request.cookies.get("token");
+  const isAuthenticated = !!authCookie?.value;
 
   // Case 1: Protect dashboard routes from unauthenticated users
   if (protectedRoutes.some((route) => path.startsWith(route))) {
@@ -33,6 +26,23 @@ export function middleware(request: NextRequest) {
       // Check if we're already in the process of redirecting or already on signin
       const isRedirecting = request.nextUrl.searchParams.get("redirecting");
       if (isRedirecting || path.startsWith("/auth/")) {
+        // Avoid infinite redirect loop
+        return NextResponse.next();
+      }
+
+      // User is not authenticated, redirect to signin
+      const url = new URL("/auth/signin", request.url);
+      url.searchParams.set("returnUrl", path);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Case 1b: Protect special auth routes from unauthenticated users
+  if (specialAuthRoutes.some((route) => path.startsWith(route))) {
+    if (!isAuthenticated) {
+      // Check if we're already in the process of redirecting or already on signin
+      const isRedirecting = request.nextUrl.searchParams.get("redirecting");
+      if (isRedirecting || path.startsWith("/auth/signin")) {
         // Avoid infinite redirect loop
         return NextResponse.next();
       }
@@ -66,5 +76,5 @@ export function middleware(request: NextRequest) {
 
 // Configure middleware to run on both protected and public auth paths
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/signin", "/auth/signup"],
+  matcher: ["/dashboard/:path*", "/auth/signin", "/auth/signup", "/auth/complete-profile"],
 };
