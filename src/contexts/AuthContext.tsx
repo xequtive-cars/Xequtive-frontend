@@ -223,6 +223,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (data.success && data.data) {
           console.log("🔍 AuthContext - User authenticated:", data.data.email);
+          console.log("📱 AuthContext - Full user data from API:", data.data);
+          console.log("📱 AuthContext - Phone number from API:", data.data.phoneNumber);
+          console.log("📱 AuthContext - Phone number type:", typeof data.data.phoneNumber);
+          console.log("📱 AuthContext - All user properties from API:", Object.keys(data.data));
           setUser(data.data);
           setIsAuthenticated(true);
           setCachedUser(data.data, true);

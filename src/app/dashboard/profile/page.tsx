@@ -63,13 +63,26 @@ export default function ProfilePage() {
   // Load user data when available and trigger refresh on profile_updated events
   useEffect(() => {
     if (user) {
-      console.log("📱 Profile Load - Retrieved user phone number:", user.phoneNumber);
+      console.log("📱 Profile Load - Full user object:", user);
+      console.log("📱 Profile Load - User phone number specifically:", user.phoneNumber);
+      console.log("📱 Profile Load - User phone number type:", typeof user.phoneNumber);
+      console.log("📱 Profile Load - User phone number length:", user.phoneNumber?.length);
+      console.log("📱 Profile Load - All user properties:", Object.keys(user));
+      
       setFormData((prevData) => ({
         ...prevData,
         fullName: user.displayName || "",
         email: user.email || "",
         phoneNumber: user.phoneNumber || "",
       }));
+      
+      console.log("📱 Profile Load - Form data after setting:", {
+        fullName: user.displayName || "",
+        email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
+      });
+    } else {
+      console.log("📱 Profile Load - No user data available");
     }
   }, [user]);
 
@@ -377,70 +390,68 @@ export default function ProfilePage() {
                               </p>
                             </div>
                           )}
-                          {/* Mobile: Stack fields vertically, Desktop: Show in one row */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
-                            <div className="space-y-1 md:space-y-2">
-                              <Label
-                                htmlFor="fullName"
-                                className="text-xs md:text-sm font-medium"
-                              >
-                                Full Name
-                              </Label>
-                              <Input
-                                id="fullName"
-                                name="fullName"
-                                placeholder="Your full name"
-                                value={formData.fullName}
-                                onChange={handleInputChange}
-                                disabled={!isEditing || isSaving}
-                                className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm"
-                              />
+                          {/* Mobile: Stack fields vertically, Desktop: Two rows layout */}
+                          <div className="space-y-2 md:space-y-4">
+                            {/* First row: Email (full width on desktop) */}
+                            <div className="grid grid-cols-1">
+                              <div className="space-y-1 md:space-y-2">
+                                <Label
+                                  htmlFor="email"
+                                  className="text-xs md:text-sm font-medium"
+                                >
+                                  Email Address
+                                </Label>
+                                <Input
+                                  id="email"
+                                  name="email"
+                                  type="email"
+                                  placeholder="Your email address"
+                                  value={formData.email}
+                                  onChange={handleInputChange}
+                                  disabled={true} // Email cannot be edited
+                                  className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Email cannot be changed directly. Contact support for assistance.
+                                </p>
+                              </div>
                             </div>
                             
-                            <div className="space-y-1 md:space-y-2">
-                              <Label
-                                htmlFor="email"
-                                className="text-xs md:text-sm font-medium"
-                              >
-                                Email Address
-                              </Label>
-                              <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="Your email address"
-                                value={formData.email}
-                                onChange={handleInputChange}
-                                disabled={true} // Email cannot be edited
-                                className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm"
-                              />
-                              <p className="text-xs text-muted-foreground md:hidden">
-                                Email cannot be changed directly. Contact
-                                support for assistance.
-                              </p>
+                            {/* Second row: Full Name and Phone Number (side by side on desktop) */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
+                              <div className="space-y-1 md:space-y-2">
+                                <Label
+                                  htmlFor="fullName"
+                                  className="text-xs md:text-sm font-medium"
+                                >
+                                  Full Name
+                                </Label>
+                                <Input
+                                  id="fullName"
+                                  name="fullName"
+                                  placeholder="Your full name"
+                                  value={formData.fullName}
+                                  onChange={handleInputChange}
+                                  disabled={!isEditing || isSaving}
+                                  className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-1 md:space-y-2">
+                                <Label
+                                  htmlFor="phoneNumber"
+                                  className="text-xs md:text-sm font-medium"
+                                >
+                                  Phone Number
+                                </Label>
+                                <SimplePhoneInput
+                                  value={formData.phoneNumber}
+                                  onChange={handlePhoneChange}
+                                  disabled={!isEditing || isSaving}
+                                  className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm [&_input]:text-xs [&_input]:md:text-sm [&_input]:font-mono [&_input]:tracking-wide"
+                                />
+                              </div>
                             </div>
-                            
-                            <div className="space-y-1 md:space-y-2">
-                              <Label
-                                htmlFor="phoneNumber"
-                                className="text-xs md:text-sm font-medium"
-                              >
-                                Phone Number
-                              </Label>
-                              <SimplePhoneInput
-                                value={formData.phoneNumber}
-                                onChange={handlePhoneChange}
-                                disabled={!isEditing || isSaving}
-                                className="transition-all duration-300 h-8 md:h-10 text-xs md:text-sm [&_input]:text-xs [&_input]:md:text-sm [&_input]:font-mono [&_input]:tracking-wide"
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* Desktop: Show email help text below the grid */}
-                          <div className="hidden md:block">
-                            <p className="text-xs text-muted-foreground">
-                              Email cannot be changed directly. Contact support for assistance.
-                            </p>
                           </div>
 
                           {isEditing && (

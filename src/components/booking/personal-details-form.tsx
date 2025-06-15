@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
+import { SearchableInput } from "@/components/ui/searchable-input";
 import { cn } from "@/lib/utils";
 
 // Define types for travel information
@@ -186,6 +187,8 @@ export function PersonalDetailsForm({
     }
 
     console.log("Submit Form Called - Full Data:", data);
+    console.log("✈️ Flight Information from form:", data.flightInformation);
+    console.log("🚂 Train Information from form:", data.trainInformation);
 
     const { fullName, email, phone, specialRequests, termsAgreed, flightInformation, trainInformation } = data;
 
@@ -219,6 +222,10 @@ export function PersonalDetailsForm({
         }
       }),
     };
+
+    console.log("📤 Final submission data:", submissionData);
+    console.log("✈️ Flight info included:", !!submissionData.flightInformation);
+    console.log("🚂 Train info included:", !!submissionData.trainInformation);
 
     onSubmit(submissionData, termsAgreed, e);
   };
@@ -377,39 +384,32 @@ export function PersonalDetailsForm({
                           <FormItem>
                             <FormLabel>Airline</FormLabel>
                             <FormControl>
-                              <Select
+                              <SearchableInput
                                 value={field.value || ""}
-                                onValueChange={(selectedValue) => {
-                                  console.log("Airline selected:", selectedValue);
-                                  field.onChange(selectedValue);
-                                  // Force form to trigger validation update
+                                onChange={(value: string) => {
+                                  console.log("✈️ Airline selected:", value);
+                                  field.onChange(value);
                                   form.trigger("flightInformation.airline");
                                 }}
-                              >
-                                <SelectTrigger className="w-full bg-background h-11 min-w-[200px]">
-                                  <SelectValue placeholder="Select Airline" />
-                                </SelectTrigger>
-                                <SelectContent className="z-50 max-h-[300px] overflow-auto">
-                                  {[
-                                    "British Airways",
-                                    "EasyJet",
-                                    "Ryanair",
-                                    "Jet2",
-                                    "TUI Airways",
-                                    "Virgin Atlantic",
-                                    "Wizz Air",
-                                    "Aer Lingus",
-                                  ].map((airline) => (
-                                    <SelectItem
-                                      key={airline}
-                                      value={airline}
-                                      className="cursor-pointer hover:bg-muted"
-                                    >
-                                      {airline}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                placeholder="Type or select airline"
+                                suggestions={[
+                                  "British Airways",
+                                  "EasyJet",
+                                  "Ryanair",
+                                  "Jet2",
+                                  "TUI Airways",
+                                  "Virgin Atlantic",
+                                  "Wizz Air",
+                                  "Aer Lingus",
+                                  "Emirates",
+                                  "Qatar Airways",
+                                  "Lufthansa",
+                                  "KLM",
+                                  "Air France",
+                                  "Turkish Airlines",
+                                ]}
+                                className="w-full bg-background h-11"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -515,39 +515,32 @@ export function PersonalDetailsForm({
                           <FormItem>
                             <FormLabel>Train Operator</FormLabel>
                             <FormControl>
-                              <Select
+                              <SearchableInput
                                 value={field.value || ""}
-                                onValueChange={(selectedValue) => {
-                                  console.log("Train operator selected:", selectedValue);
-                                  field.onChange(selectedValue);
+                                onChange={(value: string) => {
+                                  console.log("🚂 Train operator selected:", value);
+                                  field.onChange(value);
                                   form.trigger("trainInformation.trainOperator");
                                 }}
-                              >
-                                <SelectTrigger className="w-full bg-background h-10 min-w-[100px] text-xs md:text-sm">
-                                  <SelectValue placeholder="Select Operator" />
-                                </SelectTrigger>
-                                <SelectContent className="z-50 max-h-[300px] overflow-auto">
-                                  {[
-                                    "Great Western Railway",
-                                    "Avanti West Coast",
-                                    "TransPennine Express",
-                                    "LNER",
-                                    "CrossCountry",
-                                    "South Western Railway",
-                                    "Southeastern",
-                                    "Northern",
-                                    "Chiltern Railways",
-                                  ].map((operator) => (
-                                    <SelectItem
-                                      key={operator}
-                                      value={operator}
-                                      className="cursor-pointer hover:bg-muted text-xs md:text-sm"
-                                    >
-                                      {operator}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                placeholder="Type or select operator"
+                                suggestions={[
+                                  "Great Western Railway",
+                                  "Avanti West Coast",
+                                  "TransPennine Express",
+                                  "LNER",
+                                  "CrossCountry",
+                                  "South Western Railway",
+                                  "Southeastern",
+                                  "Northern",
+                                  "Chiltern Railways",
+                                  "ScotRail",
+                                  "Transport for Wales",
+                                  "Greater Anglia",
+                                  "Thameslink",
+                                  "Southern",
+                                ]}
+                                className="w-full bg-background h-11"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
