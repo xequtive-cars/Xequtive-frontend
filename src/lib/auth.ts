@@ -443,29 +443,46 @@ export const authService = {
 
   // Check authentication status
   checkAuthStatus: async (): Promise<UserData | null> => {
-    try {
-      const apiUrl = getApiBaseUrl();
+    let retries = 3;
+    let lastError: Error | null = null;
 
-      const response = await fetch(`${apiUrl}/api/auth/me`, {
-        method: "GET",
-        credentials: "include", // CRITICAL: Required for cookies
-      });
+    while (retries > 0) {
+      try {
+        const apiUrl = getApiBaseUrl();
 
-      if (!response.ok) {
-        return null;
+        const response = await fetch(`${apiUrl}/api/auth/me`, {
+          method: "GET",
+          credentials: "include", // CRITICAL: Required for cookies
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Unauthorized - user is not authenticated
+            return null;
+          }
+          throw new Error(`Auth check failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.data) {
+          return null;
+        }
+
+        return data.data;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Unknown error");
+        retries--;
+        
+        if (retries > 0) {
+          // Wait a bit before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+        }
       }
-
-      const data = await response.json();
-
-      if (!data.success || !data.data) {
-        return null;
-      }
-
-      return data.data;
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-      return null;
     }
+
+    console.error("Auth status check failed after retries:", lastError);
+    return null;
   },
 
   // Exchange temporary code for session (server-side OAuth flow)
