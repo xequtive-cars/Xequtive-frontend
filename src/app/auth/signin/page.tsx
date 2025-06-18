@@ -47,6 +47,7 @@ import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
+import { AuthPageProtection } from "@/components/auth/AuthPageProtection";
 
 // Step 1: Email form schema
 const emailSchema = z.object({
@@ -560,10 +561,12 @@ export default function SigninPage({
   } 
 }) {
   return (
+    <AuthPageProtection>
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <SignInFormWithProgress />
       </div>
+    </AuthPageProtection>
   );
 }
 // Simplified navbar using the reusable AuthAwareNavigation component

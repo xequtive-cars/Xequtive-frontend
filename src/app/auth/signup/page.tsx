@@ -46,6 +46,7 @@ import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
+import { AuthPageProtection } from "@/components/auth/AuthPageProtection";
 
 // Step 1: Email form schema
 const emailSchema = z.object({
@@ -449,12 +450,14 @@ function Navbar() {
 
 export default function SignupPage() {
   return (
+    <AuthPageProtection>
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
           <SignUpFormWithProgress />
         </main>
       </div>
+    </AuthPageProtection>
   );
 }
 
