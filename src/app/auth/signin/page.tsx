@@ -45,7 +45,6 @@ import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import PublicRoute from "@/components/auth/PublicRoute";
 import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
 
@@ -97,20 +96,7 @@ function SignInForm({
   const { isAuthenticated } = useAuth();
   const { showLoading } = useAuthLoading();
 
-  // Redirect authenticated users away from auth pages (but prevent loops)
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Check if we're already in a redirect process to prevent loops
-      const searchParams = new URLSearchParams(window.location.search);
-      const isRedirecting = searchParams.get("redirecting");
-      
-      if (!isRedirecting) {
-  
-        // Use window.location for consistent auth redirection pattern
-        window.location.href = "/dashboard";
-      }
-    }
-  }, [isAuthenticated]);
+  // No need for redirect logic here - middleware handles it
 
   // Initialize forms for each step
   const emailForm = useForm<EmailFormData>({
@@ -266,10 +252,6 @@ function SignInForm({
           return;
         }
 
-        // Show unified loading state for redirect
-        setIsRedirecting(true);
-        showLoading("redirecting");
-        
         // Complete the form
         onComplete();
 
@@ -282,12 +264,8 @@ function SignInForm({
         const searchParams = new URLSearchParams(window.location.search);
         const returnUrl = searchParams.get("returnUrl");
 
-        // Add a small delay to show the beautiful loading animation and let auth context update
-        setTimeout(() => {
-        // Use window.location for a hard navigation instead of router.push
-        // This ensures we reload the page and check auth status properly
+        // Immediate redirect without loading state - middleware will handle protection
         window.location.href = returnUrl || "/dashboard";
-        }, 800); // Reduced to 800ms for faster redirect
       } catch (networkError) {
         console.error("Network error during sign in:", networkError);
         setError(
@@ -582,12 +560,10 @@ export default function SigninPage({
   } 
 }) {
   return (
-    <PublicRoute>
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <SignInFormWithProgress />
       </div>
-    </PublicRoute>
   );
 }
 // Simplified navbar using the reusable AuthAwareNavigation component

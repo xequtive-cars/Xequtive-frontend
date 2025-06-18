@@ -26,7 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import PublicRoute from "@/components/auth/PublicRoute";
+
 import { authService } from "@/lib/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -39,7 +39,6 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function ForgotPasswordPage() {
   return (
-    <PublicRoute>
       <div className="flex flex-col min-h-screen bg-background">
         <header className="border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-20 items-center justify-between">
@@ -65,7 +64,6 @@ export default function ForgotPasswordPage() {
           <ForgotPasswordContent />
         </Suspense>
       </div>
-    </PublicRoute>
   );
 }
 

@@ -45,7 +45,6 @@ import SimplePhoneInput from "@/components/ui/simple-phone-input";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import PublicRoute from "@/components/auth/PublicRoute";
 import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
 
 // Step 1: Email form schema
@@ -127,19 +126,7 @@ function SignUpForm({
     prevStepRef.current = currentStep;
   }, [currentStep, onStepChange]);
 
-  // Redirect if already authenticated (but prevent loops)
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Check if we're already in a redirect process to prevent loops
-      const searchParams = new URLSearchParams(window.location.search);
-      const isRedirecting = searchParams.get("redirecting");
-      
-      if (!isRedirecting) {
-  
-        window.location.href = "/dashboard";
-      }
-    }
-  }, [isAuthenticated]);
+  // No need for redirect logic here - middleware handles it
 
   // Initialize forms for each step
   const emailForm = useForm<EmailFormData>({
@@ -195,7 +182,6 @@ function SignUpForm({
       );
 
       if (result.success) {
-        showLoading("redirecting");
         onComplete();
         window.location.href = "/dashboard";
       } else {
@@ -463,14 +449,12 @@ function Navbar() {
 
 export default function SignupPage() {
   return (
-    <PublicRoute>
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
           <SignUpFormWithProgress />
         </main>
       </div>
-    </PublicRoute>
   );
 }
 
