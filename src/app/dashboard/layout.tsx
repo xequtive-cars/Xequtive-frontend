@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 import { Loading3DOverlay } from "@/components/ui/loading-3d";
+import { ClientProtection } from "@/components/auth/ClientProtection";
 
 // Helper function to check if profile is incomplete
 function isProfileIncomplete(user: any): boolean {
@@ -88,6 +89,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <ClientProtection>
       <div className="flex min-h-screen flex-col">
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <div className="container flex h-14 items-center justify-between">
@@ -189,5 +191,6 @@ export default function DashboardLayout({
           </footer>
         )}
       </div>
+    </ClientProtection>
   );
 }
