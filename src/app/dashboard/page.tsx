@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Clock, Car, RefreshCw } from "lucide-react";
 import { Loading3D } from "@/components/ui/loading-3d";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import BookingCard from "@/components/booking/BookingCard";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -194,7 +193,6 @@ export default function DashboardPage() {
   }, [fetchActiveBookings, fetchBookingHistory, fetchCancelledBookings]);
 
   return (
-    <ProtectedRoute>
       <div className="space-y-8">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-bold">Welcome to Xequtive</h1>
@@ -444,7 +442,6 @@ export default function DashboardPage() {
           onOpenChange={setDetailsModalOpen}
           booking={selectedBooking}
         />
-      </div>
 
       <footer className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container py-10">
@@ -502,6 +499,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </footer>
-    </ProtectedRoute>
+      </div>
   );
 }

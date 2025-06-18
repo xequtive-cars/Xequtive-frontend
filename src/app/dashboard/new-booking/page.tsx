@@ -25,7 +25,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
 import { authService } from "@/lib/auth";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -1367,7 +1367,6 @@ export default function NewBookingPage() {
   };
 
   return (
-    <ProtectedRoute>
       <div className="h-full w-full flex flex-col pt-2 overflow-hidden">
         {/* Location Permission Banner */}
         {locationPermission.denied && (
@@ -2235,6 +2234,5 @@ export default function NewBookingPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </ProtectedRoute>
   );
 }

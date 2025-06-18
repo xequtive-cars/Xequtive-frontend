@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { RefreshCw, Car } from "lucide-react";
 import { Loading3D } from "@/components/ui/loading-3d";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import BookingCard from "@/components/booking/BookingCard";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -123,7 +122,6 @@ export default function ActiveBookingsPage() {
   }, [fetchActiveBookings]);
 
   return (
-    <ProtectedRoute>
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Active Bookings</h1>
@@ -246,6 +244,5 @@ export default function ActiveBookingsPage() {
           </p>
         </div>
       </div>
-    </ProtectedRoute>
   );
 }

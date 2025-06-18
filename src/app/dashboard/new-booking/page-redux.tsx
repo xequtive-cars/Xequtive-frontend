@@ -18,7 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
 import { VehicleSelectionContainer } from "@/components/booking";
 import { PersonalDetailsForm } from "@/components/booking/personal-details-form";
 import { VehicleOption } from "@/components/booking/common/types";
@@ -241,7 +241,6 @@ export default function NewBookingPageRedux() {
   };
 
   return (
-    <ProtectedRoute>
       <div className="flex flex-col md:flex-row w-full min-h-screen">
         {/* Form panel */}
         <div
@@ -699,6 +698,5 @@ export default function NewBookingPageRedux() {
           </DialogContent>
         </Dialog>
       </div>
-    </ProtectedRoute>
   );
 }

@@ -8,7 +8,6 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import { User, LogOut, ChevronDown, Settings } from "lucide-react";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Loading3DOverlay } from "@/components/ui/loading-3d";
 
 // Helper function to check if profile is incomplete
@@ -89,7 +88,6 @@ export default function DashboardLayout({
   }
 
   return (
-    <ProtectedRoute>
       <div className="flex min-h-screen flex-col">
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <div className="container flex h-14 items-center justify-between">
@@ -191,6 +189,5 @@ export default function DashboardLayout({
           </footer>
         )}
       </div>
-    </ProtectedRoute>
   );
 }
