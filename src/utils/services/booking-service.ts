@@ -61,6 +61,22 @@ export interface BookingRequest {
       name: string;
     };
     specialRequests?: string;
+    travelInformation?: {
+      type: "flight" | "train";
+      details: {
+        airline?: string;
+        flightNumber?: string;
+        departureAirport?: string;
+        arrivalAirport?: string;
+        scheduledDeparture?: string;
+        actualDeparture?: string;
+        status?: "on-time" | "delayed" | "cancelled";
+        trainOperator?: string;
+        trainNumber?: string;
+        departureStation?: string;
+        arrivalStation?: string;
+      };
+    };
   };
 }
 
@@ -119,6 +135,22 @@ interface BookingDetails {
   childSeat: number;
   boosterSeat: number;
   wheelchair: number;
+  travelInformation?: {
+    type: "flight" | "train";
+    details: {
+      airline?: string;
+      flightNumber?: string;
+      departureAirport?: string;
+      arrivalAirport?: string;
+      scheduledDeparture?: string;
+      actualDeparture?: string;
+      status?: "on-time" | "delayed" | "cancelled";
+      trainOperator?: string;
+      trainNumber?: string;
+      departureStation?: string;
+      arrivalStation?: string;
+    };
+  };
 }
 
 interface PersonalDetails {
@@ -126,6 +158,18 @@ interface PersonalDetails {
   email: string;
   phone: string;
   specialRequests: string;
+  flightInformation?: {
+    airline?: string;
+    flightNumber?: string;
+    scheduledDeparture?: string;
+    status?: "on-time" | "delayed" | "cancelled";
+  };
+  trainInformation?: {
+    trainOperator?: string;
+    trainNumber?: string;
+    scheduledDeparture?: string;
+    status?: "on-time" | "delayed" | "cancelled";
+  };
 }
 
 export interface ActiveBookingsResponse {
@@ -257,6 +301,39 @@ class BookingService {
       // Strip spaces from phone number for backend validation
       const cleanedPhoneNumber = personalDetails.phone.replace(/\s+/g, '');
 
+      // Construct travel information based on personal details
+      let travelInformation: BookingRequest['booking']['travelInformation'] = undefined;
+      
+      if (personalDetails.flightInformation && (
+        personalDetails.flightInformation.airline || 
+        personalDetails.flightInformation.flightNumber ||
+        personalDetails.flightInformation.scheduledDeparture
+      )) {
+        travelInformation = {
+          type: "flight",
+          details: {
+            airline: personalDetails.flightInformation.airline,
+            flightNumber: personalDetails.flightInformation.flightNumber,
+            scheduledDeparture: personalDetails.flightInformation.scheduledDeparture,
+            status: personalDetails.flightInformation.status,
+          }
+        };
+      } else if (personalDetails.trainInformation && (
+        personalDetails.trainInformation.trainOperator || 
+        personalDetails.trainInformation.trainNumber ||
+        personalDetails.trainInformation.scheduledDeparture
+      )) {
+        travelInformation = {
+          type: "train",
+          details: {
+            trainOperator: personalDetails.trainInformation.trainOperator,
+            trainNumber: personalDetails.trainInformation.trainNumber,
+            scheduledDeparture: personalDetails.trainInformation.scheduledDeparture,
+            status: personalDetails.trainInformation.status,
+          }
+        };
+      }
+
       // Prepare the booking request
       const bookingRequest: BookingRequest = {
         // Customer object is optional when user is authenticated
@@ -286,8 +363,8 @@ class BookingService {
               additionalStops: bookingDetails.additionalStops.map((stop) => ({
                 address: stop.address || "",
                 coordinates: {
-                  lat: stop.latitude,
-                  lng: stop.longitude,
+                lat: stop.latitude,
+                lng: stop.longitude,
                 },
               }))
             }),
@@ -311,10 +388,9 @@ class BookingService {
             name: bookingDetails.selectedVehicle.name,
           },
           specialRequests: personalDetails.specialRequests,
+          travelInformation: travelInformation,
         },
       };
-
-
 
       // Use the API client for the request
       const response = await apiClient.post<EnhancedBookingResponse>(
@@ -415,6 +491,156 @@ class BookingService {
               : "Failed to cancel booking",
         },
       };
+    }
+  }
+
+  async updateBooking(
+    bookingId: string,
+    personalDetails: PersonalDetails,
+    bookingDetails: BookingDetails
+  ): Promise<EnhancedBookingResponse["data"]> {
+    try {
+      // Validate required parameters
+      if (!bookingId) {
+        throw new Error("Booking ID is required for updating a booking");
+      }
+
+      if (!personalDetails || !bookingDetails) {
+        throw new Error("Personal details and booking details are required");
+      }
+
+      // Validate required booking details
+      if (
+        !bookingDetails.pickupLocation ||
+        !bookingDetails.dropoffLocation ||
+        !bookingDetails.selectedDate ||
+        !bookingDetails.selectedTime ||
+        !bookingDetails.selectedVehicle
+      ) {
+        throw new Error("Missing required booking information");
+      }
+
+      // Format the date in YYYY-MM-DD format
+      const formattedDate = format(bookingDetails.selectedDate, "yyyy-MM-dd");
+
+      // Strip spaces from phone number for backend validation
+      const cleanedPhoneNumber = personalDetails.phone.replace(/\s+/g, '');
+
+      // Construct travel information based on personal details
+      let travelInformation: BookingRequest['booking']['travelInformation'] = undefined;
+      
+      if (personalDetails.flightInformation && (
+        personalDetails.flightInformation.airline || 
+        personalDetails.flightInformation.flightNumber ||
+        personalDetails.flightInformation.scheduledDeparture
+      )) {
+        travelInformation = {
+          type: "flight",
+          details: {
+            airline: personalDetails.flightInformation.airline,
+            flightNumber: personalDetails.flightInformation.flightNumber,
+            scheduledDeparture: personalDetails.flightInformation.scheduledDeparture,
+            status: personalDetails.flightInformation.status,
+          }
+        };
+      } else if (personalDetails.trainInformation && (
+        personalDetails.trainInformation.trainOperator || 
+        personalDetails.trainInformation.trainNumber ||
+        personalDetails.trainInformation.scheduledDeparture
+      )) {
+        travelInformation = {
+          type: "train",
+          details: {
+            trainOperator: personalDetails.trainInformation.trainOperator,
+            trainNumber: personalDetails.trainInformation.trainNumber,
+            scheduledDeparture: personalDetails.trainInformation.scheduledDeparture,
+            status: personalDetails.trainInformation.status,
+          }
+        };
+      }
+
+      // Prepare the booking request (same structure as create booking)
+      const bookingRequest: BookingRequest = {
+        customer: {
+          fullName: personalDetails.fullName,
+          email: personalDetails.email,
+          phoneNumber: cleanedPhoneNumber,
+        },
+        booking: {
+          locations: {
+            pickup: {
+              address: bookingDetails.pickupLocation.address || "",
+              coordinates: {
+                lat: bookingDetails.pickupLocation.latitude,
+                lng: bookingDetails.pickupLocation.longitude,
+              },
+            },
+            dropoff: {
+              address: bookingDetails.dropoffLocation.address || "",
+              coordinates: {
+                lat: bookingDetails.dropoffLocation.latitude,
+                lng: bookingDetails.dropoffLocation.longitude,
+              },
+            },
+            ...(bookingDetails.additionalStops?.length > 0 && {
+              additionalStops: bookingDetails.additionalStops.map((stop) => ({
+                address: stop.address || "",
+                coordinates: {
+                  lat: stop.latitude,
+                  lng: stop.longitude,
+                },
+              }))
+            }),
+          },
+          datetime: {
+            date: formattedDate,
+            time: bookingDetails.selectedTime,
+          },
+          passengers: {
+            count: bookingDetails.passengers,
+            checkedLuggage: bookingDetails.checkedLuggage,
+            handLuggage: bookingDetails.handLuggage,
+            mediumLuggage: bookingDetails.mediumLuggage,
+            babySeat: bookingDetails.babySeat,
+            boosterSeat: bookingDetails.boosterSeat,
+            childSeat: bookingDetails.childSeat,
+            wheelchair: bookingDetails.wheelchair,
+          },
+          vehicle: {
+            id: bookingDetails.selectedVehicle.id,
+            name: bookingDetails.selectedVehicle.name,
+          },
+          specialRequests: personalDetails.specialRequests,
+          travelInformation: travelInformation,
+        },
+      };
+
+      // Use the API client for the request to the update endpoint
+      const response = await apiClient.post<EnhancedBookingResponse>(
+        `/api/bookings/update-booking/${bookingId}`,
+        bookingRequest
+      );
+
+      if (!response.success) {
+        console.error("Booking update failed:", response.error);
+        
+        // Handle specific update errors
+        const errorCode = response.error?.code;
+        if (errorCode === "UPDATE_NOT_ALLOWED") {
+          throw new Error("Bookings cannot be updated within 24 hours of the pickup time. You can only update bookings more than 24 hours before pickup.");
+        } else if (errorCode === "UNAUTHORIZED_UPDATE") {
+          throw new Error("You are not authorized to update this booking. Only the booking owner can modify the booking.");
+        } else if (errorCode === "VALIDATION_ERROR") {
+          throw new Error(response.error?.message || "Invalid booking update data");
+        }
+        
+        throw new Error(response.error?.message || "Failed to update booking");
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      throw error;
     }
   }
 

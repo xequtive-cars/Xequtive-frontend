@@ -457,7 +457,7 @@ export default function VehicleSelection({
 
               {/* Middle: Vehicle Details - responsive text sizes */}
               <div className="flex-1 ml-3 sm:ml-4">
-                <h3 className="font-bold text-xl sm:text-2xl md:text-xl mb-1 sm:mb-2">
+                <h3 className="font-bold text-[17px] sm:text-2xl md:text-xl mb-1 sm:mb-2">
                   {vehicle.name}
                 </h3>
 

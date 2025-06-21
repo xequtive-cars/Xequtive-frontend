@@ -35,7 +35,7 @@ const createApiClient = () => {
         const response = await fetch(url, config);
         
 
-
+        
         // Handle 401 errors by dispatching auth error event
         if (response.status === 401) {
           if (typeof window !== 'undefined') {

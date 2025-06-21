@@ -40,13 +40,14 @@ function HomeContent() {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 md:h-16 items-center justify-between px-4">
           <div className="flex items-center gap-1 md:gap-2">
-            <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+            <Link href="/" className="flex items-center space-x-1 md:space-x-2 pt-6">
+              {/* <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
               <span className="font-bold text-lg md:text-2xl tracking-tight">
-                Xequtive
-              </span>
+                XEQUTIVE
+              </span> */}
+              <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
             </Link>
           </div>
           {/* Only the navigation is auth-aware, everything else renders immediately */}
@@ -64,7 +65,7 @@ function HomeContent() {
             <div className="flex flex-col items-center text-center mb-16">
               <div className="w-16 h-1 bg-primary mb-6 rounded-full"></div>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                Why Choose Xequtive
+                Why Choose XEQUTIVE
               </h2>
               <p className="text-xl text-muted-foreground max-w-[600px] leading-relaxed">
                 Premium service designed for executives and luxury travelers
@@ -124,33 +125,33 @@ function HomeContent() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 p-0">
               {[
                 {
                   name: "Standard Saloon",
                   image:
-                    "https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                    "/images/front-vehicles/standard-saloon.jpeg",
                   description:
                     "Comfortable transportation with professional service for daily needs.",
                 },
                 {
                   name: "Executive Saloon",
                   image:
-                    "https://images.pexels.com/photos/120049/pexels-photo-120049.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                    "/images/front-vehicles/saloon-mpvs-xeq.jpeg",
                   description:
                     "Premium transportation with enhanced comfort and amenities.",
                 },
                 {
                   name: "Executive MPV",
                   image:
-                    "https://images.pexels.com/photos/6794815/pexels-photo-6794815.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                    "/images/front-vehicles/saloon-mpvs-xeq.jpeg",
                   description:
                     "Spacious transport for groups with premium service and comfort.",
                 },
                 {
                   name: "Luxury Vehicle",
                   image:
-                    "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                    "/images/front-vehicles/vip-luxury.jpeg",
                   description:
                     "Elite transportation experience with the highest level of luxury.",
                 },
@@ -159,7 +160,7 @@ function HomeContent() {
                   key={vehicle.name}
                   className="overflow-hidden border border-border/40 hover:shadow-lg transition-all duration-500 rounded-xl group"
                 >
-                  <div className="relative h-52 overflow-hidden">
+                  <div className="relative -mt-6 h-42 overflow-hidden">
                     <Image
                       src={vehicle.image}
                       alt={vehicle.name}
@@ -169,7 +170,7 @@ function HomeContent() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   </div>
-                  <CardHeader className="p-5">
+                  <CardHeader className="p-2 px-5">
                     <CardTitle className="text-xl font-semibold">
                       {vehicle.name}
                     </CardTitle>
@@ -179,7 +180,7 @@ function HomeContent() {
                       {vehicle.description}
                     </CardDescription>
                   </CardContent>
-                  <CardFooter className="p-5">
+                  <CardFooter className="p-2 px-5">
                     <Button
                       variant="outline"
                       className="w-full rounded-md flex items-center justify-center hover:bg-primary hover:border-primary transition-all duration-300"
@@ -210,7 +211,7 @@ function HomeContent() {
               Ready to experience premium travel?
             </h2>
             <p className="text-xl max-w-[600px] text-muted-foreground leading-relaxed">
-              Book your first ride today and enjoy the Xequtive difference.
+              Book your first ride today and enjoy the XEQUTIVE difference.
             </p>
             {/* CTA button redirects to appropriate location based on auth state */}
             <Link
@@ -232,17 +233,18 @@ function HomeContent() {
         <div className="container py-12 md:py-16">
           <div className="flex items-center justify-center mb-10">
             <div className="flex items-center gap-2">
-              <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+              {/* <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                 <span className="font-bold">X</span>
               </div>
               <span className="font-bold text-2xl tracking-tight">
-                Xequtive
-              </span>
+                XEQUTIVE
+              </span> */}
+              <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             <div>
-              <h3 className="text-lg font-semibold mb-5">Xequtive</h3>
+              <h3 className="text-lg font-semibold mb-5">XEQUTIVE</h3>
               <ul className="space-y-3">
                 <li>
                   <Link
@@ -352,7 +354,7 @@ function HomeContent() {
                     href="#"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    +44 20 1234 5678
+                    +44 78 3105 4649
                   </Link>
                 </li>
               </ul>
@@ -360,7 +362,7 @@ function HomeContent() {
           </div>
           <div className="border-t mt-10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Xequtive. All rights reserved.
+              &copy; {new Date().getFullYear()} XEQUTIVE. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link
@@ -398,12 +400,13 @@ export default function Home() {
             <div className="container flex h-14 md:h-16 items-center justify-between px-4">
               <div className="flex items-center gap-1 md:gap-2">
                 <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-                  <div className="relative w-6 h-6 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                  {/* <div className="relative w-6 h-6 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                     <span className="font-bold text-xs md:text-lg">X</span>
                   </div>
                   <span className="font-bold text-base md:text-2xl tracking-tight">
-                    Xequtive
-                  </span>
+                    XEQUTIVE
+                  </span> */}
+                  <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
                 </Link>
               </div>
               <nav className="flex items-center gap-5">

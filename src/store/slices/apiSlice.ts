@@ -134,6 +134,18 @@ export const submitBooking = createAsyncThunk<
       email: string;
       phone: string;
       specialRequests: string;
+      flightInformation?: {
+        airline?: string;
+        flightNumber?: string;
+        scheduledDeparture?: string;
+        status?: "on-time" | "delayed" | "cancelled";
+      };
+      trainInformation?: {
+        trainOperator?: string;
+        trainNumber?: string;
+        scheduledDeparture?: string;
+        status?: "on-time" | "delayed" | "cancelled";
+      };
     };
     agree: boolean;
   },

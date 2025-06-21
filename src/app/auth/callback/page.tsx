@@ -34,7 +34,7 @@ export default function AuthCallbackPage() {
   }, [searchParams]);
 
   const handleAuthCode = async (code: string) => {
-    try {
+      try {
       const apiUrl = getApiBaseUrl();
       
       // Exchange the temporary code for a session cookie
@@ -75,8 +75,8 @@ export default function AuthCallbackPage() {
       setError(error instanceof Error ? error.message : "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
-    }
-  };
+      }
+    };
 
   const handleRetry = () => {
     router.push("/auth/signin");
@@ -122,13 +122,13 @@ export default function AuthCallbackPage() {
                 <Button
                   onClick={handleRetry}
                   className="w-full h-11 text-sm font-semibold"
-                >
-                  Try Again
+              >
+                Try Again
                 </Button>
-              </div>
+            </div>
             )}
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
       </div>
     </div>
   );

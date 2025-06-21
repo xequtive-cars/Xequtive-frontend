@@ -15,11 +15,10 @@ export function HeroSection({ isAuthenticated }: HeroSectionProps) {
           Premium Executive Transport
         </div>
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-          Premium Taxi Booking for Executives
+          Premium Car Booking Service
         </h1>
         <p className="text-xl md:text-2xl text-muted-foreground mx-auto max-w-[600px] leading-relaxed">
-          Experience luxury transportation with transparent pricing and premium
-          vehicle options.
+        Experience reliable, comfort transportation with premium vehicle options.
         </p>
       </div>
 

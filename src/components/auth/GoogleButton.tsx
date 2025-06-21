@@ -67,10 +67,10 @@ export const GoogleButton = ({
           </>
         ) : (
           <>
-            <GoogleIcon className="h-4 w-4" />
-            <span>
-              {type === "signin" ? "Sign in with Google" : "Sign up with Google"}
-            </span>
+        <GoogleIcon className="h-4 w-4" />
+        <span>
+          {type === "signin" ? "Sign in with Google" : "Sign up with Google"}
+        </span>
           </>
         )}
       </button>

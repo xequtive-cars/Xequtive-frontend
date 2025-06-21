@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -436,10 +437,7 @@ function Navbar() {
       <div className="container flex h-20 py-5 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              <span className="font-bold text-sm md:text-lg">X</span>
-            </div>
-            <span className="font-bold text-lg md:text-2xl tracking-tight">Xequtive</span>
+            <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
           </Link>
         </div>
         <AuthAwareNavigation />

@@ -6,6 +6,7 @@ import { RefreshCw, Car } from "lucide-react";
 import { Loading3D } from "@/components/ui/loading-3d";
 import BookingCard from "@/components/booking/BookingCard";
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   bookingService,
   GetUserBookingsResponse,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function ActiveBookingsPage() {
+  const router = useRouter();
   const [activeBookings, setActiveBookings] = useState<
     GetUserBookingsResponse["data"]
   >([]);
@@ -113,6 +115,50 @@ export default function ActiveBookingsPage() {
     setDetailsModalOpen(true);
   };
 
+  // Handle editing a booking
+  const handleEditBooking = useCallback(
+    (booking: GetUserBookingsResponse["data"][0]) => {
+      // Create URL parameters with current booking details to pre-fill the form
+      const params = new URLSearchParams();
+      
+      // Add booking ID
+      params.set('bookingId', booking.id);
+      
+      // Add current booking details for pre-filling
+      if (booking.pickupLocation?.address) {
+        const pickupData = {
+          address: booking.pickupLocation.address,
+          // Note: We don't have coordinates from the booking response, 
+          // so the form will need to geocode the address
+          latitude: 0,
+          longitude: 0
+        };
+        params.set('pickup', encodeURIComponent(JSON.stringify(pickupData)));
+      }
+      
+      if (booking.dropoffLocation?.address) {
+        const dropoffData = {
+          address: booking.dropoffLocation.address,
+          latitude: 0,
+          longitude: 0
+        };
+        params.set('dropoff', encodeURIComponent(JSON.stringify(dropoffData)));
+      }
+      
+      // Add date and time
+      if (booking.pickupDate) {
+        params.set('date', booking.pickupDate);
+      }
+      if (booking.pickupTime) {
+        params.set('time', booking.pickupTime);
+      }
+      
+      // Navigate to update booking page
+      router.push(`/dashboard/update-booking?${params.toString()}`);
+    },
+    [router]
+  );
+
   // Fetch bookings on component mount
   useEffect(() => {
     const loadBookings = async () => {
@@ -151,6 +197,8 @@ export default function ActiveBookingsPage() {
                   booking={booking}
                   onCancel={handleCancelClick}
                   showCancelButton={true}
+                  onEdit={handleEditBooking}
+                  showEditButton={true}
                   onViewDetails={handleViewDetails}
                 />
               ))}

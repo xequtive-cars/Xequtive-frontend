@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -94,13 +95,14 @@ export default function DashboardLayout({
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <div className="container flex h-14 items-center justify-between">
             <div className="flex items-center gap-2">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="relative w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+              <Link href="/" className="flex items-center space-x-2 mt-8">
+                {/* <div className="relative w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                   <span className="font-bold text-base">X</span>
                 </div>
                 <span className="font-bold text-xl tracking-tight">
                   Xequtive
-                </span>
+                </span> */}
+                <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120}/>
               </Link>
             </div>
             <div className="flex items-center gap-4">

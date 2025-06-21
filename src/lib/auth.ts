@@ -447,30 +447,30 @@ export const authService = {
     let lastError: Error | null = null;
 
     while (retries > 0) {
-      try {
-        const apiUrl = getApiBaseUrl();
+    try {
+      const apiUrl = getApiBaseUrl();
 
-        const response = await fetch(`${apiUrl}/api/auth/me`, {
-          method: "GET",
-          credentials: "include", // CRITICAL: Required for cookies
-        });
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
+        method: "GET",
+        credentials: "include", // CRITICAL: Required for cookies
+      });
 
-        if (!response.ok) {
+      if (!response.ok) {
           if (response.status === 401) {
             // Unauthorized - user is not authenticated
-            return null;
+        return null;
           }
           throw new Error(`Auth check failed with status ${response.status}`);
-        }
+      }
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!data.success || !data.data) {
-          return null;
-        }
+      if (!data.success || !data.data) {
+        return null;
+      }
 
-        return data.data;
-      } catch (error) {
+      return data.data;
+    } catch (error) {
         lastError = error instanceof Error ? error : new Error("Unknown error");
         retries--;
         

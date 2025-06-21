@@ -80,7 +80,7 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
                   size="lg"
                   className="w-full rounded-md shadow-sm font-medium h-12"
                 >
-                  {hasLocations ? "More Info" : "Book a Ride"}{" "}
+                  {hasLocations ? "Book a Ride" : "Book a Ride"}{" "}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>

@@ -15,26 +15,27 @@ import {
   MapPinIcon,
   CarIcon,
   InfoIcon,
+  EditIcon,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
-// Status color mapping based on documentation
+// Status color mapping - using dark maroon for all statuses
 const getStatusColor = (status: string) => {
   switch (status) {
     case "pending":
-      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+      return "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20";
     case "confirmed":
     case "completed":
-      return "bg-green-100 text-green-800 hover:bg-green-100";
+      return "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20";
     case "assigned":
     case "in_progress":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+      return "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20";
     case "cancelled":
     case "declined":
     case "no_show":
-      return "bg-red-100 text-red-800 hover:bg-red-100";
+      return "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20";
     default:
-      return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+      return "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20";
   }
 };
 
@@ -79,6 +80,8 @@ interface BookingCardProps {
   };
   onCancel?: (id: string) => void;
   showCancelButton?: boolean;
+  onEdit?: (booking: BookingCardProps["booking"]) => void;
+  showEditButton?: boolean;
   onViewDetails?: (booking: BookingCardProps["booking"]) => void;
 }
 
@@ -86,6 +89,8 @@ const BookingCard: React.FC<BookingCardProps> = ({
   booking,
   onCancel,
   showCancelButton = false,
+  onEdit,
+  showEditButton = false,
   onViewDetails,
 }) => {
   const {
@@ -106,10 +111,20 @@ const BookingCard: React.FC<BookingCardProps> = ({
     : "N/A";
   const canBeCancelled =
     ["pending", "confirmed", "assigned"].includes(status) && showCancelButton;
+  
+  // Edit button should only be shown for pending and confirmed bookings (before they're assigned)
+  const canBeEdited =
+    ["pending", "confirmed"].includes(status) && showEditButton;
 
   const handleCancel = () => {
     if (onCancel) {
       onCancel(id);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(booking);
     }
   };
 
@@ -199,10 +214,20 @@ const BookingCard: React.FC<BookingCardProps> = ({
           <span>View Details</span>
         </Button>
 
+        {/* {canBeEdited && (
+          <Button
+            className="bg-primary hover:bg-primary/90 text-primary-foreground focus:ring-primary/20 w-full flex items-center justify-center gap-1"
+            onClick={handleEdit}
+          >
+            <EditIcon className="h-4 w-4" />
+            <span>Edit Booking</span>
+          </Button>
+        )} */}
+
         {canBeCancelled && (
           <Button
-            variant="outline"
-            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 w-full"
+            variant="destructive"
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground focus:ring-destructive/20 w-full"
             onClick={handleCancel}
           >
             Cancel Booking
