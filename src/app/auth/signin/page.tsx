@@ -576,7 +576,7 @@ function Navbar() {
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container flex h-20 py-5 items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2 pt-8">
             <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
           </Link>
         </div>
