@@ -40,14 +40,14 @@ function HomeContent() {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 md:h-16 items-center justify-between px-4">
           <div className="flex items-center gap-1 md:gap-2">
-            <Link href="/" className="flex items-center space-x-1 md:space-x-2 pt-6">
-              {/* <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+            <Link href="/" className="flex items-center space-x-1 md:space-x-2">
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
-              <span className="font-bold text-lg md:text-2xl tracking-tight">
+              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
                 XEQUTIVE
-              </span> */}
-              <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
+              </span>
+              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
             </Link>
           </div>
           {/* Only the navigation is auth-aware, everything else renders immediately */}
@@ -137,7 +137,7 @@ function HomeContent() {
                 {
                   name: "Executive Saloon",
                   image:
-                    "/images/front-vehicles/saloon-mpvs-xeq.jpeg",
+                    "/images/front-vehicles/mpv-s.jpg",
                   description:
                     "Premium transportation with enhanced comfort and amenities.",
                 },
@@ -151,7 +151,7 @@ function HomeContent() {
                 {
                   name: "Luxury Vehicle",
                   image:
-                    "/images/front-vehicles/vip-luxury.jpeg",
+                    "/images/front-vehicles/vip_luxury.jpeg",
                   description:
                     "Elite transportation experience with the highest level of luxury.",
                 },
@@ -233,13 +233,15 @@ function HomeContent() {
         <div className="container py-12 md:py-16">
           <div className="flex items-center justify-center mb-10">
             <div className="flex items-center gap-2">
-              {/* <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold">X</span>
+            <Link href="/" className="flex items-center space-x-1 md:space-x-2">
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                <span className="font-bold text-sm md:text-lg">X</span>
               </div>
-              <span className="font-bold text-2xl tracking-tight">
+              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
                 XEQUTIVE
-              </span> */}
-              <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
+              </span>
+              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+            </Link>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
@@ -399,15 +401,15 @@ export default function Home() {
           <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 md:h-16 items-center justify-between px-4">
               <div className="flex items-center gap-1 md:gap-2">
-                <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-                  {/* <div className="relative w-6 h-6 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                    <span className="font-bold text-xs md:text-lg">X</span>
-                  </div>
-                  <span className="font-bold text-base md:text-2xl tracking-tight">
-                    XEQUTIVE
-                  </span> */}
-                  <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
-                </Link>
+              <Link href="/" className="flex items-center space-x-1 md:space-x-2">
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                <span className="font-bold text-sm md:text-lg">X</span>
+              </div>
+              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
+                XEQUTIVE
+              </span>
+              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+            </Link>
               </div>
               <nav className="flex items-center gap-5">
                 <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>

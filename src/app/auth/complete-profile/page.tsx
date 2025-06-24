@@ -28,6 +28,7 @@ import { User, Phone, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import SimplePhoneInput from "@/components/ui/simple-phone-input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import Link from "next/link";
 
 // Schema for profile completion form
 const profileSchema = z.object({
@@ -213,7 +214,15 @@ function Navbar() {
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} />
+        <Link href="/" className="flex items-center space-x-1 md:space-x-2">
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                <span className="font-bold text-sm md:text-lg">X</span>
+              </div>
+              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
+                XEQUTIVE
+              </span>
+              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+            </Link>
         </div>
         <ThemeToggle />
       </div>
