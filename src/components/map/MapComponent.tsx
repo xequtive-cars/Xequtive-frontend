@@ -120,7 +120,7 @@ const MapComponent = ({
     if (onLocationError) {
       onLocationError(error);
     }
-  }, [error, onLocationError]);
+  }, [error]); // Removed onLocationError from dependencies
 
   // Store last known user coordinates and notify parent component
   useEffect(() => {
@@ -132,7 +132,7 @@ const MapComponent = ({
         onUserLocationChange({ latitude, longitude });
       }
     }
-  }, [latitude, longitude, onUserLocationChange]);
+  }, [latitude, longitude]); // Removed onUserLocationChange from dependencies
 
   // Update the useEffect for geolocation to prompt browser permission
   useEffect(() => {
@@ -178,14 +178,14 @@ const MapComponent = ({
         );
       }
     }
-  }, [showCurrentLocation, onLocationError, onUserLocationChange]);
+  }, [showCurrentLocation]); // Removed onLocationError and onUserLocationChange from dependencies
 
   // Attempt to get user location as soon as component mounts
   useEffect(() => {
     if (showCurrentLocation) {
       getCurrentPosition();
     }
-  }, [getCurrentPosition, showCurrentLocation]);
+  }, [showCurrentLocation]); // Removed getCurrentPosition from dependencies to prevent loops
 
   // Memoize the updateRoute function to prevent it from changing on every render
   const updateRoute = useCallback(() => {
@@ -353,10 +353,8 @@ const MapComponent = ({
     dropoffLocation,
     stops,
     showRoute,
-    latitude,
-    longitude,
     showCurrentLocation,
-  ]);
+  ]); // Removed latitude and longitude to prevent frequent updates on mobile
 
   // Initialize map when container is available (once only)
   useEffect(() => {
@@ -1565,10 +1563,8 @@ const MapComponent = ({
         // Add geolocate control to top-right corner of map
         loadedMap.addControl(geolocateControl, "top-right");
 
-        loadedMap.on("load", () => {
-          // Try to get location immediately if requested
-          geolocateControl.trigger();
-        });
+        // Don't automatically trigger geolocation on mobile to prevent loops
+        // Users can manually trigger it via the control button if needed
 
         // Add geolocate event handling
         loadedMap.on("geolocate", (e: mapboxgl.MapboxEvent) => {
@@ -1645,10 +1641,8 @@ const MapComponent = ({
     showCurrentLocation,
     cleanupMap,
     passMapRef,
-    onUserLocationChange,
-    onLocationError,
     showRoute,
-  ]);
+  ]); // Removed onUserLocationChange and onLocationError to prevent map reinitializations
 
   // Update map elements when locations change
   const updateMapElements = useCallback(
@@ -1808,7 +1802,6 @@ const MapComponent = ({
     stops,
     showRoute,
     updateMapElements,
-    map.current,
   ]);
 
   return (

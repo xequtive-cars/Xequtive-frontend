@@ -600,6 +600,11 @@ export default function NewBookingPage() {
     [pickupLocation, dropoffLocation, additionalStops]
   );
 
+  // Stable user location change handler
+  const handleUserLocationChange = useCallback((location: { latitude: number; longitude: number } | null) => {
+    setUserLocation(location);
+  }, []);
+
   // Handle pickup location selection
   const handlePickupLocationSelect = (location: {
     address: string;
@@ -1516,7 +1521,7 @@ export default function NewBookingPage() {
                         dropoffLocation={dropoffLocation}
                         stops={additionalStops}
                         showCurrentLocation={true}
-                        onUserLocationChange={setUserLocation}
+                                                  onUserLocationChange={handleUserLocationChange}
                         passMapRef={handleMapRef}
                         onLocationError={handleLocationError}
                       />
@@ -2007,7 +2012,7 @@ export default function NewBookingPage() {
                           dropoffLocation={dropoffLocation}
                           stops={additionalStops}
                           showCurrentLocation={true}
-                          onUserLocationChange={setUserLocation}
+                          onUserLocationChange={handleUserLocationChange}
                           passMapRef={handleMapRef}
                           onLocationError={handleLocationError}
                         />
