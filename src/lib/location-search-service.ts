@@ -851,7 +851,6 @@ class LocationSearchService {
       station: ['station', 'stn'],
       landmark: ['landmark', 'mark']
     };
-
     return tokens.filter(token => 
       Object.values(SEMANTIC_TYPES)
         .flat()
@@ -966,3 +965,4 @@ class LocationSearchService {
 }
 
 export const locationSearchService = new LocationSearchService();
+

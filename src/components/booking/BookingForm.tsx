@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, X, GripVertical, Loader2, ArrowRight } from "lucide-react";
@@ -12,9 +12,11 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -90,6 +92,7 @@ function SortableStopInputField({
   disabled,
   isFetching,
   isEmpty,
+  className = '',
 }: {
   id: string;
   address: string;
@@ -105,8 +108,9 @@ function SortableStopInputField({
   disabled?: boolean;
   isFetching: boolean;
   isEmpty: boolean;
+  className?: string;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
   const style = {
@@ -122,19 +126,23 @@ function SortableStopInputField({
       ref={setNodeRef}
       style={style}
       id={stopId}
-      className="relative flex items-center mb-2"
+      className={`relative flex items-center mb-2 min-h-[44px] md:min-h-[40px] ${
+        isDragging ? 'opacity-50 scale-105 z-50' : ''
+      } ${className}`}
       data-stop-index={stopIndex}
     >
       <div
         {...attributes}
         {...listeners}
-        className={`h-full px-2 flex items-center cursor-grab ${
+        className={`h-full px-3 py-2 flex items-center cursor-grab touch-none select-none ${
           isEmpty ? "opacity-50" : ""
-        }`}
+        } hover:bg-muted/20 active:bg-muted/30 transition-colors md:px-2 md:py-1 rounded-l-md`}
+        style={{ touchAction: 'none' }}
+        title="Drag to reorder"
       >
         <GripVertical
-          size={16}
-          className={`text-foreground ${isEmpty ? "opacity-50" : ""}`}
+          size={18}
+          className={`text-foreground ${isEmpty ? "opacity-50" : ""} md:w-4 md:h-4`}
         />
       </div>
 
@@ -236,19 +244,31 @@ export function BookingForm({
   const [currentStep, setCurrentStep] = useState<"location" | "luggage">(
     "location"
   );
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Add DND sensors for drag and drop
+  // Add DND sensors for drag and drop with mobile-friendly configuration
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // 5px movement before drag activation
+        distance: 3, // Even smaller distance for ultra-responsive drag
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 50, // Minimal delay for instant touch responsiveness
+        tolerance: 2, // Extremely precise touch tracking
       },
     }),
     useSensor(KeyboardSensor)
   );
 
-  // Add drag end handler
-  const handleDragEnd = (event: DragEndEvent) => {
+  // Memoize drag start handler to prevent unnecessary re-renders
+  const handleDragStart = useCallback((event: any) => {
+    setActiveId(event.active.id);
+  }, []);
+
+  // Memoize drag end handler for performance
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id && reorderStops) {
@@ -260,7 +280,14 @@ export function BookingForm({
         setFormModified(true);
       }
     }
-  };
+
+    setActiveId(null);
+  }, [reorderStops, setFormModified]);
+
+  // Find the active item for drag overlay
+  const activeItem = activeId 
+    ? stopAddresses[parseInt(activeId.toString().split("-")[1], 10)] 
+    : null;
 
   return (
     <>
@@ -319,10 +346,17 @@ export function BookingForm({
               {/* Stops */}
               {stopAddresses.length > 0 && (
                 <div className="pt-2 pb-1">
+                  {stopAddresses.length > 1 && (
+                    <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                      <GripVertical size={12} />
+                      <span>Drag to reorder stops</span>
+                    </div>
+                  )}
                   {/* Wrap stops in DndContext */}
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     modifiers={[restrictToVerticalAxis]}
                   >
@@ -361,11 +395,43 @@ export function BookingForm({
                               disabled={disabled || isFetching}
                               isFetching={isFetching}
                               isEmpty={address.trim() === ""}
+                              className={i % 2 === 0 ? 'bg-muted/40' : 'bg-muted/50'}
                             />
                           </div>
                         );
                       })}
                     </SortableContext>
+                    <DragOverlay 
+                      dropAnimation={{
+                        duration: 150, // Quick drop animation
+                        easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)', // Smooth easing
+                      }}
+                      modifiers={[
+                        ({ transform }) => ({
+                          ...transform,
+                          scaleX: 1.03, // Slight scale for depth
+                          scaleY: 1.03,
+                        })
+                      ]}
+                    >
+                      {activeItem ? (
+                        <div className="w-full">
+                          <SortableStopInputField
+                            id={activeId || ''}
+                            address={activeItem}
+                            stopIndex={parseInt(activeId?.toString().split("-")[1] || '0', 10)}
+                            updateAddress={() => {}}
+                            onLocationSelect={() => {}}
+                            removeStop={() => {}}
+                            userLocation={userLocation}
+                            disabled={true}
+                            isFetching={false}
+                            isEmpty={false}
+                            className="opacity-70 shadow-lg" // Slightly transparent with shadow
+                          />
+                        </div>
+                      ) : null}
+                    </DragOverlay>
                   </DndContext>
                 </div>
               )}
