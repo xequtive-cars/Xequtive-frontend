@@ -41,14 +41,7 @@ export function LocationSearchInput({
   const resultsRef = useRef<HTMLDivElement>(null);
   const { getCurrentLocation } = useGeolocation();
 
-  // Debug logging
-  useEffect(() => {
-    console.group('🔍 LocationSearchInput State');
-    console.log('Search Query:', searchQuery);
-    console.log('Search Results:', searchResults);
-    console.log('Is Focused:', isFocused);
-    console.groupEnd();
-  }, [searchQuery, searchResults, isFocused]);
+  // Debug logging removed for production
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -113,10 +106,9 @@ export function LocationSearchInput({
             setSearchQuery(e.target.value);
             setIsFocused(true);
           }}
-          onFocus={() => {
-            console.warn('🎯 Input Focused');
-            setIsFocused(true);
-          }}
+                      onFocus={() => {
+              setIsFocused(true);
+            }}
           placeholder={placeholder}
           className={`
             w-full h-12 px-4 pr-10 rounded-md border 

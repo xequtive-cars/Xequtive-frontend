@@ -1091,7 +1091,7 @@ export default function NewBookingPage() {
 
       setIsFetching(false);
     } catch (error) {
-      console.error("Fare calculation error:", error);
+      // Fare calculation error - show user-friendly message
       setFetchError("An unexpected error occurred. Please try again.");
       setIsFetching(false);
     }
@@ -1219,7 +1219,7 @@ export default function NewBookingPage() {
       setShowVehicleOptions(false);
       setShowDetailsForm(false);
     } catch (error) {
-      console.error("Error creating booking:", error);
+      // Booking creation error - show user-friendly message
       setBookingError(
         error instanceof Error
           ? error.message

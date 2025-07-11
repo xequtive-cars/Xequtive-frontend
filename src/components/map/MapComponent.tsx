@@ -316,6 +316,7 @@ const MapComponent = ({
   }, [passMapRef, mapLoaded]);
 
   // Memoize the updateRoute function to prevent it from changing on every render
+  // NOTE: This function prioritizes SHORTEST DISTANCE routes over fastest time routes
   const updateGoogleRoute = useCallback(() => {
     if (!googleMapRef.current) return;
 
@@ -354,11 +355,42 @@ const MapComponent = ({
             optimizeWaypoints: waypoints.length > 1,
             travelMode: google.maps.TravelMode.DRIVING,
             avoidHighways: false,
-            avoidTolls: false
+            avoidTolls: false,
+            // Configure for shortest distance routes, not fastest time
+            drivingOptions: {
+              departureTime: new Date(),
+              trafficModel: google.maps.TrafficModel.OPTIMISTIC
+            },
+            // Request alternative routes to find shortest distance
+            provideRouteAlternatives: true
           },
           (result, status) => {
             if (status === google.maps.DirectionsStatus.OK && result) {
-              setGoogleDirections(result);
+              // Find the shortest route by distance (not time)
+              if (result.routes && result.routes.length > 1) {
+                let shortestRoute = result.routes[0];
+                let shortestDistance = result.routes[0].legs.reduce((total, leg) => total + (leg.distance?.value || 0), 0);
+                
+                // Compare all routes to find the one with shortest distance
+                for (let i = 1; i < result.routes.length; i++) {
+                  const routeDistance = result.routes[i].legs.reduce((total, leg) => total + (leg.distance?.value || 0), 0);
+                  if (routeDistance < shortestDistance) {
+                    shortestRoute = result.routes[i];
+                    shortestDistance = routeDistance;
+                  }
+                }
+                
+                // Create a new result with only the shortest route
+                const shortestResult: google.maps.DirectionsResult = {
+                  ...result,
+                  routes: [shortestRoute]
+                };
+                
+                setGoogleDirections(shortestResult);
+              } else {
+                // Only one route available, use it
+                setGoogleDirections(result);
+              }
             } else {
               setGoogleDirections(null);
             }

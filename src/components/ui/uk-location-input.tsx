@@ -215,63 +215,44 @@ export default function UKLocationInput({
   // Handle current location selection
   const handleCurrentLocationSelect = async () => {
     try {
-      const position = await getCurrentLocation();
-      if (position) {
-        const currentLocation: Location = {
-          address: `Current Location (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          coordinates: {
-            lat: position.latitude,
-            lng: position.longitude,
-          },
-          type: "current_location",
-          metadata: {
-            category: "current_location",
-            primaryType: "current_location",
-          },
-        };
-
-        setInput(currentLocation.address);
-        
-        // Log current location selection
-        console.log(`📍 Current Location Selected (${locationType}):`, {
-          coordinates: currentLocation.coordinates,
-          type: locationType
+      setIsSearching(true);
+      
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
         });
-          
-        // Update URL parameters
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          
-          const locationData = {
-            address: currentLocation.address,
-            latitude: currentLocation.latitude,
-            longitude: currentLocation.longitude,
-          };
+      });
+      
+      const { latitude, longitude } = position.coords;
+      
+             // Create location object for current position
+       const currentLocation: LocationSuggestion = {
+         id: 'current-location',
+         address: 'Current Location',
+         mainText: 'Current Location',
+         secondaryText: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+         latitude,
+         longitude,
+         coordinates: { lat: latitude, lng: longitude },
+         metadata: {
+           primaryType: 'current_location'
+         }
+       };
 
-          if (locationType === 'pickup') {
-            params.set('pickup', encodeURIComponent(JSON.stringify(locationData)));
-          } else if (locationType === 'dropoff') {
-            params.set('dropoff', encodeURIComponent(JSON.stringify(locationData)));
-          }
-
-          const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
-          window.history.replaceState({}, '', newUrl);
-        }
-
-        // Call onSelect callback
-        if (onSelect) {
-          onSelect(currentLocation);
-          }
-        }
-      } catch (error) {
-      console.error('Error getting current location:', error);
-        toast({
-        title: "Location Error",
-        description: "Unable to get your current location. Please check your location permissions.",
-          variant: "destructive",
-        });
+      // Location selection logging removed to prevent infinite loops
+      
+      // Call the selection handler
+      handleSuggestionSelect(currentLocation);
+      
+    } catch (error) {
+      // Only log critical geolocation errors
+      if (error instanceof GeolocationPositionError && error.code === 1) {
+        // Permission denied - this is expected behavior, don't log
+      }
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -279,20 +260,18 @@ export default function UKLocationInput({
   const fetchPopularLocations = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching popular locations from API...');
       
       const response = await locationSearchService.fetchPopularLocations();
       
-      if (response.success && response.data) {
-        setPopularLocations(response.data);
-        console.log(`✅ Fetched ${response.data.length} popular locations`);
-      } else {
-        console.error('❌ Failed to fetch popular locations:', response.error);
+              if (response.success && response.data) {
+          setPopularLocations(response.data);
+        } else {
+          // Failed to fetch popular locations - use fallback data
         setPopularLocations([]);
       }
-    } catch (error) {
-      console.error('❌ Error fetching popular locations:', error);
-      setPopularLocations([]);
+          } catch (error) {
+        // Error fetching popular locations - use fallback data
+        setPopularLocations([]);
     } finally {
       setLoading(false);
     }
@@ -302,20 +281,18 @@ export default function UKLocationInput({
   const fetchCategoryLocations = useCallback(async (category: 'airport' | 'train_station') => {
     try {
       setIsSearching(true);
-      console.log(`🔍 Fetching ${category} locations from API...`);
       
       const response = await locationSearchService.fetchCategoryLocations(category);
       
-      if (response.success && response.data) {
-        setCategoryLocations(response.data);
-        console.log(`✅ Fetched ${response.data.length} ${category} locations`);
-      } else {
-        console.error(`❌ Failed to fetch ${category} locations:`, response.error);
+              if (response.success && response.data) {
+          setCategoryLocations(response.data);
+        } else {
+          // Failed to fetch category locations - use fallback
         setCategoryLocations([]);
       }
-    } catch (error) {
-      console.error(`❌ Error fetching ${category} locations:`, error);
-      setCategoryLocations([]);
+          } catch (error) {
+        // Error fetching category locations - use fallback
+        setCategoryLocations([]);
     } finally {
       setIsSearching(false);
     }
@@ -348,10 +325,10 @@ export default function UKLocationInput({
           setSuggestions(response.data);
         } else {
           setSuggestions([]);
-          console.warn('Location search failed:', response.error);
+          // Location search failed - clear suggestions
         }
       } catch (error) {
-        console.error('Location search error:', error);
+        // Location search error - clear suggestions
         setSuggestions([]);
       } finally {
         setLoading(false);
@@ -531,10 +508,7 @@ export default function UKLocationInput({
 
     // Show category locations when in category view (regardless of input)
     if (dropdownView === 'airports' || dropdownView === 'trains') {
-      // Only log in development mode and when there are locations
-      if (process.env.NODE_ENV === 'development' && categoryLocations.length > 0) {
-        console.log(`📋 Rendering ${dropdownView} with ${categoryLocations.length} locations`);
-      }
+      // Rendering category locations
       
       if (isSearching) {
         return (
