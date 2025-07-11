@@ -1,12 +1,11 @@
-import { useState, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, X, GripVertical, Loader2, ArrowRight } from "lucide-react";
-import { UkLocationInput } from "@/components/ui/uk-location-input";
+import UKLocationInput, { Location } from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { PassengerLuggageForm } from "@/components/booking";
-import { Location } from "@/components/map/MapComponent";
 import {
   DndContext,
   closestCenter,
@@ -25,6 +24,13 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+
+// Add type for location parameter
+type LocationData = {
+  address: string;
+  longitude: number;
+  latitude: number;
+};
 
 interface BookingFormProps {
   pickupAddress: string;
@@ -98,11 +104,7 @@ function SortableStopInputField({
   address: string;
   stopIndex: number;
   updateAddress: (value: string) => void;
-  onLocationSelect: (location: {
-    address: string;
-    longitude: number;
-    latitude: number;
-  }) => void;
+  onLocationSelect: (location: LocationData) => void;
   removeStop: (index: number) => void;
   userLocation: { latitude: number; longitude: number } | null;
   disabled?: boolean;
@@ -148,12 +150,16 @@ function SortableStopInputField({
 
       <div className="flex-grow relative">
         <div className="relative">
-          <UkLocationInput
+          <UKLocationInput
             placeholder={`Enter stop ${stopIndex + 1}`}
+            value={address}
+            onChange={updateAddress}
             initialLocation={
               address
                 ? {
                     address,
+                    latitude: 0,
+                    longitude: 0,
                     coordinates: { lat: 0, lng: 0 },
                     type: "landmark",
                     metadata: {
@@ -165,19 +171,18 @@ function SortableStopInputField({
                   }
                 : null
             }
-            onSelect={(location) => {
+            onSelect={(location: Location) => {
               updateAddress(location.address);
               onLocationSelect({
                 address: location.address,
-                longitude: location.coordinates.lng,
-                latitude: location.coordinates.lat,
+                longitude: location.longitude,
+                latitude: location.latitude,
               });
             }}
             locationType="stop"
-            initialSuggestionsTitle="Suggested stop locations"
-            userLocation={userLocation}
-            disabled={disabled || isFetching}
-            className="bg-muted/40 text-sm h-10 rounded-md"
+            
+                          disabled={disabled || isFetching}
+              className="bg-muted/40 text-sm h-10 rounded-md"
           />
 
           {/* Direct DOM reference remove button */}
@@ -200,7 +205,33 @@ function SortableStopInputField({
   );
 }
 
-export function BookingForm({
+// Define a more flexible Location type
+// export type Location = {
+//   [key: string]: any;
+//   id?: string;
+//   address: string;
+//   name?: string;
+//   mainText?: string;
+//   secondaryText?: string;
+//   latitude?: number;
+//   longitude?: number;
+//   coordinates?: {
+//     lat: number;
+//     lng: number;
+//   };
+//   metadata?: {
+//     [key: string]: any;
+//     primaryType?: string;
+//     postcode?: string;
+//     city?: string;
+//     region?: string;
+//     type?: string;
+//     category?: string;
+//   };
+//   type?: string;
+// }
+
+export default function BookingForm({
   pickupAddress,
   setPickupAddress,
   dropoffAddress,
@@ -228,9 +259,9 @@ export function BookingForm({
   setFormModified,
   isFetching,
   fetchError,
-  handlePickupLocationSelect,
-  handleDropoffLocationSelect,
-  handleStopLocationSelect,
+  handlePickupLocationSelect: externalHandlePickupLocationSelect,
+  handleDropoffLocationSelect: externalHandleDropoffLocationSelect,
+  handleStopLocationSelect: externalHandleStopLocationSelect,
   updateStopAddress,
   addStop,
   removeStop,
@@ -241,10 +272,69 @@ export function BookingForm({
   disabled,
   reorderStops,
 }: BookingFormProps) {
-  const [currentStep, setCurrentStep] = useState<"location" | "luggage">(
-    "location"
-  );
+  // Add currentStep state
+  const [currentStep, setCurrentStep] = useState<"location" | "luggage">("location");
+
+  // Ensure mapRef is properly defined INSIDE the component
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  // State for drag and drop
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Modify state setters to use the flexible type INSIDE the component
+  const handlePickupLocationChange = (location: Location | null) => {
+    // Validate location
+    if (!location) {
+      externalHandlePickupLocationSelect({
+        address: '',
+        longitude: 0,
+        latitude: 0
+      });
+      return;
+    }
+
+    // Update pickup location
+    externalHandlePickupLocationSelect({
+      address: location.address,
+      longitude: location.longitude || 0,
+      latitude: location.latitude || 0
+    });
+
+    // Update map center if MapComponent is available
+    if (mapRef.current && location.coordinates) {
+      mapRef.current.flyTo({
+        center: [location.coordinates.lng, location.coordinates.lat],
+        zoom: 12
+      });
+    }
+  };
+
+  const handleDropoffLocationChange = (location: Location | null) => {
+    // Similar implementation as handlePickupLocationChange
+    if (!location) {
+      externalHandleDropoffLocationSelect({
+        address: '',
+        longitude: 0,
+        latitude: 0
+      });
+      return;
+    }
+
+    // Update dropoff location
+    externalHandleDropoffLocationSelect({
+      address: location.address,
+      longitude: location.longitude || 0,
+      latitude: location.latitude || 0
+    });
+
+    // Update map center if MapComponent is available
+    if (mapRef.current && location.coordinates) {
+      mapRef.current.flyTo({
+        center: [location.coordinates.lng, location.coordinates.lat],
+        zoom: 12
+      });
+    }
+  };
 
   // Add DND sensors for drag and drop with mobile-friendly configuration
   const sensors = useSensors(
@@ -289,6 +379,83 @@ export function BookingForm({
     ? stopAddresses[parseInt(activeId.toString().split("-")[1], 10)] 
     : null;
 
+  // Modify location handling functions to use type assertion
+  const handlePickupLocationSelect = (location: {
+    address: string;
+    longitude: number;
+    latitude: number;
+  }) => {
+    const newLocation = {
+      address: location.address,
+      coordinates: {
+        lat: location.latitude,
+        lng: location.longitude
+      },
+      metadata: {
+        postcode: undefined,
+        city: undefined,
+        region: undefined,
+        category: undefined,
+        type: "landmark"
+      },
+      type: "landmark",
+      latitude: location.latitude,
+      longitude: location.longitude,
+      mainText: location.address,
+      secondaryText: location.address
+    } as any;
+    
+    // @ts-ignore
+    handlePickupLocationChange(newLocation);
+    // @ts-ignore
+    setPickupAddress(location.address);
+    // @ts-ignore
+    setFormModified(true);
+  };
+
+  const handleDropoffLocationSelect = (location: {
+    address: string;
+    longitude: number;
+    latitude: number;
+  }) => {
+    const newLocation = {
+      address: location.address,
+      coordinates: {
+        lat: location.latitude,
+        lng: location.longitude
+      },
+      metadata: {
+        postcode: undefined,
+        city: undefined,
+        region: undefined,
+        category: undefined,
+        type: "landmark"
+      },
+      type: "landmark",
+      latitude: location.latitude,
+      longitude: location.longitude,
+      mainText: location.address,
+      secondaryText: location.address
+    } as any;
+    
+    // @ts-ignore
+    handleDropoffLocationChange(newLocation);
+    // @ts-ignore
+    setDropoffAddress(location.address);
+    // @ts-ignore
+    setFormModified(true);
+  };
+
+  const handleStopLocationSelect = (
+    index: number,
+    location: { address: string; longitude: number; latitude: number }
+  ) => {
+    // Call the external handler passed from the parent component
+    externalHandleStopLocationSelect(index, location);
+    setFormModified(true);
+  };
+
+  // Helper function to create a Location object
   return (
     <>
       {currentStep === "location" ? (
@@ -296,12 +463,16 @@ export function BookingForm({
           <CardContent>
             <div className="space-y-3">
               {/* Pickup */}
-              <UkLocationInput
+              <UKLocationInput
                 placeholder="Enter pickup location"
+                value={pickupAddress}
+                onChange={setPickupAddress}
                 initialLocation={
                   pickupAddress
                     ? {
                         address: pickupAddress,
+                        latitude: pickupLocation?.latitude || 0,
+                        longitude: pickupLocation?.longitude || 0,
                         coordinates: pickupLocation
                           ? {
                               lat: pickupLocation.latitude,
@@ -318,27 +489,18 @@ export function BookingForm({
                       }
                     : null
                 }
-                onSelect={(location) => {
+                onSelect={(location: Location) => {
                   setPickupAddress(location.address);
                   handlePickupLocationSelect({
                     address: location.address,
-                    longitude: location.coordinates.lng,
-                    latitude: location.coordinates.lat,
+                    longitude: location.longitude,
+                    latitude: location.latitude,
                   });
                   setFormModified(true);
                 }}
-                onClear={() => {
-                  setPickupAddress("");
-                  handlePickupLocationSelect({
-                    address: "",
-                    longitude: 0,
-                    latitude: 0,
-                  });
-                  setFormModified(true);
-                }}
+
                 locationType="pickup"
-                initialSuggestionsTitle="Suggested pickup locations"
-                userLocation={userLocation}
+
                 className="bg-muted/40 text-sm h-10 rounded-md w-full"
                 disabled={disabled || isFetching}
               />
@@ -365,8 +527,8 @@ export function BookingForm({
                       strategy={verticalListSortingStrategy}
                     >
                       {stopAddresses.map((address, i) => {
-                        // Create a unique key that doesn't change
-                        const stopKey = `stop-${i}-${address.substring(0, 3)}`;
+                        // Use stable key based on index only - don't include address content
+                        const stopKey = `stop-${i}`;
 
                         return (
                           <div
@@ -458,12 +620,16 @@ export function BookingForm({
               </Button>
 
               {/* Dropoff */}
-              <UkLocationInput
+              <UKLocationInput
                 placeholder="Enter dropoff location"
+                value={dropoffAddress}
+                onChange={setDropoffAddress}
                 initialLocation={
                   dropoffAddress
                     ? {
                         address: dropoffAddress,
+                        latitude: dropoffLocation?.latitude || 0,
+                        longitude: dropoffLocation?.longitude || 0,
                         coordinates: dropoffLocation
                           ? {
                               lat: dropoffLocation.latitude,
@@ -480,27 +646,16 @@ export function BookingForm({
                       }
                     : null
                 }
-                onSelect={(location) => {
+                onSelect={(location: Location) => {
                   setDropoffAddress(location.address);
                   handleDropoffLocationSelect({
                     address: location.address,
-                    longitude: location.coordinates.lng,
-                    latitude: location.coordinates.lat,
-                  });
-                  setFormModified(true);
-                }}
-                onClear={() => {
-                  setDropoffAddress("");
-                  handleDropoffLocationSelect({
-                    address: "",
-                    longitude: 0,
-                    latitude: 0,
+                    longitude: location.longitude,
+                    latitude: location.latitude,
                   });
                   setFormModified(true);
                 }}
                 locationType="dropoff"
-                initialSuggestionsTitle="Suggested dropoff locations"
-                userLocation={userLocation}
                 className="bg-muted/40 text-sm h-10 rounded-md w-full"
                 disabled={disabled || isFetching}
               />

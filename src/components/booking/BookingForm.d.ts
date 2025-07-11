@@ -51,7 +51,7 @@ interface BookingFormProps {
   getPassengerLuggageSummary: () => string;
   disabled?: boolean;
 }
-export declare function BookingForm({
+declare const BookingForm: ({
   pickupAddress,
   setPickupAddress,
   dropoffAddress,
@@ -83,5 +83,6 @@ export declare function BookingForm({
   calculateFare,
   getPassengerLuggageSummary,
   disabled,
-}: BookingFormProps): import("react").JSX.Element;
-export {};
+}: BookingFormProps) => import("react").JSX.Element;
+
+export default BookingForm;

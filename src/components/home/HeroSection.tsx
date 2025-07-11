@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { QuickBookingForm } from "@/components/home/QuickBookingForm";
+import QuickBookingForm from "@/components/home/QuickBookingForm";
 import { DashboardForm } from "@/components/home/DashboardForm";
 
 interface HeroSectionProps {

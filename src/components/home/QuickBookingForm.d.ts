@@ -1,5 +1,5 @@
 interface QuickBookingFormProps {
     isAuthenticated: boolean;
 }
-export declare function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps): import("react").JSX.Element;
-export {};
+declare const QuickBookingForm: ({ isAuthenticated }: QuickBookingFormProps) => import("react").JSX.Element;
+export default QuickBookingForm;

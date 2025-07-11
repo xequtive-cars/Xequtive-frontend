@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useAppSelector, useAppDispatch } from "@/store";
 import MapComponent from "@/components/map/MapComponent";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Check, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { UkLocationInput } from "@/components/ui/uk-location-input";
+import UkLocationInput from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
@@ -57,16 +57,6 @@ import {
 
 import { calculateFare, submitBooking } from "@/store/slices/apiSlice";
 
-// Helper to create wrapper functions for UkLocationInput with proper types
-const createInputChangeHandler = (
-  dispatch: ReturnType<typeof useAppDispatch>,
-  actionCreator: (value: string) => { type: string; payload: string }
-) => {
-  return (value: string) => {
-    dispatch(actionCreator(value));
-  };
-};
-
 export default function NewBookingPageRedux() {
   const dispatch = useAppDispatch();
 
@@ -108,43 +98,46 @@ export default function NewBookingPageRedux() {
   } = ui;
 
   // Destructure API state
-  const { isFetching, isCreatingBooking, fetchError, bookingError, fareData } =
-    api;
+  const { 
+    isFetching, 
+    isCreatingBooking, 
+    fetchError, 
+    bookingError, 
+    fareData 
+  } = api;
 
   // Destructure validation state
   const { errors } = validation;
 
-  // Create change handlers for inputs
-  const handlePickupAddressChange = createInputChangeHandler(
-    dispatch,
-    setPickupAddress
-  );
-  const handleDropoffAddressChange = createInputChangeHandler(
-    dispatch,
-    setDropoffAddress
-  );
+  // Memoize input change handlers to prevent unnecessary re-renders
+  const handlePickupAddressChange = useCallback((value: string) => {
+    dispatch(setPickupAddress(value));
+  }, [dispatch]);
+
+  const handleDropoffAddressChange = useCallback((value: string) => {
+    dispatch(setDropoffAddress(value));
+  }, [dispatch]);
+
+  // Memoize stop address change handlers
+  const createStopAddressChangeHandlers = useMemo(() => {
+    return stopAddresses.map((_address: string, index: number) => 
+      (value: string) => dispatch(updateStopAddressAction({ index, value }))
+    );
+  }, [dispatch, stopAddresses]);
 
   // Initialize map after component mounts
   useEffect(() => {
     dispatch(setShowMap(true));
   }, [dispatch]);
 
-  // Create wrapper for updateStopAddress
-  const createStopAddressChangeHandler = (index: number) => {
-    return (value: string) => {
-      dispatch(updateStopAddressAction({ index, value }));
-    };
-  };
-
-  // Add a new stop field
-  const addStop = () => {
+  // Memoized handlers to prevent unnecessary re-renders
+  const addStop = useCallback(() => {
     dispatch(addStopAction());
-  };
+  }, [dispatch]);
 
-  // Remove a stop field
-  const removeStop = (index: number) => {
+  const removeStop = useCallback((index: number) => {
     dispatch(removeStopAction(index));
-  };
+  }, [dispatch]);
 
   // Get passenger and luggage summary
   const getPassengerLuggageSummary = () => {
@@ -218,7 +211,7 @@ export default function NewBookingPageRedux() {
   };
 
   // Handle booking submission
-  const handleSubmitBooking = async (
+  const handleSubmitBooking = useCallback((
     personalDetails: {
       fullName: string;
       email: string;
@@ -233,12 +226,12 @@ export default function NewBookingPageRedux() {
         agree,
       })
     );
-  };
+  }, [dispatch]);
 
   // Handle vehicle selection
-  const handleVehicleSelect = (vehicle: VehicleOption) => {
+  const handleVehicleSelect = useCallback((vehicle: VehicleOption) => {
     dispatch(setSelectedVehicleAction(vehicle));
-  };
+  }, [dispatch]);
 
   return (
       <div className="flex flex-col md:flex-row w-full min-h-screen">
@@ -264,7 +257,6 @@ export default function NewBookingPageRedux() {
                   value={pickupAddress}
                   onChange={handlePickupAddressChange}
                   locationType="pickup"
-                  userLocation={null}
                   placeholder="Enter pickup address"
                 />
                 {errors.pickupLocation && (
@@ -291,24 +283,23 @@ export default function NewBookingPageRedux() {
                   </div>
                   <UkLocationInput
                     value={address}
-                    onChange={createStopAddressChangeHandler(index)}
+                    onChange={createStopAddressChangeHandlers[index]}
                     locationType="stop"
-                    userLocation={null}
                     placeholder={`Enter stop ${index + 1} address`}
                   />
                 </div>
               ))}
 
-              {stopAddresses.length < 3 && (
+              {/* Add stop button */}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={addStop}
                   className="w-full"
+                disabled={stopAddresses.length >= 3}
                 >
-                  <Plus className="h-4 w-4 mr-2" /> Add Stop
+                <Plus className="mr-2 h-4 w-4" /> Add Stop
                 </Button>
-              )}
 
               {/* Dropoff location */}
               <div className="space-y-2">
@@ -317,7 +308,6 @@ export default function NewBookingPageRedux() {
                   value={dropoffAddress}
                   onChange={handleDropoffAddressChange}
                   locationType="dropoff"
-                  userLocation={null}
                   placeholder="Enter dropoff address"
                 />
                 {errors.dropoffLocation && (

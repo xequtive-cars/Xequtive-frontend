@@ -23,7 +23,7 @@ interface FareRequest {
   locations: {
     pickup: LocationData;
     dropoff: LocationData;
-    additionalStops?: LocationData[];
+    stops?: LocationData[];
   };
   datetime: {
     date: Date | string;
@@ -136,14 +136,10 @@ export const getFareEstimate = async (
             lng: request.locations?.dropoff?.coordinates?.lng || 0,
           },
         },
-        additionalStops:
-          request.locations?.additionalStops?.map((stop) => ({
-            address: stop.address || "",
-            coordinates: {
-              lat: stop.coordinates?.lat || 0,
-              lng: stop.coordinates?.lng || 0,
-            },
-          })) || [],
+        stops:
+          request.locations?.stops
+            ?.filter((stop: LocationData) => stop.address && stop.address.trim() !== "")
+            ?.map((stop: LocationData) => stop.address) || [],
       },
       datetime: {
         date: formattedDate,
@@ -151,7 +147,7 @@ export const getFareEstimate = async (
       },
       passengers: {
         // Ensure all passenger fields are present and have a default of 0
-        count: Math.max(1, Math.min(Number(request.passengers?.count) || 1, 8)),
+        count: Math.max(1, Math.min(Number(request.passengers?.count) || 1, 16)),
         checkedLuggage: Math.max(
           0,
           Math.min(Number(request.passengers?.checkedLuggage) || 0, 8)
@@ -166,15 +162,15 @@ export const getFareEstimate = async (
         ),
         babySeat: Math.max(
           0,
-          Math.min(Number(request.passengers?.babySeat) || 0, 4)
+          Math.min(Number(request.passengers?.babySeat) || 0, 5)
         ),
         childSeat: Math.max(
           0,
-          Math.min(Number(request.passengers?.childSeat) || 0, 4)
+          Math.min(Number(request.passengers?.childSeat) || 0, 5)
         ),
         boosterSeat: Math.max(
           0,
-          Math.min(Number(request.passengers?.boosterSeat) || 0, 4)
+          Math.min(Number(request.passengers?.boosterSeat) || 0, 5)
         ),
         wheelchair: Math.max(
           0,

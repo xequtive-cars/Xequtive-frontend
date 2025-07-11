@@ -7,13 +7,9 @@ import { Button } from "@/components/ui/button";
 import MapComponent from "@/components/map/MapComponent";
 import { Location } from "@/components/map/MapComponent";
 import { Check, MapPin, ArrowLeft } from "lucide-react";
-import {
-  PersonalDetailsForm,
-  VehicleSelection,
-  FareResponse,
-  VehicleOption,
-  BookingForm,
-} from "@/components/booking";
+import BookingForm from "@/components/booking/BookingForm";
+import { PersonalDetailsForm } from "@/components/booking/personal-details-form";
+import VehicleSelection from "@/components/booking/vehicle-selection";
 import { AdditionalRequestsForm } from "@/components/booking/additional-requests-form";
 import { getFareEstimate } from "@/utils/services/fare-api";
 import { bookingService } from "@/utils/services/booking-service";
@@ -36,6 +32,9 @@ import {
 } from "@/store/slices/bookingSlice";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { format } from "date-fns";
+
+// Import types from booking components
+import type { FareResponse, VehicleOption } from "@/components/booking/common/types";
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -63,7 +62,7 @@ interface FareRequest {
         lng: number;
       };
     };
-    additionalStops: Array<{
+    stops: Array<{
       address: string;
       coordinates: {
         lat: number;
@@ -152,25 +151,20 @@ const StableMapComponent = memo(
       [passMapRef]
     );
 
-    // Create a single map component instance that never rerenders
-    const mapComponent = useMemo(() => {
-      return (
-        <MapComponent
-          className={className}
-          pickupLocation={pickupLocation}
-          dropoffLocation={dropoffLocation}
-          stops={stops}
-          showRoute={true}
-          showCurrentLocation={showCurrentLocation}
-          onUserLocationChange={onUserLocationChange}
-          passMapRef={handleMapRef}
-          onLocationError={onLocationError}
-        />
-      );
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty dependency array - component is created exactly once
-
-    return mapComponent;
+    // Return the map component with updated props
+    return (
+      <MapComponent
+        className={className}
+        pickupLocation={pickupLocation}
+        dropoffLocation={dropoffLocation}
+        stops={stops}
+        showRoute={true}
+        showCurrentLocation={showCurrentLocation}
+        onUserLocationChange={onUserLocationChange}
+        passMapRef={handleMapRef}
+        onLocationError={onLocationError}
+      />
+    );
   },
   // Custom equality function for React.memo that only triggers re-render when actual location values change
   (prevProps, nextProps) => {
@@ -476,10 +470,13 @@ export default function NewBookingPage() {
 
       // Add stops to URL if available
       if (additionalStops.length > 0) {
-        // Only include valid stops
+        // Only include valid stops (non-zero coordinates and non-empty address)
         const validStops = additionalStops.filter(
-          (stop) => stop.address && stop.latitude && stop.longitude
+          (stop) => stop.address && stop.address.trim() !== "" && stop.latitude !== 0 && stop.longitude !== 0
         );
+        
+        // Debug logging removed to prevent infinite loops
+        
         if (validStops.length > 0) {
           params.set("stops", encodeURIComponent(JSON.stringify(validStops)));
         } else {
@@ -614,6 +611,7 @@ export default function NewBookingPage() {
     // Check if this is a clear operation (empty address or zero coordinates)
     if (
       !location.address ||
+      location.address.trim() === "" ||
       (location.longitude === 0 && location.latitude === 0)
     ) {
       // Immediately set to null to ensure map updates right away
@@ -666,6 +664,7 @@ export default function NewBookingPage() {
     // Check if this is a clear operation (empty address or zero coordinates)
     if (
       !location.address ||
+      location.address.trim() === "" ||
       (location.longitude === 0 && location.latitude === 0)
     ) {
       // Immediately set to null to ensure map updates right away
@@ -717,6 +716,7 @@ export default function NewBookingPage() {
     // Check if this is a clear operation (empty address or zero coordinates)
     if (
       !location.address ||
+      location.address.trim() === "" ||
       (location.longitude === 0 && location.latitude === 0)
     ) {
       // This is a clear operation - just clear the address at the index without removing the stop
@@ -793,6 +793,8 @@ export default function NewBookingPage() {
 
       setAdditionalStops(newAdditionalStops);
 
+      // Debug logging removed to prevent infinite loops
+
       // Update map immediately
       if (mapInstanceRef.current) {
         mapInstanceRef.current.updateLocations(
@@ -812,6 +814,12 @@ export default function NewBookingPage() {
   // Add a new stop field
   const addStop = () => {
     setStopAddresses([...stopAddresses, ""]);
+    // Also add an empty stop to additionalStops to keep arrays in sync
+    setAdditionalStops([...additionalStops, {
+      address: "",
+      latitude: 0,
+      longitude: 0,
+    }]);
   };
 
   // Remove a stop from the list - completely rewritten
@@ -984,13 +992,15 @@ export default function NewBookingPage() {
               lng: dropoffLocation.longitude,
             },
           },
-          additionalStops: additionalStops.map((stop) => ({
-            address: stop.address || "",
-            coordinates: {
-              lat: stop.latitude,
-              lng: stop.longitude,
-            },
-          })),
+          stops: additionalStops
+            .filter(stop => stop.address && stop.address.trim() !== "" && stop.latitude !== 0 && stop.longitude !== 0)
+            .map((stop) => ({
+              address: stop.address || "",
+              coordinates: {
+                lat: stop.latitude,
+                lng: stop.longitude,
+              },
+            })),
         },
         datetime: {
           date: selectedDate ? formatDate(selectedDate) : "",
@@ -1448,8 +1458,16 @@ export default function NewBookingPage() {
                     dropoffAddress={dropoffAddress}
                     setDropoffAddress={setDropoffAddress}
                     stopAddresses={stopAddresses}
-                    pickupLocation={pickupLocation}
-                    dropoffLocation={dropoffLocation}
+                    pickupLocation={pickupLocation ? {
+                      address: pickupLocation.address || "",
+                      latitude: pickupLocation.latitude,
+                      longitude: pickupLocation.longitude
+                    } : null}
+                    dropoffLocation={dropoffLocation ? {
+                      address: dropoffLocation.address || "",
+                      latitude: dropoffLocation.latitude,
+                      longitude: dropoffLocation.longitude
+                    } : null}
                     selectedDate={selectedDate}
                     setSelectedDate={setSelectedDate}
                     selectedTime={selectedTime}
@@ -1517,11 +1535,19 @@ export default function NewBookingPage() {
                     <div className="h-[35vh] md:h-[87vh] max-h-[calc(100vh-0rem)] rounded-lg overflow-hidden border shadow-sm">
                       <StableMapComponent
                         className="h-full"
-                        pickupLocation={pickupLocation}
-                        dropoffLocation={dropoffLocation}
+                        pickupLocation={pickupLocation ? {
+                          latitude: pickupLocation.latitude,
+                          longitude: pickupLocation.longitude,
+                          address: pickupLocation.address
+                        } : null}
+                        dropoffLocation={dropoffLocation ? {
+                          latitude: dropoffLocation.latitude,
+                          longitude: dropoffLocation.longitude,
+                          address: dropoffLocation.address
+                        } : null}
                         stops={additionalStops}
                         showCurrentLocation={true}
-                                                  onUserLocationChange={handleUserLocationChange}
+                        onUserLocationChange={handleUserLocationChange}
                         passMapRef={handleMapRef}
                         onLocationError={handleLocationError}
                       />

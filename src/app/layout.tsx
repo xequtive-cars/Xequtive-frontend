@@ -32,11 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Add Mapbox GL CSS */}
-        <link
-          href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
-          rel="stylesheet"
-        />
+        {/* Remove Mapbox GL CSS */}
       </head>
       <body
         className={cn(

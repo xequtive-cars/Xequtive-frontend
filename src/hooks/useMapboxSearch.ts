@@ -1,22 +1,110 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from 'react';
 
-interface SearchResult {
+export interface SearchResult {
   id: string;
   text: string;
   place_name: string;
   center: [number, number];
+  type?: 'current_location' | 'recent' | 'popular' | 'location' | 'category' | 'airport' | 'train_station';
 }
 
 export function useMapboxSearch() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const searchLocations = async () => {
-      if (!searchQuery || searchQuery.length < 3) {
-        setSearchResults([]);
+  // Hardcoded default suggestions as fallback
+  const defaultSuggestions: SearchResult[] = [
+    {
+      id: 'current_location',
+      text: 'Use Current Location',
+      place_name: 'Get my exact location',
+      center: [0, 0],
+      type: 'current_location'
+    },
+    {
+      id: 'heathrow_airport',
+      text: 'Heathrow Airport (LHR)',
+      place_name: 'Terminal 2, 3, 4, 5 - London',
+      center: [51.4700, -0.4543],
+      type: 'airport'
+    },
+    {
+      id: 'gatwick_airport',
+      text: 'Gatwick Airport (LGW)',
+      place_name: 'North and South Terminals - London',
+      center: [51.1537, -0.1821],
+      type: 'airport'
+    },
+    {
+      id: 'kings_cross_station',
+      text: 'King\'s Cross Station',
+      place_name: 'Central London - Multiple Lines',
+      center: [51.5302, -0.1229],
+      type: 'train_station'
+    }
+  ];
+
+  // Fetch popular locations with extensive error handling
+  const fetchPopularLocations = useCallback(async (): Promise<SearchResult[]> => {
+    try {
+      console.group('🌍 Fetching Popular Locations');
+      console.log('Attempting to fetch from /api/places?popular=true');
+
+      const response = await fetch('/api/places?popular=true', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'  // Disable caching to ensure fresh data
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Raw API Response:', data);
+
+      if (!data.suggestions || data.suggestions.length === 0) {
+        console.warn('No suggestions returned, using default');
+        return defaultSuggestions;
+      }
+
+      const formattedResults: SearchResult[] = data.suggestions.map((suggestion: any) => ({
+        id: suggestion.id || `popular-${Math.random().toString(36).substr(2, 9)}`,
+        text: suggestion.mainText || suggestion.name || 'Unknown Location',
+        place_name: suggestion.address || 'No address available',
+        center: suggestion.coordinates || [0, 0],
+        type: suggestion.metadata?.primaryType || 'location'
+      }));
+
+      console.log('Formatted Popular Locations:', formattedResults);
+      console.groupEnd();
+
+      return formattedResults.length > 0 ? formattedResults : defaultSuggestions;
+    } catch (err) {
+      console.error('❌ Popular Locations Fetch Error:', err);
+      console.groupEnd();
+      return defaultSuggestions;
+    }
+  }, []);
+
+  const searchLocations = useCallback(async (query: string) => {
+    console.group('🔍 Location Search');
+    console.log('Search Query:', query);
+
+    // If query is empty, fetch popular locations
+    if (!query || query.trim().length === 0) {
+      const popularLocations = await fetchPopularLocations();
+      console.log('Empty query - setting popular locations');
+      setSearchResults(popularLocations);
+      console.groupEnd();
         return;
       }
 
@@ -24,36 +112,88 @@ export function useMapboxSearch() {
       setError(null);
 
       try {
-        const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-            searchQuery
-          )}.json?access_token=${
-            process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-          }&types=address,place,locality,neighborhood&limit=5`
-        );
+      const response = await fetch(`/api/places?input=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
+
+      console.log('Search Response Status:', response.status);
 
         if (!response.ok) {
-          throw new Error("Failed to fetch locations");
+        const errorText = await response.text();
+        console.error('Search API Error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        setSearchResults(data.features);
+      console.log('Search API Response:', data);
+
+      if (!data.suggestions || data.suggestions.length === 0) {
+        console.warn('No search results, fetching popular locations');
+        const popularLocations = await fetchPopularLocations();
+        setSearchResults(popularLocations);
+        console.groupEnd();
+        return;
+      }
+
+      const formattedResults: SearchResult[] = data.suggestions.map((suggestion: any) => ({
+        id: suggestion.id || `suggestion-${Math.random().toString(36).substr(2, 9)}`,
+        text: suggestion.mainText || 'Unknown Location',
+        place_name: suggestion.address || 'No address available',
+        center: [0, 0],
+        type: suggestion.metadata?.primaryType || 'location'
+      }));
+
+      // Combine with default suggestions
+      const combinedResults = [
+        ...defaultSuggestions,
+        ...formattedResults
+      ];
+
+      console.log('Combined Search Results:', combinedResults);
+      setSearchResults(combinedResults);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        setSearchResults([]);
+      console.error('❌ Search Error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      
+      // Fallback to popular locations
+      const popularLocations = await fetchPopularLocations();
+      setSearchResults(popularLocations);
       } finally {
         setIsLoading(false);
+      console.groupEnd();
       }
-    };
+  }, [fetchPopularLocations]);
 
-    const debounceTimer = setTimeout(searchLocations, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  // Debounce search to reduce unnecessary API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        searchLocations(searchQuery);
+      } else {
+        // Show popular locations when query is empty
+        fetchPopularLocations().then(popularLocations => {
+          setSearchResults(popularLocations);
+        });
+      }
+    }, 300);
 
-  const clearResults = () => {
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, searchLocations, fetchPopularLocations]);
+
+  // Force popular locations on initial render
+  useEffect(() => {
+    fetchPopularLocations().then(popularLocations => {
+      setSearchResults(popularLocations);
+    });
+  }, [fetchPopularLocations]);
+
+  const clearResults = useCallback(() => {
     setSearchResults([]);
-    setSearchQuery("");
-  };
+  }, []);
 
   return {
     searchQuery,
@@ -61,6 +201,6 @@ export function useMapboxSearch() {
     searchResults,
     isLoading,
     error,
-    clearResults,
+    clearResults
   };
 }

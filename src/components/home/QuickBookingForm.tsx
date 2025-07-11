@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { UkLocationInput } from "@/components/ui/uk-location-input";
+import UKLocationInput, { Location } from "@/components/ui/uk-location-input";
 
 interface QuickBookingFormProps {
   isAuthenticated: boolean;
 }
 
-export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
+export default function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [hasLocations, setHasLocations] = useState(false);
@@ -31,15 +31,13 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
           <div className="relative flex items-start z-50">
             <div className="absolute left-0 top-3 w-6 h-6 rounded-full bg-primary"></div>
             <div className="pl-12 w-full">
-              <UkLocationInput
+              <UKLocationInput
                 placeholder="Enter pickup address"
                 value={pickupLocation}
-                onChange={setPickupLocation}
-                onLocationSelect={(location) =>
-                  setPickupLocation(location.address)
-                }
+                onSelect={(location: Location) => {
+                  setPickupLocation(location.address);
+                }}
                 locationType="pickup"
-                initialSuggestionsTitle="Suggested pickup locations"
                 className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-50 [&>div>div]:z-50"
               />
             </div>
@@ -49,15 +47,13 @@ export function QuickBookingForm({ isAuthenticated }: QuickBookingFormProps) {
           <div className="relative flex items-start z-40">
             <div className="absolute left-0 top-3 w-6 h-6 rounded-full bg-red-500"></div>
             <div className="pl-12 w-full">
-              <UkLocationInput
+              <UKLocationInput
                 placeholder="Enter destination address"
                 value={dropoffLocation}
-                onChange={setDropoffLocation}
-                onLocationSelect={(location) =>
-                  setDropoffLocation(location.address)
-                }
+                onSelect={(location: Location) => {
+                  setDropoffLocation(location.address);
+                }}
                 locationType="dropoff"
-                initialSuggestionsTitle="Suggested dropoff locations"
                 className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-40 [&>div>div]:z-40"
               />
             </div>

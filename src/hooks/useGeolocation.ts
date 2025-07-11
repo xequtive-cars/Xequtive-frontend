@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from 'react';
 
-export type GeolocationState = {
+interface GeolocationState {
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
   loading: boolean;
   error: string | null;
   data: {
@@ -8,11 +11,14 @@ export type GeolocationState = {
     longitude: number | null;
     accuracy: number | null;
   };
-};
+}
 
-export function useGeolocation(options?: PositionOptions) {
+export function useGeolocation() {
   const [state, setState] = useState<GeolocationState>({
-    loading: true,
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    loading: false,
     error: null,
     data: {
       latitude: null,
@@ -21,128 +27,79 @@ export function useGeolocation(options?: PositionOptions) {
     },
   });
 
-  // Function to get current position
-  const getCurrentPosition = useCallback(() => {
+  const getCurrentPosition = () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
     if (!navigator.geolocation) {
-      setState((prev) => ({
+      setState(prev => ({
         ...prev,
         loading: false,
-        error: "Geolocation is not supported by this browser.",
+        error: 'Geolocation is not supported by this browser.',
       }));
       return;
     }
 
-    setState((prev) => ({ ...prev, loading: true, error: null }));
-
     navigator.geolocation.getCurrentPosition(
-      // Success handler
       (position) => {
+        const { latitude, longitude, accuracy } = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+
         setState({
+          latitude,
+          longitude,
+          accuracy,
           loading: false,
           error: null,
-          data: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          },
+          data: { latitude, longitude, accuracy },
         });
       },
-      // Error handler
       (error) => {
-        let errorMessage: string;
-
-        switch (error.code) {
-          case 1:
-            errorMessage = "PERMISSION_DENIED";
-            break;
-          case 2:
-            errorMessage = "POSITION_UNAVAILABLE";
-            break;
-          case 3:
-            errorMessage = "TIMEOUT";
-            break;
-          default:
-            errorMessage = "An unknown error occurred.";
-        }
-
-        setState((prev) => ({
+        setState(prev => ({
           ...prev,
           loading: false,
-          error: errorMessage,
+          error: error.message,
         }));
       },
-      // Options with high accuracy and short timeout
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0, ...options }
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0,
+      }
     );
-  }, [options]);
+  };
 
-  // Request position immediately on mount
-  useEffect(() => {
-    getCurrentPosition();
+  const getCurrentLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by this browser.'));
+        return;
+      }
 
-    // Set up a watch position for continuous updates
-    let watchId: number | null = null;
-
-    if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
+      navigator.geolocation.getCurrentPosition(
         (position) => {
-          setState({
-            loading: false,
-            error: null,
-            data: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy,
-            },
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
           });
         },
         (error) => {
-          // Only update error state if we don't already have a position
-          setState((prev) => {
-            if (prev.data.latitude === null) {
-              let errorMessage: string;
-
-              switch (error.code) {
-                case 1:
-                  errorMessage = "PERMISSION_DENIED";
-                  break;
-                case 2:
-                  errorMessage = "POSITION_UNAVAILABLE";
-                  break;
-                case 3:
-                  errorMessage = "TIMEOUT";
-                  break;
-                default:
-                  errorMessage = "An unknown error occurred.";
-              }
-
-              return {
-                ...prev,
-                loading: false,
-                error: errorMessage,
-              };
-            }
-            return prev;
-          });
+          reject(new Error(error.message));
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0, ...options }
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
+        }
       );
-    }
-
-    // Clean up
-    return () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-      }
-    };
-  }, [getCurrentPosition, options]);
+    });
+  };
 
   return {
-    ...state,
     getCurrentPosition,
-    // Direct access to data properties
-    latitude: state.data.latitude,
-    longitude: state.data.longitude,
-    accuracy: state.data.accuracy,
+    getCurrentLocation,
+    ...state,
   };
 }

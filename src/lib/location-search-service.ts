@@ -1,968 +1,716 @@
-export interface LocationMetadata {
-  postcode: string | undefined;
-  city: string | undefined;
-  region: string | undefined;
-  category: string | undefined;
-  airportCode?: string;
-  terminalOptions?: string[];
-  terminalCoordinates?: {
-    [key: string]: { lat: number; lng: number };
-  };
-}
+/**
+ * Location Search Service
+ * Handles all location-related API calls with robust error handling
+ */
 
-export interface LocationSearchResult {
-  address: string;
-  coordinates: { lat: number; lng: number };
-  type:
-    | "airport"
-    | "station"
-    | "landmark"
-    | "address"
-    | "poi"
-    | "terminal"
-    | "postcode"
-    | "street"
-    | "building"
-    | "area"
-    | "hospital";
-  metadata: LocationMetadata;
-}
-
-interface LocationBase {
-  address: string;
-  type: LocationType;
-  metadata: LocationMetadata;
-}
-
-interface MapboxFeature {
+export interface LocationSuggestion {
   id: string;
-  type: string;
-  place_type: string[];
-  relevance: number;
-  properties: {
-    [key: string]: string | number | boolean | null | undefined;
-    category?: string;
+  address: string;
+  mainText?: string;
+  secondaryText?: string;
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+  coordinates?: {
+    lat: number;
+    lng: number;
   };
-  text: string;
-  place_name: string;
-  center: [number, number];
-  context?: Array<{
-    id: string;
-    text: string;
-    wikidata?: string;
-    short_code?: string;
-  }>;
+  metadata?: {
+    primaryType?: string;
+    postcode?: string;
+    city?: string;
+    region?: string;
+    type?: string;
+    category?: string;
+    placeId?: string;
+    terminalId?: string;
+    terminalName?: string;
+    parentPlaceId?: string;
+  };
 }
 
-interface MapboxResponse {
-  features: MapboxFeature[];
+export interface LocationSearchResponse {
+  success: boolean;
+  data?: LocationSuggestion[];
+  error?: {
+    message: string;
+    details?: string;
+  };
 }
 
-// UK major airports with terminal coordinates
-const UK_AIRPORTS: LocationBase[] = [
-  {
-    address: "London Heathrow Airport (LHR)",
-    type: "airport",
-    metadata: {
-      postcode: "TW6 2GW",
-      city: "London",
-      region: "Greater London",
-      category: "airport",
-      airportCode: "LHR",
-      terminalOptions: ["Terminal 2", "Terminal 3", "Terminal 4", "Terminal 5"],
-      terminalCoordinates: {
-        "Terminal 2": { lat: 51.4712, lng: -0.4527 },
-        "Terminal 3": { lat: 51.4713, lng: -0.4566 },
-        "Terminal 4": { lat: 51.4591, lng: -0.4487 },
-        "Terminal 5": { lat: 51.4722, lng: -0.4869 },
-      },
-    },
-  },
-  {
-    address: "London Gatwick Airport (LGW)",
-    type: "airport",
-    metadata: {
-      postcode: "RH6 0NP",
-      city: "Gatwick",
-      region: "West Sussex",
-      category: "airport",
-      airportCode: "LGW",
-      terminalOptions: ["North Terminal", "South Terminal"],
-      terminalCoordinates: {
-        "North Terminal": { lat: 51.1572, lng: -0.1606 },
-        "South Terminal": { lat: 51.1537, lng: -0.1588 },
-      },
-    },
-  },
-  {
-    address: "Manchester Airport (MAN)",
-    type: "airport",
-    metadata: {
-      postcode: "M90 1QX",
-      city: "Manchester",
-      region: "Greater Manchester",
-      category: "airport",
-      airportCode: "MAN",
-      terminalOptions: ["Terminal 1", "Terminal 2", "Terminal 3"],
-      terminalCoordinates: {
-        "Terminal 1": { lat: 53.365, lng: -2.2728 },
-        "Terminal 2": { lat: 53.3659, lng: -2.269 },
-        "Terminal 3": { lat: 53.3636, lng: -2.2715 },
-      },
-    },
-  },
-  // Keep other airports with single terminals as they are
-  {
-    address: "London Stansted Airport (STN)",
-    type: "airport",
-    metadata: {
-      postcode: "CM24 1QW",
-      city: "Stansted Mountfitchet",
-      region: "Essex",
-      category: "airport",
-      airportCode: "STN",
-      terminalOptions: ["Main Terminal"],
-      terminalCoordinates: {
-        "Main Terminal": { lat: 51.886, lng: 0.2389 },
-      },
-    },
-  },
-  {
-    address: "London Luton Airport (LTN)",
-    type: "airport",
-    metadata: {
-      postcode: "LU2 9LY",
-      city: "Luton",
-      region: "Bedfordshire",
-      category: "airport",
-      airportCode: "LTN",
-      terminalOptions: ["Main Terminal"],
-    },
-  },
-  {
-    address: "London City Airport (LCY)",
-    type: "airport",
-    metadata: {
-      postcode: "E16 2PX",
-      city: "London",
-      region: "Greater London",
-      category: "airport",
-      airportCode: "LCY",
-      terminalOptions: ["Main Terminal"],
-    },
-  },
-  {
-    address: "Birmingham Airport (BHX)",
-    type: "airport",
-    metadata: {
-      postcode: "B26 3QJ",
-      city: "Birmingham",
-      region: "West Midlands",
-      category: "airport",
-      airportCode: "BHX",
-      terminalOptions: ["Main Terminal"],
-    },
-  },
-  {
-    address: "Edinburgh Airport (EDI)",
-    type: "airport",
-    metadata: {
-      postcode: "EH12 9DN",
-      city: "Edinburgh",
-      region: "Scotland",
-      category: "airport",
-      airportCode: "EDI",
-      terminalOptions: ["Main Terminal"],
-    },
-  },
-  {
-    address: "Glasgow Airport (GLA)",
-    type: "airport",
-    metadata: {
-      postcode: "PA3 2SW",
-      city: "Glasgow",
-      region: "Scotland",
-      category: "airport",
-      airportCode: "GLA",
-      terminalOptions: ["Main Terminal"],
-    },
-  },
-  {
-    address: "Bristol Airport (BRS)",
-    type: "airport",
-    metadata: {
-      postcode: "BS48 3DY",
-      city: "Bristol",
-      region: "Somerset",
-      category: "airport",
-      airportCode: "BRS",
-      terminalOptions: ["Main Terminal"],
-    },
-  },
-];
+export interface PlaceDetailsResponse {
+  success: boolean;
+  data?: LocationSuggestion;
+  error?: {
+    message: string;
+    details?: string;
+  };
+}
 
-// UK Major train stations without coordinates
-const UK_STATIONS: LocationBase[] = [
-  {
-    address: "London King's Cross Station",
-    type: "station",
-    metadata: {
-      postcode: "N1 9AL",
-      city: "London",
-      region: "Greater London",
-      category: "rail",
-    },
-  },
-  {
-    address: "London Waterloo Station",
-    type: "station",
-    metadata: {
-      postcode: "SE1 8SW",
-      city: "London",
-      region: "Greater London",
-      category: "rail",
-    },
-  },
-  {
-    address: "London Liverpool Street Station",
-    type: "station",
-    metadata: {
-      postcode: "EC2M 7PY",
-      city: "London",
-      region: "Greater London",
-      category: "rail",
-    },
-  },
-  {
-    address: "London Victoria Station",
-    type: "station",
-    metadata: {
-      postcode: "SW1V 1JU",
-      city: "London",
-      region: "Greater London",
-      category: "rail",
-    },
-  },
-  {
-    address: "London Paddington Station",
-    type: "station",
-    metadata: {
-      postcode: "W2 1HQ",
-      city: "London",
-      region: "Greater London",
-      category: "rail",
-    },
-  },
-  {
-    address: "Manchester Piccadilly Station",
-    type: "station",
-    metadata: {
-      postcode: "M1 2QF",
-      city: "Manchester",
-      region: "Greater Manchester",
-      category: "rail",
-    },
-  },
-  {
-    address: "Birmingham New Street Station",
-    type: "station",
-    metadata: {
-      postcode: "B2 4QA",
-      city: "Birmingham",
-      region: "West Midlands",
-      category: "rail",
-    },
-  },
-  {
-    address: "Edinburgh Waverley Station",
-    type: "station",
-    metadata: {
-      postcode: "EH1 1BB",
-      city: "Edinburgh",
-      region: "Scotland",
-      category: "rail",
-    },
-  },
-  {
-    address: "Glasgow Central Station",
-    type: "station",
-    metadata: {
-      postcode: "G1 3SL",
-      city: "Glasgow",
-      region: "Scotland",
-      category: "rail",
-    },
-  },
-  {
-    address: "Leeds Station",
-    type: "station",
-    metadata: {
-      postcode: "LS1 4DY",
-      city: "Leeds",
-      region: "West Yorkshire",
-      category: "rail",
-    },
-  },
-];
-
-// UK popular landmarks without coordinates
-const UK_LANDMARKS: LocationBase[] = [
-  {
-    address: "Big Ben, Westminster",
-    type: "landmark",
-    metadata: {
-      postcode: "SW1A 0AA",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Tower Bridge, London",
-    type: "landmark",
-    metadata: {
-      postcode: "SE1 2UP",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Buckingham Palace",
-    type: "landmark",
-    metadata: {
-      postcode: "SW1A 1AA",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Edinburgh Castle",
-    type: "landmark",
-    metadata: {
-      postcode: "EH1 2NG",
-      city: "Edinburgh",
-      region: "Scotland",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Stonehenge",
-    type: "landmark",
-    metadata: {
-      postcode: "SP4 7DE",
-      city: "Amesbury",
-      region: "Wiltshire",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Roman Baths",
-    type: "landmark",
-    metadata: {
-      postcode: "BA1 1LZ",
-      city: "Bath",
-      region: "Somerset",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Tower of London",
-    type: "landmark",
-    metadata: {
-      postcode: "EC3N 4AB",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-  {
-    address: "St Paul's Cathedral",
-    type: "landmark",
-    metadata: {
-      postcode: "EC4M 8AD",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-  {
-    address: "Westminster Abbey",
-    type: "landmark",
-    metadata: {
-      postcode: "SW1P 3PA",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-  {
-    address: "London Eye",
-    type: "landmark",
-    metadata: {
-      postcode: "SE1 7PB",
-      city: "London",
-      region: "Greater London",
-      category: "landmark",
-    },
-  },
-];
-
-// First fix the type issue
-export type LocationType =
-  | "airport"
-  | "station"
-  | "landmark"
-  | "address"
-  | "poi"
-  | "terminal"
-  | "postcode"
-  | "street"
-  | "building"
-  | "area"
-  | "hospital";
+// Expand popular locations data structure
+export interface PopularLocationCategory {
+  airports: LocationSuggestion[];
+  trainStations: LocationSuggestion[];
+  popularCities: LocationSuggestion[];
+}
 
 class LocationSearchService {
-  private mapboxToken: string;
-  private coordinatesCache: Map<string, { lat: number; lng: number }>;
-
-  constructor() {
-    this.mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
-    this.coordinatesCache = new Map();
-  }
-
-  private async getCoordinatesForLocation(
-    location: LocationBase
-  ): Promise<{ lat: number; lng: number } | null> {
-    try {
-      // First check cache
-      if (this.coordinatesCache.has(location.address)) {
-        return this.coordinatesCache.get(location.address)!;
-      }
-
-      // If not in cache, fetch from Mapbox
-      const searchQuery = `${location.address}, ${location.metadata.city}, ${location.metadata.postcode}`;
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-        searchQuery
-      )}.json?access_token=${this.mapboxToken}&country=gb&limit=1`;
-
-      const response = await fetch(url);
-      const data = (await response.json()) as MapboxResponse;
-
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        const coordinates = { lat, lng };
-        // Cache the result
-        this.coordinatesCache.set(location.address, coordinates);
-        return coordinates;
-      }
-
-      return null;
-    } catch (error) {
-      console.error("Error getting coordinates:", error);
-      return null;
+  private readonly baseUrl = '/api/places';
+  private readonly timeout = 10000; // 10 seconds
+  private retryCount = 2;
+  
+  // Add caching for better performance
+  private cache = new Map<string, { data: any; timestamp: number; expiresAt: number }>();
+  private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
+  
+  // Pre-defined popular locations for instant loading (excluding airports and trains as they have dedicated sections)
+  private readonly fallbackPopularLocations = [
+    {
+      id: 'london-city',
+      address: 'City of London, London, UK',
+      mainText: 'City of London',
+      secondaryText: 'Financial District, London',
+      name: 'City of London',
+      latitude: 51.5156,
+      longitude: -0.0919,
+      coordinates: { lat: 51.5156, lng: -0.0919 },
+      metadata: { primaryType: 'locality', region: 'UK' }
+    },
+    {
+      id: 'canary-wharf',
+      address: 'Canary Wharf, London E14, UK',
+      mainText: 'Canary Wharf',
+      secondaryText: 'Business District, London E14',
+      name: 'Canary Wharf',
+      latitude: 51.5054,
+      longitude: -0.0235,
+      coordinates: { lat: 51.5054, lng: -0.0235 },
+      metadata: { primaryType: 'locality', region: 'UK' }
+    },
+    {
+      id: 'westminster',
+      address: 'Westminster, London SW1A, UK',
+      mainText: 'Westminster',
+      secondaryText: 'Government District, London SW1A',
+      name: 'Westminster',
+      latitude: 51.4994,
+      longitude: -0.1269,
+      coordinates: { lat: 51.4994, lng: -0.1269 },
+      metadata: { primaryType: 'locality', region: 'UK' }
+    },
+    {
+      id: 'covent-garden',
+      address: 'Covent Garden, London WC2E, UK',
+      mainText: 'Covent Garden',
+      secondaryText: 'Theatre District, London WC2E',
+      name: 'Covent Garden',
+      latitude: 51.5118,
+      longitude: -0.1246,
+      coordinates: { lat: 51.5118, lng: -0.1246 },
+      metadata: { primaryType: 'locality', region: 'UK' }
+    },
+    {
+      id: 'oxford-street',
+      address: 'Oxford Street, London W1, UK',
+      mainText: 'Oxford Street',
+      secondaryText: 'Shopping District, London W1',
+      name: 'Oxford Street',
+      latitude: 51.5154,
+      longitude: -0.1447,
+      coordinates: { lat: 51.5154, lng: -0.1447 },
+      metadata: { primaryType: 'route', region: 'UK' }
+    },
+    {
+      id: 'shoreditch',
+      address: 'Shoreditch, London E1, UK',
+      mainText: 'Shoreditch',
+      secondaryText: 'Creative Quarter, London E1',
+      name: 'Shoreditch',
+      latitude: 51.5252,
+      longitude: -0.0781,
+      coordinates: { lat: 51.5252, lng: -0.0781 },
+      metadata: { primaryType: 'locality', region: 'UK' }
+    },
+    {
+      id: 'kensington',
+      address: 'Kensington, London SW7, UK',
+      mainText: 'Kensington',
+      secondaryText: 'Museums District, London SW7',
+      name: 'Kensington',
+      latitude: 51.4989,
+      longitude: -0.1773,
+      coordinates: { lat: 51.4989, lng: -0.1773 },
+      metadata: { primaryType: 'locality', region: 'UK' }
+    },
+    {
+      id: 'greenwich',
+      address: 'Greenwich, London SE10, UK',
+      mainText: 'Greenwich',
+      secondaryText: 'Maritime District, London SE10',
+      name: 'Greenwich',
+      latitude: 51.4816,
+      longitude: -0.0052,
+      coordinates: { lat: 51.4816, lng: -0.0052 },
+      metadata: { primaryType: 'locality', region: 'UK' }
     }
-  }
+  ];
 
-  async getSuggestedLocations(
-    type?: "pickup" | "dropoff" | "stop",
-    userLocation?: { latitude: number; longitude: number } | null
-  ): Promise<LocationSearchResult[]> {
-    try {
-      const suggestions: LocationSearchResult[] = [];
-
-      // 1. Add current location if available
-      if (userLocation) {
-        const currentLocationAddress = await this.reverseGeocode(
-          userLocation.latitude,
-          userLocation.longitude
-        );
-        suggestions.push({
-          address: currentLocationAddress || "📍 Use My Current Location",
-          coordinates: {
-            lat: userLocation.latitude,
-            lng: userLocation.longitude,
-          },
-          type: "landmark",
-          metadata: {
-            postcode: undefined,
-            city: undefined,
-            region: undefined,
-            category: "current_location",
-          },
-        });
-      }
-
-      // 2. Get coordinates for all static locations if not cached
-      const allLocations = [...UK_AIRPORTS, ...UK_STATIONS, ...UK_LANDMARKS];
-      const locationsWithCoordinates = await Promise.all(
-        allLocations.map(async (location) => {
-          const coordinates = await this.getCoordinatesForLocation(location);
-          return coordinates ? { ...location, coordinates } : null;
-        })
-      );
-
-      // Filter out locations where we couldn't get coordinates
-      const validLocations = locationsWithCoordinates.filter(
-        (loc): loc is LocationSearchResult => loc !== null
-      );
-
-      // 3. Sort all locations by distance from user if available
-      if (userLocation) {
-        validLocations.sort((a, b) => {
-          const distA = this.calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            a.coordinates.lat,
-            a.coordinates.lng
-          );
-          const distB = this.calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            b.coordinates.lat,
-            b.coordinates.lng
-          );
-          return distA - distB;
-        });
-      }
-
-      // 4. Add sorted locations by type
-      const airports = validLocations
-        .filter((loc) => loc.type === "airport")
-        .slice(0, 5);
-      const stations = validLocations
-        .filter((loc) => loc.type === "station")
-        .slice(0, 3);
-      const landmarks = validLocations
-        .filter((loc) => loc.type === "landmark")
-        .slice(0, 5);
-
-      suggestions.push(...airports, ...stations, ...landmarks);
-
-      // 5. Add nearby POIs if user location is available
-      if (userLocation) {
-        const nearbyPOIs = await this.getNearbyPOIs(userLocation);
-        suggestions.push(...nearbyPOIs.slice(0, 3));
-      }
-
-      return suggestions;
-    } catch (error) {
-      console.error("Error getting suggested locations:", error);
-      return [];
+  /**
+   * Get data from cache if available and not expired
+   */
+  private getCachedData(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.data;
     }
-  }
-
-  async searchLocations(
-    query: string,
-    locationType?: "pickup" | "dropoff" | "stop",
-    userLocation?: { latitude: number; longitude: number } | null
-  ): Promise<LocationSearchResult[]> {
-    try {
-      if (!query || query.trim().length === 0) {
-        return [];
-      }
-
-      const normalizedQuery = query.toLowerCase().trim();
-
-      // First search Mapbox
-      let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-        query
-      )}.json?access_token=${
-        this.mapboxToken
-      }&country=gb&types=address,poi,place,postcode&limit=5&autocomplete=true`;
-
-      // Add proximity if user location is available
-      if (userLocation) {
-        url += `&proximity=${userLocation.longitude},${userLocation.latitude}`;
-      }
-
-      const response = await fetch(url);
-      const data = (await response.json()) as MapboxResponse;
-
-      const mapboxResults = data.features.map((feature) => ({
-        address: feature.place_name,
-        coordinates: {
-          lat: feature.center[1],
-          lng: feature.center[0],
-        },
-        type: this.determineLocationType(feature),
-        metadata: {
-          postcode: this.extractPostcode(feature),
-          city: this.extractCity(feature),
-          region: this.extractRegion(feature),
-          category: feature.properties.category as string | undefined,
-        },
-      }));
-
-      // Then search static locations
-      const allStaticLocations = [
-        ...UK_AIRPORTS,
-        ...UK_STATIONS,
-        ...UK_LANDMARKS,
-      ];
-      const filteredLocations = allStaticLocations.filter((location) => {
-        const address = location.address.toLowerCase();
-        const city = location.metadata.city?.toLowerCase() || "";
-        const airportCode = location.metadata.airportCode?.toLowerCase() || "";
-        const postcode = location.metadata.postcode?.toLowerCase() || "";
-
-        return (
-          address.includes(normalizedQuery) ||
-          city.includes(normalizedQuery) ||
-          airportCode.includes(normalizedQuery) ||
-          postcode.includes(normalizedQuery)
-        );
-      });
-
-      // Get coordinates for filtered locations
-      const staticResults = await Promise.all(
-        filteredLocations.map(async (location) => {
-          // For airports with terminal coordinates, use those directly
-          if (
-            location.type === "airport" &&
-            location.metadata.terminalCoordinates &&
-            location.metadata.terminalCoordinates["Main Terminal"]
-          ) {
-            return {
-              ...location,
-              coordinates:
-                location.metadata.terminalCoordinates["Main Terminal"],
-            } as LocationSearchResult;
-          }
-
-          // For other locations, get coordinates from cache or Mapbox
-          const coordinates = await this.getCoordinatesForLocation(location);
-          return coordinates
-            ? ({
-                ...location,
-                coordinates,
-              } as LocationSearchResult)
-            : null;
-        })
-      );
-
-      // Combine all results
-      const allResults = [
-        ...staticResults.filter((r): r is LocationSearchResult => r !== null),
-        ...mapboxResults,
-      ];
-
-      // Sort results by relevance
-      const sortedResults = this.sortResults(allResults, normalizedQuery);
-
-      // Remove duplicates and return
-      return this.deduplicateResults(sortedResults);
-    } catch (error) {
-      console.error("Error searching locations:", error);
-      return [];
+    if (cached) {
+      this.cache.delete(key);
     }
+    return null;
   }
 
-  private async reverseGeocode(
-    latitude: number,
-    longitude: number
-  ): Promise<string | null> {
-    try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${this.mapboxToken}&country=gb&types=address`;
-      const response = await fetch(url);
-      const data = (await response.json()) as MapboxResponse;
-
-      if (data.features && data.features.length > 0) {
-        return data.features[0].place_name;
-      }
-
-      return null;
-    } catch (error) {
-      console.error("Error reverse geocoding:", error);
-      return null;
-    }
-  }
-
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const R = 6371; // Earth's radius in km
-    const dLat = this.deg2rad(lat2 - lat1);
-    const dLon = this.deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.deg2rad(lat1)) *
-        Math.cos(this.deg2rad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private deg2rad(deg: number): number {
-    return deg * (Math.PI / 180);
-  }
-
-  private async getNearbyPOIs(userLocation: {
-    latitude: number;
-    longitude: number;
-  }): Promise<LocationSearchResult[]> {
-    try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/poi.json?proximity=${userLocation.longitude},${userLocation.latitude}&access_token=${this.mapboxToken}&country=gb&types=poi&limit=5`;
-      const response = await fetch(url);
-      const data = (await response.json()) as MapboxResponse;
-
-      return data.features.map((feature) => ({
-        address: feature.place_name,
-        coordinates: {
-          lat: feature.center[1],
-          lng: feature.center[0],
-        },
-        type: this.determineLocationType(feature),
-        metadata: {
-          postcode: this.extractPostcode(feature),
-          city: this.extractCity(feature),
-          region: this.extractRegion(feature),
-          category: feature.properties.category as string | undefined,
-        },
-      }));
-    } catch (error) {
-      console.error("Error getting nearby POIs:", error);
-      return [];
-    }
-  }
-
-  private filterAirports(query: string): LocationBase[] {
-    return UK_AIRPORTS.filter((airport) =>
-      airport.address.toLowerCase().includes(query.toLowerCase())
-    );
-  }
-
-  private deduplicateResults(
-    results: LocationSearchResult[]
-  ): LocationSearchResult[] {
-    const seen = new Set<string>();
-    return results.filter((result) => {
-      const key = `${result.address}-${result.coordinates.lat}-${result.coordinates.lng}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
+  /**
+   * Set data in cache with expiration
+   */
+  private setCachedData(key: string, data: any): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + this.cacheTimeout
     });
   }
 
-  private determineLocationType(feature: MapboxFeature): LocationType {
-    const placeType = feature.place_type?.[0];
-    const category = feature.properties?.category;
-
-    if (placeType === "poi" && category === "airport") return "airport";
-    if (placeType === "poi" && category === "rail") return "station";
-    if (placeType === "address") return "building";
-    if (placeType === "postcode") return "postcode";
-    if (placeType === "poi" && category === "hospital") return "hospital";
-    if (placeType === "place") return "area";
-    if (placeType === "poi") return "poi";
-
-    return "landmark";
-  }
-
-  private extractPostcode(feature: MapboxFeature): string | undefined {
-    const context = feature.context || [];
-    const postcodeEntry = context.find((c) => c.id.startsWith("postcode"));
-    return postcodeEntry?.text;
-  }
-
-  private extractCity(feature: MapboxFeature): string | undefined {
-    const context = feature.context || [];
-    const cityEntry = context.find((c) => c.id.startsWith("place"));
-    return cityEntry?.text;
-  }
-
-  private extractRegion(feature: MapboxFeature): string | undefined {
-    const context = feature.context || [];
-    const regionEntry = context.find((c) => c.id.startsWith("region"));
-    return regionEntry?.text;
-  }
-
-  formatLocationForDisplay(location: LocationSearchResult): string {
-    if (location.type === "airport" && location.metadata.airportCode) {
-      return `${location.address} (${location.metadata.airportCode})`;
-    }
-    return location.address;
-  }
-
-  private sortResults(
-    results: LocationSearchResult[],
-    query: string
-  ): LocationSearchResult[] {
-    return results.sort((a, b) => {
-      const aAddress = a.address.toLowerCase();
-      const bAddress = b.address.toLowerCase();
-      const aMetadata = a.metadata;
-      const bMetadata = b.metadata;
-
-      // Exact matches first
-      if (aAddress === query) return -1;
-      if (bAddress === query) return 1;
-
-      // Then airport code matches
-      const aAirportMatch = aMetadata.airportCode?.toLowerCase() === query;
-      const bAirportMatch = bMetadata.airportCode?.toLowerCase() === query;
-      if (aAirportMatch && !bAirportMatch) return -1;
-      if (!aAirportMatch && bAirportMatch) return 1;
-
-      // Then starts with query
-      if (aAddress.startsWith(query) && !bAddress.startsWith(query)) return -1;
-      if (!aAddress.startsWith(query) && bAddress.startsWith(query)) return 1;
-
-      // Then postcode matches
-      const aPostcodeMatch = aMetadata.postcode?.toLowerCase().includes(query);
-      const bPostcodeMatch = bMetadata.postcode?.toLowerCase().includes(query);
-      if (aPostcodeMatch && !bPostcodeMatch) return -1;
-      if (!aPostcodeMatch && bPostcodeMatch) return 1;
-
-      // Then city matches
-      const aCityMatch = aMetadata.city?.toLowerCase().includes(query);
-      const bCityMatch = bMetadata.city?.toLowerCase().includes(query);
-      if (aCityMatch && !bCityMatch) return -1;
-      if (!aCityMatch && bCityMatch) return 1;
-
-      // Finally, contains query
-      if (aAddress.includes(query) && !bAddress.includes(query)) return -1;
-      if (!aAddress.includes(query) && bAddress.includes(query)) return 1;
-
-      return 0;
-    });
-  }
-
-  // Location Search Enhancement Utilities
-  private normalizeTokens(query: string): string[] {
-    return query
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')  // Remove special characters
-      .split(/\s+/)             // Split into tokens
-      .filter(token => token.length > 1);  // Remove very short tokens
-  }
-
-  private extractSemanticTypes(tokens: string[]): string[] {
-    const SEMANTIC_TYPES = {
-      terminal: ['terminal', 't', 'term'],
-      airport: ['airport', 'airp', 'apt'],
-      station: ['station', 'stn'],
-      landmark: ['landmark', 'mark']
-    };
-    return tokens.filter(token => 
-      Object.values(SEMANTIC_TYPES)
-        .flat()
-        .includes(token)
-    );
-  }
-
-  private calculateTokenMatchScore(
-    queryTokens: string[], 
-    locationTokens: string[]
-  ): number {
-    const matchedTokens = queryTokens.filter(qt => 
-      locationTokens.some(lt => 
-        lt.includes(qt) || qt.includes(lt)
-      )
-    );
-
-    return matchedTokens.length / queryTokens.length;
-  }
-
-  private enhanceLocationResults(
-    originalResults: LocationSearchResult[], 
-    query: string
-  ): LocationSearchResult[] {
-    const tokens = this.normalizeTokens(query);
-    const semanticTypes = this.extractSemanticTypes(tokens);
-
-    // Enhance results with additional scoring
-    const enhancedResults = originalResults.map(result => {
-      const locationTokens = this.normalizeTokens(result.address);
-      
-      // Calculate base match score
-      let score = this.calculateTokenMatchScore(tokens, locationTokens);
-
-      // Semantic type boosting
-      semanticTypes.forEach(type => {
-        if (result.type.includes(type) || 
-            locationTokens.includes(type)) {
-          score *= 1.3;  // 30% boost for semantic match
+  /**
+   * Get fallback data for specific categories (airports/train stations)
+   */
+  private getFallbackCategoryData(category: 'airport' | 'train_station'): LocationSuggestion[] {
+    if (category === 'airport') {
+      return [
+        {
+          id: 'heathrow',
+          address: 'Heathrow Airport, London TW6, UK',
+          mainText: 'Heathrow Airport',
+          secondaryText: 'London TW6, UK',
+          name: 'Heathrow Airport',
+          latitude: 51.4700,
+          longitude: -0.4543,
+          coordinates: { lat: 51.4700, lng: -0.4543 },
+          metadata: { primaryType: 'airport', region: 'UK' }
+        },
+        {
+          id: 'gatwick',
+          address: 'Gatwick Airport, Horley RH6 0NP, UK',
+          mainText: 'Gatwick Airport',
+          secondaryText: 'Horley RH6 0NP, UK',
+          name: 'Gatwick Airport',
+          latitude: 51.1537,
+          longitude: -0.1821,
+          coordinates: { lat: 51.1537, lng: -0.1821 },
+          metadata: { primaryType: 'airport', region: 'UK' }
+        },
+        {
+          id: 'stansted',
+          address: 'Stansted Airport, Bishop\'s Stortford CM24 1QW, UK',
+          mainText: 'Stansted Airport',
+          secondaryText: 'Bishop\'s Stortford CM24 1QW, UK',
+          name: 'Stansted Airport',
+          latitude: 51.8860,
+          longitude: 0.2389,
+          coordinates: { lat: 51.8860, lng: 0.2389 },
+          metadata: { primaryType: 'airport', region: 'UK' }
+        },
+        {
+          id: 'luton',
+          address: 'Luton Airport, Luton LU2 9LY, UK',
+          mainText: 'Luton Airport',
+          secondaryText: 'Luton LU2 9LY, UK',
+          name: 'Luton Airport',
+          latitude: 51.8763,
+          longitude: -0.3717,
+          coordinates: { lat: 51.8763, lng: -0.3717 },
+          metadata: { primaryType: 'airport', region: 'UK' }
         }
-      });
-
-      // Prioritize exact matches
-      if (tokens.every(token => 
-        locationTokens.includes(token)
-      )) {
-        score *= 1.5;  // 50% boost for exact matches
-      }
-
-      return { ...result, score };
-    });
-
-    // Sort by enhanced score
-    return enhancedResults
-      .sort((a, b) => (b.score || 0) - (a.score || 0))
-      .map(({ score, ...result }) => result);
+      ];
+    } else if (category === 'train_station') {
+      return [
+        {
+          id: 'kings-cross',
+          address: 'King\'s Cross Station, London N1C 4AX, UK',
+          mainText: 'King\'s Cross Station',
+          secondaryText: 'London N1C 4AX, UK',
+          name: 'King\'s Cross Station',
+          latitude: 51.5308,
+          longitude: -0.1238,
+          coordinates: { lat: 51.5308, lng: -0.1238 },
+          metadata: { primaryType: 'train_station', region: 'UK' }
+        },
+        {
+          id: 'paddington',
+          address: 'Paddington Station, London W2 1HB, UK',
+          mainText: 'Paddington Station',
+          secondaryText: 'London W2 1HB, UK',
+          name: 'Paddington Station',
+          latitude: 51.5154,
+          longitude: -0.1755,
+          coordinates: { lat: 51.5154, lng: -0.1755 },
+          metadata: { primaryType: 'train_station', region: 'UK' }
+        },
+        {
+          id: 'victoria',
+          address: 'Victoria Station, London SW1V 1JU, UK',
+          mainText: 'Victoria Station',
+          secondaryText: 'London SW1V 1JU, UK',
+          name: 'Victoria Station',
+          latitude: 51.4952,
+          longitude: -0.1441,
+          coordinates: { lat: 51.4952, lng: -0.1441 },
+          metadata: { primaryType: 'train_station', region: 'UK' }
+        },
+        {
+          id: 'liverpool-street',
+          address: 'Liverpool Street Station, London EC2M 7QH, UK',
+          mainText: 'Liverpool Street Station',
+          secondaryText: 'London EC2M 7QH, UK',
+          name: 'Liverpool Street Station',
+          latitude: 51.5179,
+          longitude: -0.0823,
+          coordinates: { lat: 51.5179, lng: -0.0823 },
+          metadata: { primaryType: 'train_station', region: 'UK' }
+        }
+      ];
+    }
+    return [];
   }
 
-  // Enhanced search method
-  async searchLocationsWithEnhancement(
-    query: string,
-    locationType?: "pickup" | "dropoff" | "stop",
-    userLocation?: { latitude: number; longitude: number } | null
-  ): Promise<LocationSearchResult[]> {
-    // Original search method call
-    const originalResults = await this.searchLocations(
-      query, 
-      locationType, 
-      userLocation
-    );
+  /**
+   * Create an AbortController with timeout
+   */
+  private createTimeoutController(timeoutMs: number = this.timeout): AbortController {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), timeoutMs);
+    return controller;
+  }
 
-    // If original results are empty or low confidence, enhance search
-    if (originalResults.length === 0) {
-      // Fallback to enhanced search strategies
-      const fallbackResults = this.performFallbackSearch(query);
-      
-      if (fallbackResults.length > 0) {
-        return fallbackResults;
+  /**
+   * Enhanced fetch with retry logic and better error handling
+   */
+  private async fetchWithRetry(
+    url: string, 
+    options: RequestInit = {}, 
+    retries: number = this.retryCount
+  ): Promise<Response> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const controller = this.createTimeoutController();
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+
+        // If successful or client error (4xx), don't retry
+        if (response.ok || (response.status >= 400 && response.status < 500)) {
+          return response;
+        }
+
+        // Server error (5xx) - retry
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        
+        // Don't retry on abort (timeout) or client errors
+        if (lastError.name === 'AbortError' || lastError.message.includes('400')) {
+          break;
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
       }
     }
 
-    // Enhance existing results
-    return this.enhanceLocationResults(originalResults, query);
+    throw lastError || new Error('Request failed after retries');
   }
 
-  private performFallbackSearch(query: string): LocationSearchResult[] {
-    const tokens = this.normalizeTokens(query);
-    const semanticTypes = this.extractSemanticTypes(tokens);
+  /**
+   * Fetch location suggestions based on user input
+   */
+  async fetchLocationSuggestions(
+    input: string,
+    sessionToken?: string
+  ): Promise<LocationSearchResponse> {
+    try {
+      // Validate input
+      if (!input || typeof input !== 'string') {
+        return {
+          success: false,
+          error: {
+            message: 'Invalid input',
+            details: 'Search query must be a non-empty string'
+          }
+        };
+      }
 
-    // Check curated locations (airports, stations)
-    const curatedLocations = [
-      ...UK_AIRPORTS,
-      ...UK_STATIONS
-    ].filter(location => 
-      tokens.every(token => 
-        this.normalizeTokens(location.address)
-          .some(lt => lt.includes(token))
-      )
+      const trimmedInput = input.trim();
+      if (trimmedInput.length === 0) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // Only log search queries longer than 2 characters to reduce noise
+      if (trimmedInput.length > 2) {
+        console.log(`🔍 Location Search: "${trimmedInput}"`);
+      }
+
+      // Fetch suggestions from API
+      const response = await fetch(`/api/places?input=${encodeURIComponent(trimmedInput)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Location Search API Error:', errorText);
+        
+        return {
+          success: false,
+          error: {
+            message: `HTTP error! status: ${response.status}`,
+            details: errorText
+          }
+        };
+      }
+
+      const data = await response.json();
+      
+      // Only log API response details in development or for debugging
+      if (process.env.NODE_ENV === 'development' && trimmedInput.length > 2) {
+        console.log('Places API Response:', data);
+      }
+
+      // Validate response structure
+      if (!data.suggestions || !Array.isArray(data.suggestions)) {
+        return {
+          success: false,
+          error: {
+            message: 'Invalid API response',
+            details: 'Suggestions are missing or not an array'
+          }
+        };
+      }
+
+      // Map and validate suggestions
+      const suggestions = data.suggestions.map((suggestion: any) => ({
+        id: suggestion.id || `suggestion-${Math.random().toString(36).substr(2, 9)}`,
+        address: suggestion.address || suggestion.formattedAddress || 'Unknown Location',
+        mainText: suggestion.mainText || suggestion.displayName?.text || 'Unknown Location',
+        secondaryText: suggestion.secondaryText || suggestion.formattedAddress || '',
+        name: suggestion.name || suggestion.displayName?.text || '',
+        latitude: suggestion.latitude || suggestion.coordinates?.lat || 0,
+        longitude: suggestion.longitude || suggestion.coordinates?.lng || 0,
+        coordinates: suggestion.coordinates || { 
+          lat: suggestion.latitude || 0, 
+          lng: suggestion.longitude || 0 
+        },
+        metadata: {
+          primaryType: suggestion.metadata?.primaryType || suggestion.types?.[0] || 'location',
+          placeId: suggestion.id,
+          ...suggestion.metadata
+        }
+      }));
+
+      return {
+        success: true,
+        data: suggestions
+      };
+    } catch (error) {
+      console.error('❌ Location Search Error:', error);
+      
+      return {
+        success: false,
+        error: {
+          message: 'Failed to fetch location suggestions',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
+  }
+
+  /**
+   * Fetch popular locations for initial display with caching and instant fallback
+   */
+  async fetchPopularLocations(): Promise<LocationSearchResponse> {
+    const cacheKey = 'popular_locations';
+    
+    try {
+      // Check cache first
+      const cachedData = this.getCachedData(cacheKey);
+      if (cachedData) {
+        return {
+          success: true,
+          data: cachedData
+        };
+      }
+
+      // Return fallback data immediately while fetching fresh data in background
+      const fallbackPromise = Promise.resolve({
+        success: true,
+        data: this.fallbackPopularLocations
+      });
+
+      // Fetch fresh data in background
+      this.fetchFreshPopularLocations(cacheKey);
+
+      return fallbackPromise;
+    } catch (error) {
+      console.error('Error fetching popular locations:', error);
+      return {
+        success: true,
+        data: this.fallbackPopularLocations
+      };
+    }
+  }
+
+  /**
+   * Fetch fresh popular locations in background
+   */
+  private async fetchFreshPopularLocations(cacheKey: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/places?popular=true`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.suggestions && data.suggestions.length > 0) {
+          // Cache the fresh data
+          this.setCachedData(cacheKey, data.suggestions);
+        }
+      }
+    } catch (error) {
+      console.error('Background fetch of popular locations failed:', error);
+    }
+  }
+
+  /**
+   * Fetch category-specific locations (airports or train stations) with caching
+   */
+  async fetchCategoryLocations(category: 'airport' | 'train_station'): Promise<LocationSearchResponse> {
+    const cacheKey = `category_${category}`;
+    
+    try {
+      // Check cache first
+      const cachedData = this.getCachedData(cacheKey);
+      if (cachedData) {
+        console.log(`✅ Using cached ${category} locations (${cachedData.length} items)`);
+        return {
+          success: true,
+          data: cachedData
+        };
+      }
+
+      console.log(`🔍 Fetching ${category} locations from API...`);
+      
+      const response = await fetch(`/api/places?category=${category}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`${category} locations API Error:`, errorText);
+        
+        // Return fallback data for airports and train stations
+        const fallbackData = this.getFallbackCategoryData(category);
+        
+        return {
+          success: true,
+          data: fallbackData
+        };
+      }
+
+      const data = await response.json();
+      console.log(`✅ Successfully fetched ${data.suggestions?.length || 0} ${category} locations`);
+      
+      // Cache the data
+      if (data.success && data.suggestions && data.suggestions.length > 0) {
+        this.setCachedData(cacheKey, data.suggestions);
+      }
+      
+      return {
+        success: true,
+        data: data.suggestions || []
+      };
+    } catch (error) {
+      console.error(`Error fetching ${category} locations:`, error);
+      
+      // Return fallback data on error
+      const fallbackData = this.fallbackPopularLocations.filter(loc => 
+        loc.metadata?.primaryType === category
+      );
+      
+      return {
+        success: true,
+        data: fallbackData
+      };
+    }
+  }
+
+  /**
+   * Fetch detailed place information including coordinates
+   */
+  async fetchPlaceDetails(
+    placeId: string,
+    sessionToken?: string
+  ): Promise<PlaceDetailsResponse> {
+    try {
+      if (!placeId || typeof placeId !== 'string') {
+        return {
+          success: false,
+          error: {
+            message: 'Invalid place ID',
+            details: 'Place ID must be a non-empty string'
+          }
+        };
+      }
+
+      console.log(`[LocationSearchService] Fetching details for place: ${placeId}`);
+
+      const url = new URL('/api/places/details', window.location.origin);
+      url.searchParams.set('placeid', placeId);
+      
+      if (sessionToken) {
+        url.searchParams.set('sessiontoken', sessionToken);
+      }
+
+      const response = await this.fetchWithRetry(url.toString());
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[LocationSearchService] Place details error ${response.status}:`, errorText);
+        
+        return {
+          success: false,
+          error: {
+            message: `Failed to get location details (${response.status})`,
+            details: errorText
+          }
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        console.warn('[LocationSearchService] Place details API error:', data.error);
+        return {
+          success: false,
+          error: data.error || { message: 'Failed to get location details' }
+        };
+      }
+
+      console.log('[LocationSearchService] Successfully fetched place details');
+
+      return {
+        success: true,
+        data: data.data
+      };
+
+    } catch (error) {
+      console.error('[LocationSearchService] Place details network error:', error);
+      
+      return {
+        success: false,
+        error: {
+          message: 'Failed to get location details',
+          details: error instanceof Error ? error.message : 'Network error'
+        }
+      };
+    }
+  }
+
+  /**
+   * Validate if a location has required coordinates
+   */
+  validateLocationCoordinates(location: LocationSuggestion): boolean {
+    return !!(
+      location.latitude && 
+      location.longitude && 
+      typeof location.latitude === 'number' && 
+      typeof location.longitude === 'number' &&
+      !isNaN(location.latitude) &&
+      !isNaN(location.longitude)
     );
+  }
 
-    // Convert curated locations to search results
-    return curatedLocations.map(location => ({
-      address: location.address,
-      coordinates: { 
-        lat: location.metadata.terminalCoordinates?.["Main Terminal"]?.lat || 0, 
-        lng: location.metadata.terminalCoordinates?.["Main Terminal"]?.lng || 0 
-      },
-      type: location.type,
-      metadata: location.metadata
-    }));
+  /**
+   * Format location for display
+   */
+  formatLocationDisplay(location: LocationSuggestion): string {
+    if (location.mainText && location.secondaryText) {
+      return `${location.mainText}, ${location.secondaryText}`;
+    }
+    return location.address || location.name || 'Unknown location';
+  }
+
+  /**
+   * Fetch terminal/platform information for airports and train stations
+   */
+  async fetchTerminalInfo(placeId: string, category: 'airport' | 'train_station'): Promise<LocationSearchResponse> {
+    try {
+      const response = await fetch(`/api/places?terminals=true&placeId=${encodeURIComponent(placeId)}&category=${category}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Terminal Info API Error:', errorText);
+        
+        return {
+          success: false,
+          error: {
+            message: `HTTP error! status: ${response.status}`,
+            details: errorText
+          }
+        };
+      }
+
+      const data = await response.json();
+      
+      // Convert terminal data to LocationSuggestion format
+      const terminals = data.terminals?.map((terminal: any) => ({
+        id: `${placeId}-${terminal.id}`,
+        address: terminal.name,
+        mainText: terminal.name,
+        secondaryText: category === 'airport' ? 'Terminal' : 'Platform',
+        name: terminal.name,
+        latitude: 0, // Terminals don't have separate coordinates
+        longitude: 0,
+        coordinates: { lat: 0, lng: 0 },
+        metadata: {
+          primaryType: terminal.type,
+          category: category,
+          parentPlaceId: placeId,
+          terminalId: terminal.id
+        }
+      })) || [];
+
+      return {
+        success: true,
+        data: terminals
+      };
+    } catch (error) {
+      console.error('Error fetching terminal info:', error);
+      return {
+        success: false,
+        error: {
+          message: 'Failed to fetch terminal information',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
   }
 }
 
+// Export singleton instance
 export const locationSearchService = new LocationSearchService();
 
