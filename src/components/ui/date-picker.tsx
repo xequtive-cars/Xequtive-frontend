@@ -109,7 +109,7 @@ export function DatePicker({
             type="button"
             variant={"outline"}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal touch-manipulation",
               !date && "text-muted-foreground"
             )}
             disabled={disabled}
@@ -118,7 +118,7 @@ export function DatePicker({
             <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
           <div className="p-3">
             <div className="flex items-center justify-between w-full pb-2 mb-2 border-b">
               <Button
@@ -129,9 +129,9 @@ export function DatePicker({
                   currentMonth.getMonth() === today.getMonth() &&
                   currentMonth.getFullYear() === today.getFullYear()
                 }
-                className="h-15 w-15 rounded-full p-0 text-foreground hover:bg-muted/0 hover:text-accent-foreground disabled:opacity-40"
+                className="h-8 w-8 rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground disabled:opacity-40 touch-manipulation"
               >
-                <ArrowLeft size={32} />
+                <ArrowLeft size={16} />
                 <span className="sr-only">Previous month</span>
               </Button>
               <h2 className="text-sm font-medium">
@@ -141,9 +141,9 @@ export function DatePicker({
                 variant="ghost"
                 size="icon"
                 onClick={handleNextMonth}
-                className="h-15 w-15 rounded-full p-0 text-foreground hover:bg-muted/0 hover:text-accent-foreground"
+                className="h-8 w-8 rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground touch-manipulation"
               >
-                <ArrowRight size={32} />
+                <ArrowRight size={16} />
                 <span className="sr-only">Next month</span>
               </Button>
             </div>
@@ -162,7 +162,7 @@ export function DatePicker({
                     handleDateSelect(tomorrow);
                   }
                 }}
-                className="h-7 px-3 text-xs font-medium bg-primary/5 text-primary hover:bg-primary/10 rounded-full"
+                className="h-7 px-3 text-xs font-medium bg-primary/5 text-primary hover:bg-primary/10 rounded-full touch-manipulation"
               >
                 {!isDateDisabled(today) ? "Today" : "Tomorrow"}
               </Button>

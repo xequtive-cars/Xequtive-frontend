@@ -247,6 +247,8 @@ export function TimePicker({
       line-height: inherit;
       outline: none;
       text-align: center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     
     .time-select-wrapper {
@@ -258,6 +260,7 @@ export function TimePicker({
       border-radius: 0.5rem;
       background-color: hsl(var(--muted));
       padding: 0.5rem;
+      touch-action: manipulation;
     }
     
     .time-select:focus + .focus-indicator {
@@ -272,6 +275,18 @@ export function TimePicker({
       bottom: 0;
       border-radius: 0.5rem;
       pointer-events: none;
+    }
+    
+    @media (max-width: 768px) {
+      .time-select {
+        font-size: 1.1rem;
+        padding: 0.5em;
+      }
+      
+      .time-select-wrapper {
+        min-width: 4rem;
+        padding: 0.75rem;
+      }
     }
   `;
 
@@ -289,7 +304,7 @@ export function TimePicker({
             type="button"
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal touch-manipulation",
               !time && "text-muted-foreground",
               !isTimeValid(hours, minutes) &&
                 "border-destructive text-destructive"
@@ -304,6 +319,8 @@ export function TimePicker({
         <PopoverContent
           className="w-auto p-4 bg-background border border-border/40 shadow-xl rounded-xl"
           align="start"
+          side="bottom"
+          sideOffset={4}
         >
           {/* Time Display */}
           <div className="flex flex-col gap-4">
@@ -316,7 +333,7 @@ export function TimePicker({
               {/* Hour selector */}
               <div className="time-select-wrapper">
                 <select
-                  className="time-select"
+                  className="time-select touch-manipulation"
                   value={hours}
                   onChange={handleHourChange}
                   aria-label="Hours"
@@ -331,7 +348,7 @@ export function TimePicker({
               {/* Minute selector */}
               <div className="time-select-wrapper">
                 <select
-                  className="time-select"
+                  className="time-select touch-manipulation"
                   value={minutes}
                   onChange={handleMinuteChange}
                   aria-label="Minutes"
@@ -352,7 +369,7 @@ export function TimePicker({
             {/* Apply Button */}
             <Button
               type="button"
-              className="w-full mt-2"
+              className="w-full mt-2 touch-manipulation"
               disabled={!isTimeValid(hours, minutes)}
               onClick={handleApplyTime}
             >

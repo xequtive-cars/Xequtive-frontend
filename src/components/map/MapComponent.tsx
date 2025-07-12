@@ -151,7 +151,7 @@ const MapComponent = ({
       
       // Only set map center to user location if they're within UK bounds
       if (isWithinUKBounds(latitude, longitude)) {
-        setMapCenter(userCoords);
+      setMapCenter(userCoords);
       } else {
         // User is outside UK, keep London center
         setMapCenter({ lat: 51.5074, lng: -0.1278 });
@@ -177,7 +177,7 @@ const MapComponent = ({
             
             // Only set map center to user location if they're within UK bounds
             if (isWithinUKBounds(position.coords.latitude, position.coords.longitude)) {
-              setMapCenter(userCoords);
+            setMapCenter(userCoords);
             } else {
               // User is outside UK, keep London center
               setMapCenter({ lat: 51.5074, lng: -0.1278 });
@@ -266,15 +266,15 @@ const MapComponent = ({
       requestAnimationFrame(() => {
         // Fit bounds to show all locations with generous padding
         map.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
-        
-        // If only one location, set a reasonable zoom level
+      
+      // If only one location, set a reasonable zoom level
         if ((hasValidPickup && !hasValidDropoff && validStops.length === 0) || 
             (!hasValidPickup && hasValidDropoff && validStops.length === 0)) {
           setTimeout(() => {
             const currentZoom = map.getZoom();
             if (currentZoom && currentZoom > 16) {
               map.setZoom(16);
-            }
+      }
           }, 200);
         }
       });
@@ -285,7 +285,7 @@ const MapComponent = ({
       // If no booking locations but we have user location within UK, center on user
       if (lastLocationHash !== '') {
         requestAnimationFrame(() => {
-          map.setCenter(lastUserCoords);
+      map.setCenter(lastUserCoords);
           map.setZoom(mapZoom);
         });
         setLastLocationHash('');
@@ -295,7 +295,7 @@ const MapComponent = ({
       if (lastLocationHash !== '') {
         requestAnimationFrame(() => {
           map.setCenter({ lat: 51.5074, lng: -0.1278 });
-          map.setZoom(mapZoom);
+      map.setZoom(mapZoom);
         });
         setLastLocationHash('');
       }
@@ -341,17 +341,17 @@ const MapComponent = ({
       
       // Use requestAnimationFrame for smoother route updates
       requestAnimationFrame(() => {
-        directionsService.route(
-          {
-            origin: { 
-              lat: pickupLocation.latitude, 
-              lng: pickupLocation.longitude 
-            },
-            destination: { 
-              lat: dropoffLocation.latitude, 
-              lng: dropoffLocation.longitude 
-            },
-            waypoints,
+      directionsService.route(
+        {
+          origin: { 
+            lat: pickupLocation.latitude, 
+            lng: pickupLocation.longitude 
+          },
+          destination: { 
+            lat: dropoffLocation.latitude, 
+            lng: dropoffLocation.longitude 
+          },
+          waypoints,
             optimizeWaypoints: waypoints.length > 1,
             travelMode: google.maps.TravelMode.DRIVING,
             avoidHighways: false,
@@ -363,8 +363,8 @@ const MapComponent = ({
             },
             // Request alternative routes to find shortest distance
             provideRouteAlternatives: true
-          },
-          (result, status) => {
+        },
+        (result, status) => {
             if (status === google.maps.DirectionsStatus.OK && result) {
               // Find the shortest route by distance (not time)
               if (result.routes && result.routes.length > 1) {
@@ -389,13 +389,13 @@ const MapComponent = ({
                 setGoogleDirections(shortestResult);
               } else {
                 // Only one route available, use it
-                setGoogleDirections(result);
-              }
+            setGoogleDirections(result);
+          }
             } else {
               setGoogleDirections(null);
             }
-          }
-        );
+        }
+      );
       });
     } else {
       setGoogleDirections(null);
@@ -407,7 +407,7 @@ const MapComponent = ({
     if (isGoogleMapsLoaded) {
       // Use a small delay to ensure state updates have been processed
       const timeoutId = setTimeout(() => {
-        updateGoogleRoute();
+      updateGoogleRoute();
       }, 50);
       
       return () => clearTimeout(timeoutId);
@@ -501,7 +501,7 @@ const MapComponent = ({
           zoomControlOptions: {
             position: google.maps.ControlPosition.RIGHT_BOTTOM
           },
-          gestureHandling: 'cooperative',
+          gestureHandling: 'greedy',
           minZoom: 6,
           maxZoom: 20,
           disableDefaultUI: false,

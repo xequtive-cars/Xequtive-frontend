@@ -378,7 +378,7 @@ class LocationSearchService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Location Search API Error:', errorText);
-        
+
         return {
           success: false,
           error: {
@@ -389,7 +389,7 @@ class LocationSearchService {
       }
 
       const data = await response.json();
-      
+
       // Only log API response details in development or for debugging
       if (process.env.NODE_ENV === 'development' && trimmedInput.length > 2) {
         console.log('Places API Response:', data);
@@ -426,13 +426,13 @@ class LocationSearchService {
         }
       }));
 
-      return {
+            return {
         success: true,
         data: suggestions
       };
     } catch (error) {
       console.error('❌ Location Search Error:', error);
-      
+
       return {
         success: false,
         error: {
@@ -517,7 +517,7 @@ class LocationSearchService {
       console.log(`🔍 Fetching ${category} locations from API...`);
       
       const response = await fetch(`/api/places?category=${category}`);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`${category} locations API Error:`, errorText);
@@ -538,7 +538,7 @@ class LocationSearchService {
       if (data.success && data.suggestions && data.suggestions.length > 0) {
         this.setCachedData(cacheKey, data.suggestions);
       }
-      
+
       return {
         success: true,
         data: data.suggestions || []

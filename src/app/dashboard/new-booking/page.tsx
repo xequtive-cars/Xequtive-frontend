@@ -152,19 +152,19 @@ const StableMapComponent = memo(
     );
 
     // Return the map component with updated props
-    return (
-      <MapComponent
-        className={className}
-        pickupLocation={pickupLocation}
-        dropoffLocation={dropoffLocation}
-        stops={stops}
-        showRoute={true}
-        showCurrentLocation={showCurrentLocation}
-        onUserLocationChange={onUserLocationChange}
-        passMapRef={handleMapRef}
-        onLocationError={onLocationError}
-      />
-    );
+      return (
+        <MapComponent
+          className={className}
+          pickupLocation={pickupLocation}
+          dropoffLocation={dropoffLocation}
+          stops={stops}
+          showRoute={true}
+          showCurrentLocation={showCurrentLocation}
+          onUserLocationChange={onUserLocationChange}
+          passMapRef={handleMapRef}
+          onLocationError={onLocationError}
+        />
+      );
   },
   // Custom equality function for React.memo that only triggers re-render when actual location values change
   (prevProps, nextProps) => {
@@ -995,12 +995,12 @@ export default function NewBookingPage() {
           stops: additionalStops
             .filter(stop => stop.address && stop.address.trim() !== "" && stop.latitude !== 0 && stop.longitude !== 0)
             .map((stop) => ({
-              address: stop.address || "",
-              coordinates: {
-                lat: stop.latitude,
-                lng: stop.longitude,
-              },
-            })),
+            address: stop.address || "",
+            coordinates: {
+              lat: stop.latitude,
+              lng: stop.longitude,
+            },
+          })),
         },
         datetime: {
           date: selectedDate ? formatDate(selectedDate) : "",
@@ -1674,7 +1674,7 @@ export default function NewBookingPage() {
 
                       {/* Continue button - Increase size by 40% */}
                       {selectedVehicle && (
-                        <div className="px-3 py-5 pb-15 border-t">
+                        <div className="px-3 py-3 pb-15 border-t">
                           <Button
                             onClick={continueToBooking}
                             className="w-full text-sm h-14"

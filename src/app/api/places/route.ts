@@ -76,11 +76,11 @@ async function fetchPlacesFromGoogle(
 
 // Function to fetch popular locations from Google Places API
 async function fetchPopularLocations(apiKey: string) {
-  try {
+    try {
     devLog('Fetching popular locations from Google Places API...');
     
     // Fetch popular UK locations with more comprehensive list
-    const popularQueries = [
+      const popularQueries = [
       'London Eye London UK',
       'Tower Bridge London UK',
       'Big Ben London UK',
@@ -91,7 +91,7 @@ async function fetchPopularLocations(apiKey: string) {
       'Covent Garden London UK',
       'King\'s Cross Station London UK',
       'Paddington Station London UK',
-      'Liverpool Street Station London UK',
+        'Liverpool Street Station London UK',
       'Victoria Station London UK',
       'Waterloo Station London UK',
       'The Shard London UK',
@@ -113,7 +113,7 @@ async function fetchPopularLocations(apiKey: string) {
     }
 
     return popularPlaces.slice(0, 12); // Increased to 12 popular locations
-  } catch (error) {
+        } catch (error) {
     devLog('Error fetching popular locations:', error);
     return [];
   }
@@ -149,7 +149,7 @@ async function fetchTerminalInfo(placeId: string, placeType: string, apiKey: str
     }
     
     return [];
-  } catch (error) {
+    } catch (error) {
     devLog('Error fetching terminal info:', error);
     return [];
   }
@@ -203,7 +203,7 @@ export async function GET(request: Request) {
       const terminals = await fetchTerminalInfo(placeId, category, googlePlacesApiKey);
       
       devLog(`Found ${terminals.length} terminals/platforms`);
-      return NextResponse.json({ 
+        return NextResponse.json({
         success: true,
         terminals,
         placeId,
@@ -230,12 +230,12 @@ export async function GET(request: Request) {
       const suggestions = places.map(convertGooglePlaceToSuggestion);
 
       devLog(`Found ${suggestions.length} ${category} locations`);
-      return NextResponse.json({ 
-        success: true,
+        return NextResponse.json({
+          success: true,
         suggestions,
         category 
-      });
-    }
+        });
+      }
 
     // Handle popular locations request
     if (fetchPopular) {
@@ -244,11 +244,11 @@ export async function GET(request: Request) {
       const suggestions = places.map(convertGooglePlaceToSuggestion);
 
       devLog(`Found ${suggestions.length} popular locations`);
-      return NextResponse.json({ 
+        return NextResponse.json({
         success: true,
         suggestions 
       });
-    }
+      }
 
     // Handle text search with UK restrictions
     if (input) {
@@ -258,7 +258,7 @@ export async function GET(request: Request) {
       const suggestions = places.map(convertGooglePlaceToSuggestion);
 
       devLog(`Found ${suggestions.length} suggestions for: "${input}"`);
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: true,
         suggestions 
       });
@@ -268,16 +268,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ 
       success: true,
       suggestions: [] 
-    });
+      });
 
-  } catch (error) {
+    } catch (error) {
     devLog('Unexpected error in Places API:', error);
-    return NextResponse.json({ 
-      success: false,
+      return NextResponse.json({
+        success: false,
       suggestions: [],
       error: 'Error processing places request' 
-    }, { status: 500 });
-  }
+      }, { status: 500 });
+    }
 }
 
 export const dynamic = 'force-dynamic'; 

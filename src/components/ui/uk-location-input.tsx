@@ -262,18 +262,18 @@ export default function UKLocationInput({
       setLoading(true);
       
       const response = await locationSearchService.fetchPopularLocations();
-      
+        
               if (response.success && response.data) {
           setPopularLocations(response.data);
-        } else {
+    } else {
           // Failed to fetch popular locations - use fallback data
         setPopularLocations([]);
-      }
-          } catch (error) {
+        }
+      } catch (error) {
         // Error fetching popular locations - use fallback data
         setPopularLocations([]);
-    } finally {
-      setLoading(false);
+      } finally {
+        setLoading(false);
     }
   }, []);
 
@@ -290,7 +290,7 @@ export default function UKLocationInput({
           // Failed to fetch category locations - use fallback
         setCategoryLocations([]);
       }
-          } catch (error) {
+    } catch (error) {
         // Error fetching category locations - use fallback
         setCategoryLocations([]);
     } finally {
@@ -301,7 +301,7 @@ export default function UKLocationInput({
   // Load popular locations on component mount
   useEffect(() => {
     if (showPopularLocations) {
-      fetchPopularLocations();
+    fetchPopularLocations();
     }
   }, [showPopularLocations]); // Remove fetchPopularLocations from dependency array to prevent infinite loop
 
@@ -323,15 +323,15 @@ export default function UKLocationInput({
         
         if (response.success && response.data) {
           setSuggestions(response.data);
-        } else {
+      } else {
           setSuggestions([]);
           // Location search failed - clear suggestions
-        }
-      } catch (error) {
+      }
+    } catch (error) {
         // Location search error - clear suggestions
         setSuggestions([]);
-      } finally {
-        setLoading(false);
+    } finally {
+      setLoading(false);
       }
     }, 300),
     [sessionToken]

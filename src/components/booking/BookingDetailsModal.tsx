@@ -117,11 +117,13 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex justify-between items-center">
-            <span>Booking Details</span>
-            <Badge className={`font-normal ${getStatusColor(status)}`}>
-              {getStatusText(status)}
-            </Badge>
+          <DialogTitle className="flex flex-col items-start gap-2 pr-8">
+            <div className="flex justify-between items-center w-full">
+              <span>Booking Details</span>
+              <Badge className={`font-normal ${getStatusColor(status)}`}>
+                {getStatusText(status)}
+              </Badge>
+            </div>
           </DialogTitle>
           <DialogDescription>
             Booking Reference: {id.substring(0, 8).toUpperCase()}

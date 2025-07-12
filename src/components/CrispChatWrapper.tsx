@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Crisp } from "crisp-sdk-web";
 
 // Extend Window interface to include Crisp global object
@@ -14,6 +15,7 @@ declare global {
 
 export default function CrispChatWrapper() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const pathname = usePathname();
 
   useEffect(() => {
     // Function to determine current theme
@@ -67,6 +69,18 @@ export default function CrispChatWrapper() {
       }
     };
   }, []);
+
+  // Effect to show/hide chat widget based on current page
+  useEffect(() => {
+    if (window.$crisp) {
+      // Hide chat widget on new-booking page
+      if (pathname === "/dashboard/new-booking") {
+        window.$crisp.push(["do", "chat:hide"]);
+      } else {
+        window.$crisp.push(["do", "chat:show"]);
+      }
+    }
+  }, [pathname]);
 
   // Separate effect for theme changes
   useEffect(() => {
