@@ -10,6 +10,7 @@
  * - Loading indicator during API requests
  * - Proper handling of selection events
  * - Proximity-based results using user's location
+ * - Minimum 3 character threshold and debouncing for cost optimization
  *
  * Any modifications to this component should be carefully reviewed as they
  * may break existing functionality.
@@ -17,7 +18,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, X } from "lucide-react";
 
@@ -53,17 +54,47 @@ interface LocationSuggestion {
   }>;
 }
 
+interface Location {
+  address: string;
+  longitude: number;
+  latitude: number;
+}
+
 interface LocationInputProps {
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
-  onLocationSelect: (location: {
-    address: string;
-    longitude: number;
-    latitude: number;
-  }) => void;
+  onLocationSelect: (location: Location) => void;
   className?: string;
   userLocation?: { latitude: number; longitude: number } | null;
+}
+
+// Enhanced debounce function with minimum character threshold
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number,
+  minChars: number = 3
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  
+  return (...args: Parameters<T>) => {
+    const query = args[0] as string;
+    
+    // Clear existing timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    
+    // Only proceed if query meets minimum character threshold
+    if (query && query.trim().length >= minChars) {
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    } else if (query && query.trim().length < minChars) {
+      // Clear suggestions if query is too short
+      func('' as any);
+    }
+  };
 }
 
 export function LocationInput({
@@ -96,18 +127,10 @@ export function LocationInput({
     }
   }, [value]);
 
-  // Fetch location suggestions from Mapbox
-  useEffect(() => {
-    // Skip API call if a selection was just made or if this value was previously selected
-    if (
-      selectionMadeRef.current ||
-      (value && selectedLocationsCache.has(value))
-    ) {
-      return;
-    }
-
-    const fetchSuggestions = async () => {
-      if (value.trim().length < 2) {
+  // Fetch location suggestions from Mapbox with debouncing and minimum character threshold
+  const fetchSuggestions = useCallback(
+    debounce(async (query: string) => {
+      if (!query.trim() || query.trim().length < 3) {
         setSuggestions([]);
         setHoveredIndex(null);
         return;
@@ -116,16 +139,29 @@ export function LocationInput({
       setIsLoading(true);
       try {
         const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-        let endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          value
-        )}.json?access_token=${token}&country=gb&autocomplete=true&limit=5&types=address,postcode,poi,place`;
+        if (!token) {
+          console.error('Mapbox token not available');
+          return;
+        }
+
+        // Build Mapbox Geocoding API URL with optimized parameters
+        const params = new URLSearchParams({
+          access_token: token,
+          country: 'gb', // UK only
+          autocomplete: 'true',
+          limit: '5', // Limit results for cost optimization
+          types: 'address,postcode,poi,place', // Optimized types
+          language: 'en'
+        });
 
         // Add proximity if user location is available
         if (userLocation) {
-          endpoint += `&proximity=${userLocation.longitude},${userLocation.latitude}`;
+          params.append('proximity', `${userLocation.longitude},${userLocation.latitude}`);
         }
 
-        const response = await fetch(endpoint);
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`;
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.features) {
@@ -140,7 +176,7 @@ export function LocationInput({
             }))
           );
           // Only show suggestions if the input is focused and wasn't previously selected
-          if (!selectedLocationsCache.has(value)) {
+          if (!selectedLocationsCache.has(query)) {
             setShowSuggestions(true);
           }
         }
@@ -149,15 +185,22 @@ export function LocationInput({
       } finally {
         setIsLoading(false);
       }
-    };
+    }, 300, 3), // 300ms debounce, 3 character minimum
+    [userLocation]
+  );
 
-    // Debounce requests
-    const timeoutId = setTimeout(() => {
-      fetchSuggestions();
-    }, 300);
+  // Handle input change with debouncing
+  useEffect(() => {
+    // Skip API call if a selection was just made or if this value was previously selected
+    if (
+      selectionMadeRef.current ||
+      (value && selectedLocationsCache.has(value))
+    ) {
+      return;
+    }
 
-    return () => clearTimeout(timeoutId);
-  }, [value, userLocation]);
+    fetchSuggestions(value);
+  }, [value, fetchSuggestions]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -252,12 +295,12 @@ export function LocationInput({
         onFocus={() => {
           // Only show suggestions if:
           // 1. Not recently selected
-          // 2. Has at least 2 characters
+          // 2. Has at least 3 characters (minimum threshold)
           // 3. Has suggestions available
           // 4. Not in the cache of previously selected locations
           if (
             !selectionMadeRef.current &&
-            value.trim().length >= 2 &&
+            value.trim().length >= 3 &&
             suggestions.length > 0 &&
             !selectedLocationsCache.has(value)
           ) {
@@ -283,6 +326,19 @@ export function LocationInput({
         >
           <X className="h-4 w-4" />
         </button>
+      )}
+
+      {/* Minimum character message */}
+      {value.trim().length > 0 && value.trim().length < 3 && (
+        <div className="absolute z-10 w-full min-w-[300px] mt-1">
+          <div className="rounded-lg border shadow-md bg-popover/95 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/85 overflow-hidden max-w-[calc(100vw-2rem)]">
+            <div className="p-2">
+              <div className="text-xs font-medium text-muted-foreground mb-1 px-2">
+                Please enter at least 3 characters to search
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showSuggestions && suggestions.length > 0 && (

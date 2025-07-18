@@ -19,49 +19,66 @@ import { locationSearchService, LocationSuggestion } from "@/lib/location-search
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from "@/lib/utils";
 
-// Custom debounce function
+// Enhanced debounce function with minimum character threshold
 function debounce<T extends (...args: any[]) => any>(
   func: T,
-  delay: number
+  delay: number,
+  minChars: number = 3
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   
   return (...args: Parameters<T>) => {
+    const query = args[0] as string;
+    
+    // Clear existing timeout
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
     
-    timeoutId = setTimeout(() => {
-      func(...args);
-    }, delay);
+    // Only proceed if query meets minimum character threshold
+    if (query && query.trim().length >= minChars) {
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    } else if (query && query.trim().length < minChars) {
+      // Clear suggestions if query is too short
+      func('' as any);
+    }
   };
 }
 
-export interface Location {
-  id?: string;
+// Types for location data
+interface Location {
   address: string;
-  mainText?: string;
-  secondaryText?: string;
-  name?: string;
   latitude: number;
   longitude: number;
-  coordinates?: {
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  type?: string;
+  metadata?: {
+    postcode?: string;
+    city?: string;
+    region?: string;
+    category?: string;
+    primaryType?: string;
+  };
+}
+
+interface LocationSearchResult {
+  address: string;
+  coordinates: {
     lat: number;
     lng: number;
   };
   metadata?: {
-    primaryType?: string;
     postcode?: string;
     city?: string;
     region?: string;
-    type?: string;
     category?: string;
-    placeId?: string;
-    terminalId?: string;
-    terminalName?: string;
-    parentPlaceId?: string;
+    primaryType?: string;
   };
-  type?: string;
 }
 
 interface UKLocationInputProps {
@@ -71,33 +88,12 @@ interface UKLocationInputProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  locationType?: "pickup" | "dropoff" | "stop";
+  locationType?: 'pickup' | 'dropoff';
   showPopularLocations?: boolean;
   initialLocation?: Location | null;
+  userLocation?: { latitude: number; longitude: number } | null;
+  initialSuggestionsTitle?: string;
 }
-
-// Add type-safe event handling for click outside
-const useClickOutside = (
-  ref: React.RefObject<HTMLDivElement>, 
-  handler: () => void
-) => {
-  useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      if (!ref.current || ref.current.contains(event.target as Node)) {
-        return;
-      }
-      handler();
-    };
-
-    document.addEventListener('mousedown', listener as EventListener);
-    document.addEventListener('touchstart', listener as EventListener);
-
-    return () => {
-      document.removeEventListener('mousedown', listener as EventListener);
-      document.removeEventListener('touchstart', listener as EventListener);
-    };
-  }, [ref, handler]);
-};
 
 export default function UKLocationInput({
   value = "",
@@ -109,6 +105,8 @@ export default function UKLocationInput({
   locationType = "pickup",
   showPopularLocations = true,
   initialLocation = null,
+  userLocation = null,
+  initialSuggestionsTitle = "Popular Locations"
 }: UKLocationInputProps) {
   // State management
   const [input, setInput] = useState(initialLocation?.address || value || "");
@@ -198,63 +196,27 @@ export default function UKLocationInput({
   }, [value, input]);
 
   // Create current location option
-  const createCurrentLocationOption = (): LocationSuggestion => ({
-    id: 'current-location',
-    address: 'Use current location',
-    mainText: 'Current Location',
-    secondaryText: 'Use your current GPS location',
-    name: 'Current Location',
-      latitude: 0,
-      longitude: 0,
+  const createCurrentLocationOption = useCallback((): LocationSuggestion | null => {
+    if (!userLocation) return null;
+    
+    return {
+      id: 'current-location',
+      address: 'Current Location',
+      mainText: 'Current Location',
+      secondaryText: 'Use your current location',
+      name: 'Current Location',
+      latitude: userLocation.latitude,
+      longitude: userLocation.longitude,
+      coordinates: {
+        lat: userLocation.latitude,
+        lng: userLocation.longitude
+      },
       metadata: {
-      primaryType: 'current_location',
-      region: 'UK'
+        primaryType: 'current_location',
+        region: 'UK'
       }
-    });
-
-  // Handle current location selection
-  const handleCurrentLocationSelect = async () => {
-    try {
-      setIsSearching(true);
-      
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000
-        });
-      });
-      
-      const { latitude, longitude } = position.coords;
-      
-             // Create location object for current position
-       const currentLocation: LocationSuggestion = {
-         id: 'current-location',
-         address: 'Current Location',
-         mainText: 'Current Location',
-         secondaryText: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-         latitude,
-         longitude,
-         coordinates: { lat: latitude, lng: longitude },
-         metadata: {
-           primaryType: 'current_location'
-         }
-       };
-
-      // Location selection logging removed to prevent infinite loops
-      
-      // Call the selection handler
-      handleSuggestionSelect(currentLocation);
-      
-    } catch (error) {
-      // Only log critical geolocation errors
-      if (error instanceof GeolocationPositionError && error.code === 1) {
-        // Permission denied - this is expected behavior, don't log
-      }
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    };
+  }, [userLocation]);
 
   // Fetch popular locations from API
   const fetchPopularLocations = useCallback(async () => {
@@ -263,17 +225,17 @@ export default function UKLocationInput({
       
       const response = await locationSearchService.fetchPopularLocations();
         
-              if (response.success && response.data) {
-          setPopularLocations(response.data);
-    } else {
-          // Failed to fetch popular locations - use fallback data
+      if (response.success && response.data) {
+        setPopularLocations(response.data);
+      } else {
+        // Failed to fetch popular locations - use fallback data
         setPopularLocations([]);
-        }
-      } catch (error) {
-        // Error fetching popular locations - use fallback data
-        setPopularLocations([]);
-      } finally {
-        setLoading(false);
+      }
+    } catch (error) {
+      // Error fetching popular locations - use fallback data
+      setPopularLocations([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -284,15 +246,15 @@ export default function UKLocationInput({
       
       const response = await locationSearchService.fetchCategoryLocations(category);
       
-              if (response.success && response.data) {
-          setCategoryLocations(response.data);
-        } else {
-          // Failed to fetch category locations - use fallback
+      if (response.success && response.data) {
+        setCategoryLocations(response.data);
+      } else {
+        // Failed to fetch category locations - use fallback
         setCategoryLocations([]);
       }
     } catch (error) {
-        // Error fetching category locations - use fallback
-        setCategoryLocations([]);
+      // Error fetching category locations - use fallback
+      setCategoryLocations([]);
     } finally {
       setIsSearching(false);
     }
@@ -301,14 +263,22 @@ export default function UKLocationInput({
   // Load popular locations on component mount
   useEffect(() => {
     if (showPopularLocations) {
-    fetchPopularLocations();
+      fetchPopularLocations();
     }
-  }, [showPopularLocations]); // Remove fetchPopularLocations from dependency array to prevent infinite loop
+  }, [showPopularLocations, fetchPopularLocations]);
 
-  // Modify handleInputChange to track searching state
+  // Enhanced handleInputChange with minimum 3 character threshold and debouncing
   const handleInputChange = useCallback(
     debounce(async (value: string) => {
       if (!value.trim()) {
+        setSuggestions([]);
+        setHasSearched(false);
+        setLoading(false);
+        return;
+      }
+
+      // Minimum 3 character threshold as per requirements
+      if (value.trim().length < 3) {
         setSuggestions([]);
         setHasSearched(false);
         setLoading(false);
@@ -323,34 +293,31 @@ export default function UKLocationInput({
         
         if (response.success && response.data) {
           setSuggestions(response.data);
-      } else {
+        } else {
           setSuggestions([]);
           // Location search failed - clear suggestions
-      }
-    } catch (error) {
+        }
+      } catch (error) {
         // Location search error - clear suggestions
         setSuggestions([]);
-    } finally {
-      setLoading(false);
+      } finally {
+        setLoading(false);
       }
-    }, 300),
+    }, 300, 3), // 300ms debounce, 3 character minimum
     [sessionToken]
   );
 
-  // Remove excessive debug logging - only log when there are actual changes
-  // Debug logging removed to prevent infinite loops
-
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion: LocationSuggestion) => {
-      setInput(suggestion.address);
-      setShowSuggestions(false);
-    
+    setInput(suggestion.address);
+    setShowSuggestions(false);
+  
     // Create a properly formatted location object
     const selectedLocation: Location = {
-          address: suggestion.address,
+      address: suggestion.address,
       latitude: suggestion.latitude || suggestion.coordinates?.lat || 0,
       longitude: suggestion.longitude || suggestion.coordinates?.lng || 0,
-          coordinates: {
+      coordinates: {
         lat: suggestion.latitude || suggestion.coordinates?.lat || 0,
         lng: suggestion.longitude || suggestion.coordinates?.lng || 0,
       },
@@ -363,8 +330,6 @@ export default function UKLocationInput({
         primaryType: suggestion.metadata?.primaryType,
       },
     };
-
-    // Location selection logging removed to prevent infinite loops
 
     // Update URL parameters based on location type
     if (typeof window !== 'undefined') {
@@ -386,12 +351,12 @@ export default function UKLocationInput({
       // Update URL without refreshing the page
       const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
       window.history.replaceState({}, '', newUrl);
-          }
+    }
 
     // Call the onSelect callback with the properly formatted location
     if (onSelect) {
       onSelect(selectedLocation);
-        }
+    }
 
     // Clear suggestions after selection
     setSuggestions([]);
@@ -417,9 +382,6 @@ export default function UKLocationInput({
     ...(shouldShowPopular ? popularLocations : suggestions)
   ];
 
-  // Remove the excessive debug logging that was causing console spam
-  // Debug logging is now handled in the previous useEffect with selective logging
-
   // Dropdown classes with improved dark mode styling
   const dropdownClasses = cn(
     "absolute z-50 w-full mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-lg overflow-hidden",
@@ -429,56 +391,13 @@ export default function UKLocationInput({
 
   // Render dropdown content based on current state
   const renderDropdownContent = () => {
-    // Show terminal selection when in terminal view
-    if (dropdownView === 'terminals') {
-      
-      if (isSearching) {
-        return (
-          <div className="p-4 text-center text-muted-foreground">
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <p>Loading terminals...</p>
-            </div>
-          </div>
-        );
-      }
-
-      if (terminalLocations.length === 0) {
-        return (
-          <div className="p-4 text-center text-muted-foreground">
-            <p>No terminals found</p>
-          </div>
-        );
-      }
-
+    // Show category selection (airports/trains)
+    if (dropdownView === 'default' && !input && showPopularLocations) {
       return (
         <div className="space-y-1">
-          {/* Back button */}
-          <div 
-            className="
-              flex items-center 
-              px-4 py-2 
-              cursor-pointer 
-              transition-colors duration-200 
-              hover:bg-muted/70 
-              text-muted-foreground
-              border-b border-border
-            "
-            onClick={(e) => {
-              e.stopPropagation();
-              setDropdownView(selectedCategory === 'airport' ? 'airports' : 'trains');
-              setTerminalLocations([]);
-              setSelectedLocation(null);
-            }}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            <span className="text-sm">Back to {selectedCategory === 'airport' ? 'Airports' : 'Train Stations'}</span>
-          </div>
-
-          {/* Terminal/Platform options */}
-          {terminalLocations.map((terminal, index) => (
+          {/* Current Location Option */}
+          {createCurrentLocationOption() && (
             <div
-              key={terminal.id || index}
               className="
                 flex items-center 
                 px-4 py-3 
@@ -486,60 +405,125 @@ export default function UKLocationInput({
                 transition-colors duration-200 
                 hover:bg-muted/70 
                 text-foreground
+                border-b border-border
               "
               onClick={(e) => {
                 e.stopPropagation();
-                handleTerminalSelect(terminal);
+                handleSuggestionSelect(createCurrentLocationOption()!);
               }}
             >
-              <div className="flex-1">
-                <div className="font-medium text-sm truncate">
-                  {terminal.mainText || terminal.name}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {terminal.secondaryText}
+              <div className="flex items-center space-x-3">
+                <Navigation className="w-4 h-4 text-blue-500" />
+                <div>
+                  <div className="font-medium text-sm">Current Location</div>
+                  <div className="text-xs text-muted-foreground">Use your current location</div>
                 </div>
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Category Buttons */}
+          <div className="px-4 py-2">
+            <div className="text-xs font-medium text-muted-foreground mb-2">Quick Access</div>
+            <div className="flex space-x-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDropdownView('airports');
+                  setSelectedCategory('airport');
+                  fetchCategoryLocations('airport');
+                }}
+                className="
+                  flex items-center space-x-2 
+                  px-3 py-2 
+                  text-xs 
+                  bg-muted/50 
+                  hover:bg-muted 
+                  rounded-md 
+                  transition-colors
+                  text-foreground
+                "
+              >
+                <Plane className="w-3 h-3" />
+                <span>Airports</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDropdownView('trains');
+                  setSelectedCategory('train_station');
+                  fetchCategoryLocations('train_station');
+                }}
+                className="
+                  flex items-center space-x-2 
+                  px-3 py-2 
+                  text-xs 
+                  bg-muted/50 
+                  hover:bg-muted 
+                  rounded-md 
+                  transition-colors
+                  text-foreground
+                "
+              >
+                <Train className="w-3 h-3" />
+                <span>Stations</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Popular Locations */}
+          {popularLocations.length > 0 && (
+            <div className="border-t border-border pt-2">
+              <div className="px-4 py-2">
+                <span className="text-xs font-medium text-muted-foreground">{initialSuggestionsTitle}</span>
+              </div>
+              <div className="space-y-1">
+                {popularLocations.slice(0, 10).map((location, index) => (
+                  <div
+                    key={location.id || index}
+                    className="
+                      flex items-center 
+                      px-4 py-3 
+                      cursor-pointer 
+                      transition-colors duration-200 
+                      hover:bg-muted/70 
+                      text-foreground
+                    "
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSuggestionSelect(location);
+                    }}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-sm truncate">
+                        {location.mainText || location.name || location.address}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {location.secondaryText || location.address}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
-    // Show category locations when in category view (regardless of input)
+    // Show category results (airports/trains)
     if (dropdownView === 'airports' || dropdownView === 'trains') {
-      // Rendering category locations
-      
-      if (isSearching) {
-        return (
-          <div className="p-4 text-center text-muted-foreground">
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <p>Loading {dropdownView}...</p>
-            </div>
-          </div>
-        );
-      }
-
-      if (categoryLocations.length === 0) {
-        return (
-          <div className="p-4 text-center text-muted-foreground">
-            <p>No {dropdownView} found</p>
-          </div>
-        );
-      }
-
       return (
         <div className="space-y-1">
           {/* Back button */}
-          <div 
+          <div
             className="
               flex items-center 
-              px-4 py-2 
+              px-4 py-3 
               cursor-pointer 
               transition-colors duration-200 
               hover:bg-muted/70 
-              text-muted-foreground
+              text-foreground
               border-b border-border
             "
             onClick={(e) => {
@@ -549,40 +533,72 @@ export default function UKLocationInput({
               setCategoryLocations([]);
             }}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            <span className="text-sm">Back</span>
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            <span className="text-sm">Back to all locations</span>
           </div>
 
-          {/* Category locations */}
-          {categoryLocations.map((location, index) => (
-            <div
-              key={location.id || index}
-              className="
-                flex items-center 
-                px-4 py-3 
-                cursor-pointer 
-                transition-colors duration-200 
-                hover:bg-muted/70 
-                text-foreground
-              "
-              onClick={(e) => {
-                e.stopPropagation();
-                // Instead of directly selecting, fetch terminals first
-                if (selectedCategory) {
-                  fetchTerminalInfo(location, selectedCategory);
-                }
-              }}
-            >
-              <div className="flex-1">
-                <div className="font-medium text-sm truncate">
-                  {location.mainText || location.name || location.address}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {location.secondaryText || location.address}
-                </div>
+          {/* Category title */}
+          <div className="px-4 py-2">
+            <div className="text-xs font-medium text-muted-foreground">
+              {dropdownView === 'airports' ? 'Airports' : 'Train Stations'}
+            </div>
+          </div>
+
+          {/* Loading state */}
+          {isSearching && (
+            <div className="p-4 text-center text-muted-foreground">
+              <div className="flex items-center justify-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <p className="text-sm">Loading...</p>
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Category results */}
+          {!isSearching && categoryLocations.length > 0 && (
+            <div className="space-y-1">
+              {categoryLocations.map((location, index) => (
+                <div
+                  key={location.id || index}
+                  className="
+                    flex items-center 
+                    px-4 py-3 
+                    cursor-pointer 
+                    transition-colors duration-200 
+                    hover:bg-muted/70 
+                    text-foreground
+                  "
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSuggestionSelect(location);
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    {dropdownView === 'airports' ? (
+                      <Plane className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Train className="w-4 h-4 text-red-500" />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-medium text-sm truncate">
+                        {location.mainText || location.name || location.address}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {location.secondaryText || location.address}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No results */}
+          {!isSearching && categoryLocations.length === 0 && (
+            <div className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">No {dropdownView === 'airports' ? 'airports' : 'stations'} found</p>
+            </div>
+          )}
         </div>
       );
     }
@@ -642,112 +658,11 @@ export default function UKLocationInput({
       );
     }
 
-    // Show current location and categories only when input is empty and not in category view
-    if (!input && dropdownView === 'default') {
+    // Show minimum character message
+    if (input && input.trim().length > 0 && input.trim().length < 3) {
       return (
-        <div className="space-y-2">
-          {/* Current location option */}
-          <div 
-            className="
-              flex items-center 
-              px-4 py-3.5 
-              cursor-pointer 
-              transition-colors duration-200 
-              hover:bg-muted/70 
-              text-foreground
-              space-x-3
-            "
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent dropdown from closing
-              handleCurrentLocationSelect();
-              setShowSuggestions(false);
-            }}
-          >
-            <MapPin className="w-5 h-5 text-blue-500" />
-            <span className="text-sm font-medium">Use current location</span>
-          </div>
-
-          {/* Categories */}
-          <div className="grid grid-cols-2 gap-2 px-4 py-2">
-            <div
-              className="
-                flex flex-col items-center justify-center 
-                p-3 rounded-lg 
-                bg-muted/50 
-                hover:bg-muted/70 
-                transition-colors duration-200
-                text-foreground
-                cursor-pointer
-              "
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent dropdown from closing
-                setDropdownView('airports');
-                setSelectedCategory('airport');
-                fetchCategoryLocations('airport');
-              }}
-            >
-              <Plane className="w-6 h-6 text-blue-500 mx-auto mb-1" />
-              <span className="text-xs">Airports</span>
-            </div>
-
-            <div
-              className="
-                flex flex-col items-center justify-center 
-                p-3 rounded-lg 
-                bg-muted/50 
-                hover:bg-muted/70 
-                transition-colors duration-200
-                text-foreground
-                cursor-pointer
-              "
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent dropdown from closing
-                setDropdownView('trains');
-                setSelectedCategory('train_station');
-                fetchCategoryLocations('train_station');
-              }}
-            >
-              <Train className="w-6 h-6 text-green-500 mx-auto mb-1" />
-              <span className="text-xs">Train Stations</span>
-            </div>
-          </div>
-
-          {/* Popular locations */}
-          {popularLocations.length > 0 && (
-            <div className="border-t border-border pt-2">
-              <div className="px-4 py-2">
-                <span className="text-xs font-medium text-muted-foreground">Popular Locations</span>
-              </div>
-              <div className="space-y-1">
-                {popularLocations.slice(0, 10).map((location, index) => (
-                  <div
-                    key={location.id || index}
-                    className="
-                      flex items-center 
-                      px-4 py-3 
-                      cursor-pointer 
-                      transition-colors duration-200 
-                      hover:bg-muted/70 
-                      text-foreground
-                    "
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSuggestionSelect(location);
-                    }}
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-sm truncate">
-                        {location.mainText || location.name || location.address}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {location.secondaryText || location.address}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="p-4 text-center text-muted-foreground">
+          <p>Please enter at least 3 characters to search</p>
         </div>
       );
     }
@@ -758,50 +673,6 @@ export default function UKLocationInput({
         <p>Start typing to search for locations</p>
       </div>
     );
-  };
-
-  // Fetch terminal/platform information for selected airport or train station
-  const fetchTerminalInfo = useCallback(async (location: LocationSuggestion, category: 'airport' | 'train_station') => {
-    try {
-      setIsSearching(true);
-      
-      const response = await locationSearchService.fetchTerminalInfo(location.id || '', category);
-      
-      if (response.success && response.data) {
-        setTerminalLocations(response.data);
-        setSelectedLocation(location);
-        setDropdownView('terminals');
-      } else {
-        // If no terminals found, select the location directly
-        handleSuggestionSelect(location);
-      }
-    } catch (error) {
-      // If error, select the location directly
-      handleSuggestionSelect(location);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  // Handle terminal selection
-  const handleTerminalSelect = (terminal: LocationSuggestion) => {
-    if (selectedLocation) {
-      // Combine the parent location with terminal information
-      const combinedLocation: LocationSuggestion = {
-        ...selectedLocation,
-        id: terminal.id,
-        address: `${selectedLocation.address} - ${terminal.name}`,
-        mainText: `${selectedLocation.mainText} - ${terminal.name}`,
-        secondaryText: selectedLocation.secondaryText,
-        metadata: {
-          ...selectedLocation.metadata,
-          terminalId: terminal.metadata?.terminalId,
-          terminalName: terminal.name
-        }
-      };
-      
-      handleSuggestionSelect(combinedLocation);
-    }
   };
 
   return (
@@ -825,7 +696,7 @@ export default function UKLocationInput({
             // Always show suggestions dropdown when typing
             setShowSuggestions(true);
             
-            // Trigger search for any input
+            // Trigger search for any input (debouncing and minimum threshold handled in handleInputChange)
             handleInputChange(value);
           }}
           onFocus={handleInputFocus}
@@ -844,57 +715,29 @@ export default function UKLocationInput({
         />
         
         {/* Clear button */}
-        {input && (
+        {input && !loading && (
           <button
             type="button"
-            onClick={() => {
-              setInput('');
-              setSuggestions([]);
-              setDropdownView('default');
-              setHasSearched(false);
-              
-              // Update URL to remove location parameter
-              if (typeof window !== 'undefined') {
-                const params = new URLSearchParams(window.location.search);
-                
-                if (locationType === 'pickup') {
-                  params.delete('pickup');
-                } else if (locationType === 'dropoff') {
-                  params.delete('dropoff');
-                } else if (locationType === 'stop') {
-                  // For stops, we need to handle this differently since there might be multiple
-                  // The parent component should handle stop removal
-                }
-                
-                const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
-                window.history.replaceState({}, '', newUrl);
-              }
-              
-              // Call onChange to clear the input value
-              if (onChange) {
-                onChange('');
-              }
-              
-              // Call onSelect with null to clear the selection
-              if (onSelect) {
-                onSelect({
-                  address: '',
-                  latitude: 0,
-                  longitude: 0,
-                  coordinates: { lat: 0, lng: 0 },
-                  type: 'landmark',
-                  metadata: {}
-                });
-              }
-            }}
-            className="absolute right-[1px] top-1/2 -translate-y-1/2 bg-background dark:bg-background hover:bg-background/80 rounded-full flex items-center justify-center transition-colors"
+            onClick={handleClear}
+            className="
+              absolute right-2 top-1/2 -translate-y-1/2 
+              text-muted-foreground hover:text-foreground
+              transition-colors
+            "
           >
-            <X className="w-5 h-5 bg-background dark:bg-background" />
+            <X className="w-4 h-4" />
           </button>
+        )}
+
+        {/* Loading indicator */}
+        {loading && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          </div>
         )}
       </div>
 
-      {/* Dropdown suggestions */}
+      {/* Dropdown */}
       {showSuggestions && (
         <div
           ref={suggestionsRef}

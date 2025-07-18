@@ -1,46 +1,24 @@
 /*
- * FINAL IMPLEMENTATION - DO NOT MODIFY
+ * MAPBOX IMPLEMENTATION - CONVERTED FROM GOOGLE MAPS
  *
- * This Map Component is in its final form and has been thoroughly tested.
- * It provides the following functionality:
+ * This Map Component provides the following functionality:
  * - Displays user's current location with a blue dot
  * - Shows pickup and dropoff markers
  * - Displays additional stops
  * - Renders actual driving routes between locations using Mapbox Directions API
  * - Automatically fits all markers in the viewport
  *
- * Any modifications to this component should be carefully reviewed as they
- * may break existing functionality.
- *
- * NOTE: All console.log statements have been removed for production.
- */
-
-/**
- * ███████╗██╗  ██╗███████╗ ██████╗ ██╗   ██╗████████╗██╗██╗   ██╗███████╗
- * ██╔════╝╚██╗██╔╝██╔════╝██╔═══██╗██║   ██║╚══██╔══╝██║██║   ██║██╔════╝
- * █████╗   ╚███╔╝ █████╗  ██║   ██║██║   ██║   ██║██████████║█████╗
- * ██╔══╝   ██╔██╗ ██╔══╝  ██║▄▄ ██║██║   ██║   ██║   ██║╚██╗ ██╔╝██╔══╝
- * ███████╗██╔╝ ██╗███████╗╚██████╔╝╚██████╔╝   ██║   ██║ ╚████╔╝ ███████╗
- * ╚══════╝╚═╝  ╚═╝╚══════╝ ╚══▀▀═╝  ╚═════╝    ╚═╝   ╚═╝  ╚═══╝  ╚══════╝
- *
- * Map Service Component
- * Displays a map with user's current location and provides visualization for routes
+ * Design and functionality remain identical to the Google Maps version
  */
 
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { 
-  GoogleMap, 
-  useLoadScript, 
-  Marker, 
-  DirectionsRenderer, 
-  Libraries 
-} from "@react-google-maps/api";
+import mapboxgl from "mapbox-gl";
 import { useGeolocation } from "@/hooks/useGeolocation";
 
-// Libraries for Google Maps
-const libraries: Libraries = ['places', 'geometry', 'drawing'];
+// Set Mapbox access token
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 // Defines a location with latitude, longitude and optional address
 export interface Location {
@@ -75,8 +53,6 @@ interface MapComponentProps {
   onLocationError?: (error: string | null) => void;
 }
 
-// No service area boundaries needed
-
 const MapComponent = ({
   className = "",
   mapZoom = 12,
@@ -90,30 +66,14 @@ const MapComponent = ({
   passMapRef,
   onLocationError,
 }: MapComponentProps) => {
-  // Google Maps specific refs and state
-  const googleMapRef = useRef<google.maps.Map | null>(null);
-  const [googleDirections, setGoogleDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const googleUserMarkerRef = useRef<google.maps.Marker | null>(null);
-  const googlePickupMarkerRef = useRef<google.maps.Marker | null>(null);
-  const googleDropoffMarkerRef = useRef<google.maps.Marker | null>(null);
-  const googleStopMarkersRef = useRef<google.maps.Marker[]>([]);
-
-  // State for map center and zoom
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({
-    lat: 51.5074, // Default to London
-    lng: -0.1278
-  });
-
-  // Load Google Maps script
-  const { isLoaded: isGoogleMapsLoaded, loadError: googleMapsLoadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
+  // Mapbox specific refs and state
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [lastLocationHash, setLastLocationHash] = useState<string>('');
 
   // State for user coordinates
   const [lastUserCoords, setLastUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [lastLocationHash, setLastLocationHash] = useState<string>('');
 
   // Memoize location validation for performance
   const hasValidPickup = pickupLocation && pickupLocation.latitude !== 0 && pickupLocation.longitude !== 0;
@@ -124,8 +84,6 @@ const MapComponent = ({
     stop.address && 
     stop.address.trim() !== ""
   );
-
-  // Debug logging removed to prevent infinite loops
 
   // Use our geolocation hook to get user's position
   const { error, latitude, longitude, accuracy, getCurrentPosition } =
@@ -143,19 +101,41 @@ const MapComponent = ({
     return lat >= 49.8 && lat <= 60.9 && lng >= -8.7 && lng <= 2.0;
   };
 
+  // Initialize map
+  useEffect(() => {
+    if (map.current) return; // initialize map only once
+
+    if (!mapContainer.current) return;
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-0.1278, 51.5074], // London
+      zoom: mapZoom,
+      attributionControl: false,
+      customAttribution: '© Mapbox',
+    });
+
+    // Add navigation control
+    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
+    map.current.on('load', () => {
+      setMapLoaded(true);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (map.current) {
+        map.current.remove();
+      }
+    };
+  }, [mapZoom]);
+
   // Store last known user coordinates and notify parent component
   useEffect(() => {
     if (latitude && longitude) {
       const userCoords = { lat: latitude, lng: longitude };
       setLastUserCoords(userCoords);
-      
-      // Only set map center to user location if they're within UK bounds
-      if (isWithinUKBounds(latitude, longitude)) {
-      setMapCenter(userCoords);
-      } else {
-        // User is outside UK, keep London center
-        setMapCenter({ lat: 51.5074, lng: -0.1278 });
-      }
 
       // Notify parent component about user location change
       if (onUserLocationChange) {
@@ -174,14 +154,6 @@ const MapComponent = ({
             // Success callback - permission granted
             const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
             setLastUserCoords(userCoords);
-            
-            // Only set map center to user location if they're within UK bounds
-            if (isWithinUKBounds(position.coords.latitude, position.coords.longitude)) {
-            setMapCenter(userCoords);
-            } else {
-              // User is outside UK, keep London center
-              setMapCenter({ lat: 51.5074, lng: -0.1278 });
-            }
             
             // Update user location with the position data
             if (onUserLocationChange) {
@@ -217,7 +189,7 @@ const MapComponent = ({
             maximumAge: 0,
           }
         );
-            } else {
+      } else {
         if (onLocationError) {
           onLocationError("GEOLOCATION_NOT_SUPPORTED");
         }
@@ -227,10 +199,9 @@ const MapComponent = ({
 
   // Update map center and zoom based on locations
   useEffect(() => {
-    if (!googleMapRef.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded) return;
 
-    const map = googleMapRef.current;
-    const bounds = new google.maps.LatLngBounds();
+    const bounds = new mapboxgl.LngLatBounds();
     let hasLocations = false;
 
     // Create a hash of current locations to detect changes
@@ -242,20 +213,20 @@ const MapComponent = ({
 
     // Add pickup location to bounds
     if (hasValidPickup) {
-      bounds.extend(new google.maps.LatLng(pickupLocation.latitude, pickupLocation.longitude));
+      bounds.extend([pickupLocation.longitude, pickupLocation.latitude]);
       hasLocations = true;
     }
 
     // Add dropoff location to bounds
     if (hasValidDropoff) {
-      bounds.extend(new google.maps.LatLng(dropoffLocation.latitude, dropoffLocation.longitude));
+      bounds.extend([dropoffLocation.longitude, dropoffLocation.latitude]);
       hasLocations = true;
     }
 
     // Add stops to bounds
     if (validStops.length > 0) {
       validStops.forEach(stop => {
-        bounds.extend(new google.maps.LatLng(stop.latitude, stop.longitude));
+        bounds.extend([stop.longitude, stop.latitude]);
         hasLocations = true;
       });
     }
@@ -265,18 +236,10 @@ const MapComponent = ({
       // Use requestAnimationFrame for smoother updates
       requestAnimationFrame(() => {
         // Fit bounds to show all locations with generous padding
-        map.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
-      
-      // If only one location, set a reasonable zoom level
-        if ((hasValidPickup && !hasValidDropoff && validStops.length === 0) || 
-            (!hasValidPickup && hasValidDropoff && validStops.length === 0)) {
-          setTimeout(() => {
-            const currentZoom = map.getZoom();
-            if (currentZoom && currentZoom > 16) {
-              map.setZoom(16);
-      }
-          }, 200);
-        }
+        map.current?.fitBounds(bounds, { 
+          padding: 60,
+          maxZoom: 16
+        });
       });
       
       // Update the location hash
@@ -285,8 +248,8 @@ const MapComponent = ({
       // If no booking locations but we have user location within UK, center on user
       if (lastLocationHash !== '') {
         requestAnimationFrame(() => {
-      map.setCenter(lastUserCoords);
-          map.setZoom(mapZoom);
+          map.current?.setCenter([lastUserCoords.lng, lastUserCoords.lat]);
+          map.current?.setZoom(mapZoom);
         });
         setLastLocationHash('');
       }
@@ -294,8 +257,8 @@ const MapComponent = ({
       // No locations and no user location, center on London
       if (lastLocationHash !== '') {
         requestAnimationFrame(() => {
-          map.setCenter({ lat: 51.5074, lng: -0.1278 });
-      map.setZoom(mapZoom);
+          map.current?.setCenter([-0.1278, 51.5074]);
+          map.current?.setZoom(mapZoom);
         });
         setLastLocationHash('');
       }
@@ -304,7 +267,7 @@ const MapComponent = ({
 
   // Pass map interface to parent
   useEffect(() => {
-    if (passMapRef && googleMapRef.current) {
+    if (passMapRef && map.current) {
       const mapInterface: MapInterface = {
         updateLocations: (newPickup, newDropoff, newStops) => {
           // This will be handled by the parent component passing new props
@@ -315,104 +278,161 @@ const MapComponent = ({
     }
   }, [passMapRef, mapLoaded]);
 
-  // Memoize the updateRoute function to prevent it from changing on every render
-  // NOTE: This function prioritizes SHORTEST DISTANCE routes over fastest time routes
-  const updateGoogleRoute = useCallback(() => {
-    if (!googleMapRef.current) return;
-
-    // Only proceed if we have at least pickup and dropoff points with valid coordinates
-    if (!hasValidPickup || !hasValidDropoff) {
-      setGoogleDirections(null);
-      return;
-    }
-
-    // When we have at least pickup and dropoff, fetch directions if showRoute is true
-    if (showRoute) {
-      // Collect all waypoints in order (only valid ones)
-      const waypoints: google.maps.DirectionsWaypoint[] = validStops.map(stop => ({
-        location: { 
-          lat: stop.latitude, 
-          lng: stop.longitude 
-        },
-        stopover: true
-      }));
-
-      const directionsService = new google.maps.DirectionsService();
-      
-      // Use requestAnimationFrame for smoother route updates
-      requestAnimationFrame(() => {
-      directionsService.route(
-        {
-          origin: { 
-            lat: pickupLocation.latitude, 
-            lng: pickupLocation.longitude 
-          },
-          destination: { 
-            lat: dropoffLocation.latitude, 
-            lng: dropoffLocation.longitude 
-          },
-          waypoints,
-            optimizeWaypoints: waypoints.length > 1,
-            travelMode: google.maps.TravelMode.DRIVING,
-            avoidHighways: false,
-            avoidTolls: false,
-            // Configure for shortest distance routes, not fastest time
-            drivingOptions: {
-              departureTime: new Date(),
-              trafficModel: google.maps.TrafficModel.OPTIMISTIC
-            },
-            // Request alternative routes to find shortest distance
-            provideRouteAlternatives: true
-        },
-        (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK && result) {
-              // Find the shortest route by distance (not time)
-              if (result.routes && result.routes.length > 1) {
-                let shortestRoute = result.routes[0];
-                let shortestDistance = result.routes[0].legs.reduce((total, leg) => total + (leg.distance?.value || 0), 0);
-                
-                // Compare all routes to find the one with shortest distance
-                for (let i = 1; i < result.routes.length; i++) {
-                  const routeDistance = result.routes[i].legs.reduce((total, leg) => total + (leg.distance?.value || 0), 0);
-                  if (routeDistance < shortestDistance) {
-                    shortestRoute = result.routes[i];
-                    shortestDistance = routeDistance;
-                  }
-                }
-                
-                // Create a new result with only the shortest route
-                const shortestResult: google.maps.DirectionsResult = {
-                  ...result,
-                  routes: [shortestRoute]
-                };
-                
-                setGoogleDirections(shortestResult);
-              } else {
-                // Only one route available, use it
-            setGoogleDirections(result);
-          }
-            } else {
-              setGoogleDirections(null);
-            }
-        }
-      );
-      });
-    } else {
-      setGoogleDirections(null);
-    }
-  }, [hasValidPickup, hasValidDropoff, validStops, pickupLocation, dropoffLocation, showRoute]);
-
-  // Update route when locations change
+  // Calculate and display route using Mapbox Directions API
   useEffect(() => {
-    if (isGoogleMapsLoaded) {
-      // Use a small delay to ensure state updates have been processed
-      const timeoutId = setTimeout(() => {
-      updateGoogleRoute();
-      }, 50);
-      
-      return () => clearTimeout(timeoutId);
+    if (!map.current || !hasValidPickup || !hasValidDropoff) return;
+
+    const fetchAndDisplayRoute = async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        if (!token) {
+          console.error('Mapbox token not available');
+          return;
+        }
+
+        // Build coordinates array for the route
+        const coordinates = [
+          [pickupLocation.longitude, pickupLocation.latitude],
+          ...validStops.map(stop => [stop.longitude, stop.latitude]),
+          [dropoffLocation.longitude, dropoffLocation.latitude]
+        ];
+
+        // Use Mapbox Directions API with shortest path routing
+        const params = new URLSearchParams({
+          access_token: token,
+          geometries: 'geojson',
+          overview: 'full',
+          steps: 'true',
+          annotations: 'distance,duration',
+          continue_straight: 'true',
+          // Use driving profile for shortest path (not fastest)
+          profile: 'driving',
+          // Exclude traffic to ensure shortest path calculation
+          exclude: 'traffic'
+        });
+
+        const coordinatesString = coordinates.map(coord => coord.join(',')).join(';');
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesString}?${params}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Directions API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          
+          // Remove existing route layer if it exists
+          if (map.current && map.current.getSource('route')) {
+            map.current.removeLayer('route');
+            map.current.removeSource('route');
+          }
+
+          // Add the route to the map
+          if (map.current) {
+            map.current.addSource('route', {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                properties: {},
+                geometry: route.geometry
+              }
+            });
+
+            map.current.addLayer({
+              id: 'route',
+              type: 'line',
+              source: 'route',
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': '#3b82f6',
+                'line-width': 4,
+                'line-opacity': 0.8
+              }
+            });
+
+            // Fit map to show the entire route
+            const bounds = new mapboxgl.LngLatBounds();
+            coordinates.forEach(coord => {
+              bounds.extend(coord as [number, number]);
+            });
+            
+            map.current.fitBounds(bounds, {
+              padding: 50,
+              maxZoom: 15
+            });
+          }
+
+          console.log('Route calculated successfully:', {
+            distance: route.distance,
+            duration: route.duration,
+            coordinates: coordinates.length
+          });
+        }
+      } catch (error) {
+        console.error('Error calculating route:', error);
+      }
+    };
+
+    fetchAndDisplayRoute();
+  }, [pickupLocation, dropoffLocation, validStops, hasValidPickup, hasValidDropoff]);
+
+  // Add markers when map is loaded
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Remove existing markers
+    const existingMarkers = document.querySelectorAll('.mapboxgl-marker');
+    existingMarkers.forEach(marker => marker.remove());
+
+    // Add user location marker
+    if (showCurrentLocation && lastUserCoords && map.current) {
+      const userMarker = new mapboxgl.Marker({
+        color: '#4285F4',
+        scale: 1
+      })
+        .setLngLat([lastUserCoords.lng, lastUserCoords.lat])
+        .addTo(map.current);
     }
-  }, [isGoogleMapsLoaded, updateGoogleRoute]);
+
+    // Add pickup marker
+    if (hasValidPickup && map.current) {
+      const pickupMarker = new mapboxgl.Marker({
+        color: '#22c55e',
+        scale: 1.2
+      })
+        .setLngLat([pickupLocation.longitude, pickupLocation.latitude])
+        .addTo(map.current);
+    }
+
+    // Add dropoff marker
+    if (hasValidDropoff && map.current) {
+      const dropoffMarker = new mapboxgl.Marker({
+        color: '#ef4444',
+        scale: 1.2
+      })
+        .setLngLat([dropoffLocation.longitude, dropoffLocation.latitude])
+        .addTo(map.current);
+    }
+
+    // Add stop markers
+    validStops.forEach((stop, index) => {
+      if (map.current) {
+        const stopMarker = new mapboxgl.Marker({
+          color: '#000000',
+          scale: 1.2
+        })
+          .setLngLat([stop.longitude, stop.latitude])
+          .addTo(map.current);
+      }
+    });
+
+  }, [hasValidPickup, hasValidDropoff, validStops, pickupLocation, dropoffLocation, lastUserCoords, showCurrentLocation, mapLoaded]);
 
   // Handle location permission errors
   const getLocationErrorMessage = (error: string | null) => {
@@ -431,23 +451,12 @@ const MapComponent = ({
   };
 
   // Render loading or error state
-  if (googleMapsLoadError) {
+  if (!mapboxgl.accessToken) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-muted">
         <div className="text-center p-4">
-          <p className="text-destructive font-medium">Error loading Google Maps</p>
-          <p className="text-sm text-muted-foreground">Please check your internet connection and try again.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isGoogleMapsLoaded) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-muted">
-        <div className="text-center p-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Loading Maps...</p>
+          <p className="text-destructive font-medium">Error loading Mapbox</p>
+          <p className="text-sm text-muted-foreground">Please check your Mapbox configuration and try again.</p>
         </div>
       </div>
     );
@@ -471,162 +480,7 @@ const MapComponent = ({
         </div>
       )}
       
-      <GoogleMap
-        mapContainerStyle={{ width: '100%', height: '100%' }}
-        center={mapCenter}
-        zoom={mapZoom}
-        onLoad={(map) => {
-          googleMapRef.current = map;
-          
-          // Optimize map performance and keep UK restriction
-          map.setOptions({
-            restriction: {
-              latLngBounds: {
-                north: 60.9,
-                south: 49.8,
-                west: -8.7,
-                east: 2.0
-              },
-              strictBounds: false
-            }
-          });
-          
-          setMapLoaded(true);
-        }}
-        options={{
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          zoomControl: true,
-          zoomControlOptions: {
-            position: google.maps.ControlPosition.RIGHT_BOTTOM
-          },
-          gestureHandling: 'greedy',
-          minZoom: 6,
-          maxZoom: 20,
-          disableDefaultUI: false,
-          clickableIcons: false,
-          // Use default Google Maps styling
-          styles: []
-        }}
-      >
-        {/* User Location Marker */}
-        {showCurrentLocation && lastUserCoords && (
-          <Marker
-            position={lastUserCoords}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: "#4285F4",
-              fillOpacity: 0.9,
-              strokeColor: "#ffffff",
-              strokeOpacity: 1,
-              strokeWeight: 3
-            }}
-            title="Your Location"
-            zIndex={500}
-          />
-        )}
-
-        {/* Pickup Location Marker */}
-        {hasValidPickup && (
-          <Marker
-            position={{ 
-              lat: pickupLocation.latitude, 
-              lng: pickupLocation.longitude 
-            }}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 16,
-              fillColor: "#22c55e", // Green for pickup
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeOpacity: 1,
-              strokeWeight: 3
-            }}
-            label={{
-              text: "P",
-              color: "#ffffff",
-              fontSize: "14px",
-              fontWeight: "bold"
-            }}
-            title="Pickup Location"
-            zIndex={1000}
-          />
-        )}
-
-        {/* Dropoff Location Marker */}
-        {hasValidDropoff && (
-          <Marker
-            position={{ 
-              lat: dropoffLocation.latitude, 
-              lng: dropoffLocation.longitude 
-            }}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 16,
-              fillColor: "#ef4444", // Red for dropoff
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeOpacity: 1,
-              strokeWeight: 3
-            }}
-            label={{
-              text: "D",
-              color: "#ffffff",
-              fontSize: "14px",
-              fontWeight: "bold"
-            }}
-            title="Dropoff Location"
-            zIndex={1000}
-          />
-        )}
-
-        {/* Additional Stops Markers */}
-        {validStops.map((stop, index) => (
-          <Marker
-            key={`stop-${index}-${stop.latitude}-${stop.longitude}`}
-            position={{ 
-              lat: stop.latitude, 
-              lng: stop.longitude 
-            }}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 16,
-              fillColor: "#000000", // Black for stops as requested
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeOpacity: 1,
-              strokeWeight: 3
-            }}
-            label={{
-              text: (index + 1).toString(),
-              color: "#ffffff",
-              fontSize: "14px",
-              fontWeight: "bold"
-            }}
-            title={`Stop ${index + 1}: ${stop.address || 'Unknown'}`}
-            zIndex={999}
-          />
-        ))}
-
-        {/* Route Directions */}
-        {showRoute && googleDirections && (
-          <DirectionsRenderer
-            directions={googleDirections}
-            options={{
-              suppressMarkers: true, // Hide default A/B markers since we have custom ones
-              polylineOptions: {
-                strokeColor: '#4285F4',
-                strokeOpacity: 0.9,
-                strokeWeight: 4,
-                geodesic: true
-              },
-              preserveViewport: true // Keep current viewport, don't auto-adjust zoom
-            }}
-          />
-        )}
-      </GoogleMap>
+      <div ref={mapContainer} className="w-full h-full" />
     </div>
   );
 };

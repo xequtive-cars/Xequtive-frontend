@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthLoadingProvider } from "@/contexts/AuthLoadingContext";
@@ -32,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Remove Mapbox GL CSS */}
+        {/* Mapbox GL CSS is imported above */}
       </head>
       <body
         className={cn(
