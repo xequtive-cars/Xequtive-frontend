@@ -138,7 +138,7 @@ export function LocationInput({
 
       setIsLoading(true);
       try {
-        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
         if (!token) {
           console.error('Mapbox token not available');
           return;

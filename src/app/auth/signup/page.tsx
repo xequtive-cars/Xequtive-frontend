@@ -1,53 +1,28 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Mail,
-  User,
-  ChevronLeft,
-  Loader2,
-  LogOut,
-  Settings,
-  ChevronDown,
-} from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
-
+import { useRouter, useSearchParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { authService } from "@/lib/auth";
+import { toast } from "@/components/ui/use-toast";
+import { Loading3D } from "@/components/ui/loading-3d";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthLoading } from "@/contexts/AuthLoadingContext";
-import { StepProgressBar } from "@/components/auth/StepProgressBar";
-import SimplePhoneInput from "@/components/ui/simple-phone-input";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { ChevronLeft, Mail } from "lucide-react";
+import Link from "next/link";
+import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import { AuthPageProtection } from "@/components/auth/AuthPageProtection";
+import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
 
 // Step 1: Email form schema
 const emailSchema = z.object({

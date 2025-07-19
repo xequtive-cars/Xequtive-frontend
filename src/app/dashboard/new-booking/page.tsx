@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, memo, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -167,7 +167,7 @@ const StableMapComponent = memo(
       );
   },
   // Custom equality function for React.memo that only triggers re-render when actual location values change
-  (prevProps, nextProps) => {
+  (prevProps: any, nextProps: any) => {
     // Only re-render if the locations ACTUALLY changed their values (not just references)
     // This prevents re-renders when unrelated fields like time, date, passengers change
     const prevPickup = JSON.stringify(prevProps.pickupLocation);
@@ -618,6 +618,14 @@ export default function NewBookingPage() {
       setPickupLocation(null);
       setPickupAddress("");
 
+      // Clear pickup parameter from URL
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('pickup');
+        const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+        window.history.replaceState({}, '', newUrl);
+      }
+
       // Update map immediately
       if (mapInstanceRef.current) {
         mapInstanceRef.current.updateLocations(
@@ -632,11 +640,30 @@ export default function NewBookingPage() {
       return;
     }
 
+    // Ensure coordinates have sufficient precision
+    const preciseLat = parseFloat(location.latitude.toFixed(6));
+    const preciseLng = parseFloat(location.longitude.toFixed(6));
+
+    // Check if this location is too similar to the dropoff location
+    if (dropoffLocation) {
+      const latDiff = Math.abs(preciseLat - dropoffLocation.latitude);
+      const lngDiff = Math.abs(preciseLng - dropoffLocation.longitude);
+      
+      if (latDiff < 0.001 && lngDiff < 0.001) {
+        toast({
+          title: "Invalid location selection",
+          description: "Pickup and dropoff locations cannot be the same. Please select different locations.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Update pickup location
     const newPickupLocation = {
       address: location.address,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      latitude: preciseLat,
+      longitude: preciseLng,
     };
 
     setPickupLocation(newPickupLocation);
@@ -671,6 +698,14 @@ export default function NewBookingPage() {
       setDropoffLocation(null);
       setDropoffAddress("");
 
+      // Clear dropoff parameter from URL
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('dropoff');
+        const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+        window.history.replaceState({}, '', newUrl);
+      }
+
       // Update map immediately
       if (mapInstanceRef.current) {
         mapInstanceRef.current.updateLocations(
@@ -685,11 +720,30 @@ export default function NewBookingPage() {
       return;
     }
 
+    // Ensure coordinates have sufficient precision
+    const preciseLat = parseFloat(location.latitude.toFixed(6));
+    const preciseLng = parseFloat(location.longitude.toFixed(6));
+
+    // Check if this location is too similar to the pickup location
+    if (pickupLocation) {
+      const latDiff = Math.abs(preciseLat - pickupLocation.latitude);
+      const lngDiff = Math.abs(preciseLng - pickupLocation.longitude);
+      
+      if (latDiff < 0.001 && lngDiff < 0.001) {
+        toast({
+          title: "Invalid location selection",
+          description: "Pickup and dropoff locations cannot be the same. Please select different locations.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Update dropoff location
     const newDropoffLocation = {
       address: location.address,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      latitude: preciseLat,
+      longitude: preciseLng,
     };
 
     setDropoffLocation(newDropoffLocation);
@@ -972,127 +1026,164 @@ export default function NewBookingPage() {
         return;
       }
 
-      // Validate and correct time format
-      const formattedTime = validateTime(selectedTime);
+      // Validate that coordinates are not zero or invalid
+      if (pickupLocation.latitude === 0 && pickupLocation.longitude === 0) {
+        toast({
+          title: "Invalid pickup location",
+          description: "Please select a valid pickup location.",
+          variant: "destructive",
+        });
+        setIsFetching(false);
+        return;
+      }
 
-      // Create a properly formatted request
-      const formattedRequest: FareRequest = {
+      if (dropoffLocation.latitude === 0 && dropoffLocation.longitude === 0) {
+        toast({
+          title: "Invalid dropoff location",
+          description: "Please select a valid dropoff location.",
+          variant: "destructive",
+        });
+        setIsFetching(false);
+        return;
+      }
+
+      // Check if locations are too similar (within 100 meters)
+      const latDiff = Math.abs(pickupLocation.latitude - dropoffLocation.latitude);
+      const lngDiff = Math.abs(pickupLocation.longitude - dropoffLocation.longitude);
+      
+      if (latDiff < 0.001 && lngDiff < 0.001) {
+        toast({
+          title: "Locations too similar",
+          description: "Please select different pickup and dropoff locations.",
+          variant: "destructive",
+        });
+        setIsFetching(false);
+        return;
+      }
+
+      // Validate and format time properly
+      const validateAndFormatTime = (time: string): string => {
+        if (!time) return "12:00";
+        
+        const [hours, minutes] = time.split(":").map(Number);
+        
+        // Validate hours (0-23)
+        const validHours = Math.min(Math.max(0, Math.floor(hours)), 23);
+        
+        // Validate minutes (0-59) - this was the issue!
+        const validMinutes = Math.min(Math.max(0, Math.floor(minutes)), 59);
+        
+        // Format back to HH:mm with leading zeros
+        return `${validHours.toString().padStart(2, "0")}:${validMinutes.toString().padStart(2, "0")}`;
+      };
+
+      // Validate time format before sending request
+      const originalTime = selectedTime;
+      const formattedTime = validateAndFormatTime(selectedTime);
+      
+      if (originalTime !== formattedTime) {
+        toast({
+          title: "Invalid time format",
+          description: `Time "${originalTime}" was corrected to "${formattedTime}". Please select a valid time.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Log the data being sent to backend for debugging
+      const fareRequestData = {
         locations: {
           pickup: {
             address: pickupLocation.address || "",
             coordinates: {
-              lat: pickupLocation.latitude,
-              lng: pickupLocation.longitude,
+              lat: Number(pickupLocation.latitude.toFixed(6)),
+              lng: Number(pickupLocation.longitude.toFixed(6)),
             },
           },
           dropoff: {
             address: dropoffLocation.address || "",
             coordinates: {
-              lat: dropoffLocation.latitude,
-              lng: dropoffLocation.longitude,
+              lat: Number(dropoffLocation.latitude.toFixed(6)),
+              lng: Number(dropoffLocation.longitude.toFixed(6)),
             },
           },
-          stops: additionalStops
-            .filter(stop => stop.address && stop.address.trim() !== "" && stop.latitude !== 0 && stop.longitude !== 0)
-            .map((stop) => ({
+          stops: additionalStops.map((stop) => ({
             address: stop.address || "",
             coordinates: {
-              lat: stop.latitude,
-              lng: stop.longitude,
+              lat: Number(stop.latitude.toFixed(6)),
+              lng: Number(stop.longitude.toFixed(6)),
             },
           })),
         },
         datetime: {
           date: selectedDate ? formatDate(selectedDate) : "",
-          time: formattedTime,
+          time: validateAndFormatTime(selectedTime),
         },
         passengers: {
-          count: passengers || 1,
-          checkedLuggage: checkedLuggage || 0,
-          mediumLuggage: mediumLuggage || 0,
-          handLuggage: handLuggage || 0,
-          babySeat: babySeat || 0,
-          childSeat: childSeat || 0,
-          boosterSeat: boosterSeat || 0,
-          wheelchair: wheelchair || 0,
+          count: passengers,
+          checkedLuggage,
+          mediumLuggage,
+          handLuggage,
+          babySeat,
+          childSeat,
+          boosterSeat,
+          wheelchair,
         },
       };
 
-      // Get fare estimate
-      const fareResponse = await getFareEstimate(formattedRequest);
+      console.log("🚀 Sending fare request data:", JSON.stringify(fareRequestData, null, 2));
+      console.log("📍 Pickup coordinates:", fareRequestData.locations.pickup.coordinates);
+      console.log("📍 Dropoff coordinates:", fareRequestData.locations.dropoff.coordinates);
+      console.log("⏰ Formatted time:", fareRequestData.datetime.time);
 
-      if (
-        !fareResponse.success &&
-        fareResponse.error &&
-        (fareResponse.error.code === "AUTH_ERROR" ||
-          fareResponse.error.code === "AUTH_REFRESH_REQUIRED")
-      ) {
-        // Clear any existing session data
-        authService.clearAuthData();
-        // Set error toast
-        toast({
-          title: "Session expired",
-          description: "Please sign in again to continue.",
-          variant: "destructive",
-        });
+      const response = await getFareEstimate(fareRequestData);
 
-        setIsFetching(false);
-
-        // Redirect after a short delay
-        setTimeout(() => {
-          router.push("/auth/signin");
-        }, 1000);
-        return;
-      }
-
-      // Handle service area restriction errors
-      if (
-        !fareResponse.success &&
-        fareResponse.error?.code === "LOCATION_NOT_SERVICEABLE"
-      ) {
-        // Service area restriction error
-        setFetchError(
-          fareResponse.error?.details ||
-            "This journey is outside our service area. We currently only service locations within the UK mainland, Isle of Wight, and Anglesey, with journeys up to 300 miles."
-        );
+      if (!response.success) {
+        // Handle authentication errors specifically
+        if (response.error?.message?.includes("Authentication required")) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to calculate fares. Redirecting to login...",
+            variant: "destructive",
+          });
+          
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            window.location.href = "/auth/signin";
+          }, 2000);
+          
+          return;
+        }
 
         toast({
-          title: "Location not serviceable",
-          description:
-            fareResponse.error?.details ||
-            "This journey is outside our service area.",
+          title: "Fare Calculation Failed",
+          description: response.error?.message || "Failed to calculate fare. Please try again.",
           variant: "destructive",
         });
-
-        setIsFetching(false);
         return;
       }
 
-      if (!fareResponse.success) {
-        setFetchError(
-          fareResponse.error?.message ||
-            "Unable to calculate fare. Please try again."
-        );
-        setIsFetching(false);
-        return;
-      }
-
-      if (
-        fareResponse &&
-        fareResponse.success &&
-        fareResponse.data &&
-        fareResponse.data.fare
-      ) {
-        setFareData(fareResponse.data.fare);
+      if (response.success && response.data?.fare) {
+        setFareData(response.data.fare);
         setShowVehicleOptions(true);
+        setFetchError(null);
       } else {
-        setFetchError("Unable to calculate fare. Please try again.");
+        setFetchError(response.error?.message || "Failed to calculate fare");
+        toast({
+          title: "Fare calculation failed",
+          description: response.error?.message || "Please try again.",
+          variant: "destructive",
+        });
       }
-
-      setIsFetching(false);
     } catch (error) {
-      // Fare calculation error - show user-friendly message
+      console.error("Error calculating fare:", error);
       setFetchError("An unexpected error occurred. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to calculate fare. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsFetching(false);
     }
   };
@@ -1461,12 +1552,20 @@ export default function NewBookingPage() {
                     pickupLocation={pickupLocation ? {
                       address: pickupLocation.address || "",
                       latitude: pickupLocation.latitude,
-                      longitude: pickupLocation.longitude
+                      longitude: pickupLocation.longitude,
+                      coordinates: {
+                        lat: pickupLocation.latitude,
+                        lng: pickupLocation.longitude
+                      }
                     } : null}
                     dropoffLocation={dropoffLocation ? {
                       address: dropoffLocation.address || "",
                       latitude: dropoffLocation.latitude,
-                      longitude: dropoffLocation.longitude
+                      longitude: dropoffLocation.longitude,
+                      coordinates: {
+                        lat: dropoffLocation.latitude,
+                        lng: dropoffLocation.longitude
+                      }
                     } : null}
                     selectedDate={selectedDate}
                     setSelectedDate={setSelectedDate}

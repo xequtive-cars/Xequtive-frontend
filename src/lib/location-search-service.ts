@@ -5,6 +5,8 @@
  */
 
 import mapboxgl from 'mapbox-gl';
+import { ukLocationSearchService } from './uk-location-search';
+import { UK_AIRPORTS, UK_STATIONS, searchLocations, findLocationById, getTerminalsByLocationId } from './uk-airports-stations';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
@@ -226,8 +228,17 @@ class LocationSearchService {
         console.log(`🔍 Mapbox Location Search: "${trimmedInput}"`);
       }
 
-      // Build Mapbox Geocoding API URL with optimized parameters
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      // Use enhanced search from UK location search service for better results
+      const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
+      
+      if (enhancedResponse.success && enhancedResponse.data) {
+        // Cache the results
+        this.setCachedData(cacheKey, enhancedResponse.data);
+        return enhancedResponse;
+      }
+
+      // Fallback to original Mapbox search if enhanced search fails
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
       if (!token) {
         return {
           success: false,
@@ -243,9 +254,9 @@ class LocationSearchService {
         access_token: token,
         country: 'gb', // UK only
         autocomplete: 'true',
-        limit: '5', // Limit results for cost optimization
-        types: 'address,postcode,poi,place', // Optimized types
+        limit: '10', // Increased limit for better results
         language: 'en'
+        // Removed restrictive types parameter to search everything
       });
 
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmedInput)}.json?${params}`;
@@ -255,12 +266,25 @@ class LocationSearchService {
         headers: {
           'Content-Type': 'application/json',
         },
-        cache: 'no-store'
+        cache: 'force-cache' // Use cache for cost optimization
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Mapbox Geocoding API Error:', errorText);
+        
+        // Try enhanced search as fallback
+        try {
+          console.log('Trying enhanced search as fallback...');
+          const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
+          
+          if (enhancedResponse.success && enhancedResponse.data && enhancedResponse.data.length > 0) {
+            console.log(`Enhanced search found ${enhancedResponse.data.length} results`);
+            return enhancedResponse;
+          }
+        } catch (fallbackError) {
+          console.error('Enhanced search fallback failed:', fallbackError);
+        }
 
         return {
           success: false,
@@ -273,51 +297,99 @@ class LocationSearchService {
 
       const data = await response.json();
 
-      // Only log API response details in development or for debugging
-      if (process.env.NODE_ENV === 'development' && trimmedInput.length > 2) {
-        console.log('Mapbox Geocoding API Response:', data);
-      }
-
-      // Validate response structure
       if (!data.features || !Array.isArray(data.features)) {
-        return {
-          success: false,
-          error: {
-            message: 'Invalid API response',
-            details: 'Features are missing or not an array'
+        // Try enhanced search as fallback
+        try {
+          console.log('No results from Mapbox, trying enhanced search...');
+          const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
+          
+          if (enhancedResponse.success && enhancedResponse.data && enhancedResponse.data.length > 0) {
+            console.log(`Enhanced search found ${enhancedResponse.data.length} results`);
+            return enhancedResponse;
           }
+        } catch (fallbackError) {
+          console.error('Enhanced search fallback failed:', fallbackError);
+        }
+        
+        return {
+          success: true,
+          data: []
         };
       }
 
       // Convert Mapbox features to our format
-      const suggestions: LocationSuggestion[] = data.features.map((feature: any, index: number) => ({
-        id: feature.id || `mapbox-${index}`,
-        address: feature.place_name || 'Unknown Location',
-        mainText: feature.text || 'Unknown Location',
-        secondaryText: feature.place_name || '',
-        name: feature.text || 'Unknown Location',
-        latitude: feature.center?.[1] || 0,
-        longitude: feature.center?.[0] || 0,
+      const suggestions: LocationSuggestion[] = data.features
+        .map((feature: any, index: number) => ({
+          id: feature.id || `mapbox-${index}`,
+          address: feature.place_name || 'Unknown Location',
+          mainText: feature.text || 'Unknown Location',
+          secondaryText: feature.place_name || '',
+          name: feature.text || 'Unknown Location',
+          latitude: feature.center?.[1] || 0,
+          longitude: feature.center?.[0] || 0,
+          coordinates: {
+            lat: feature.center?.[1] || 0,
+            lng: feature.center?.[0] || 0
+          },
+          metadata: {
+            primaryType: feature.place_type?.[0] || 'place',
+            postcode: this.extractPostcode(feature.context),
+            city: this.extractCity(feature.context),
+            region: 'UK',
+            category: feature.place_type?.[0] || 'place',
+            placeId: feature.id
+          }
+        }));
+
+      // Also search hardcoded airports and stations
+      const hardcodedResults = searchLocations(trimmedInput);
+      const hardcodedSuggestions: LocationSuggestion[] = hardcodedResults.map(location => ({
+        id: location.id,
+        address: location.address,
+        mainText: location.name,
+        secondaryText: location.address,
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
         coordinates: {
-          lat: feature.center?.[1] || 0,
-          lng: feature.center?.[0] || 0
+          lat: location.latitude,
+          lng: location.longitude
         },
         metadata: {
-          primaryType: feature.place_type?.[0] || 'place',
-          postcode: this.extractPostcode(feature.context),
-          city: this.extractCity(feature.context),
+          primaryType: location.metadata.primaryType,
+          postcode: location.postcode,
+          city: location.city,
           region: 'UK',
-          category: feature.place_type?.[0] || 'place',
-          placeId: feature.id
+          category: location.metadata.category,
+          placeId: location.id
         }
       }));
 
-      // Cache the results
-      this.setCachedData(cacheKey, suggestions);
+      // Combine API results with hardcoded results
+      const allSuggestions = [...suggestions, ...hardcodedSuggestions];
 
-      return {
+      // If we don't have enough results, try enhanced search
+      if (allSuggestions.length < 3) {
+        console.log(`Not enough results (${allSuggestions.length}), trying enhanced search...`);
+        
+        try {
+          const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
+          
+          if (enhancedResponse.success && enhancedResponse.data && enhancedResponse.data.length > allSuggestions.length) {
+            console.log(`Enhanced search found ${enhancedResponse.data.length} results`);
+            return enhancedResponse;
+          }
+        } catch (error) {
+          console.error('Enhanced search failed:', error);
+        }
+      }
+
+      // Cache the results
+      this.setCachedData(cacheKey, allSuggestions);
+
+            return {
         success: true,
-        data: suggestions
+        data: allSuggestions
       };
 
     } catch (error) {
@@ -402,8 +474,8 @@ class LocationSearchService {
         };
       }
 
-      // Use fallback data for instant loading
-      const categoryLocations = this.getFallbackCategoryData(category);
+      // Use hardcoded data for instant loading
+      const categoryLocations = category === 'airport' ? UK_AIRPORTS : UK_STATIONS;
       
       // Cache the results
       this.setCachedData(cacheKey, categoryLocations);
@@ -414,12 +486,24 @@ class LocationSearchService {
       };
     } catch (error) {
       console.error(`Error fetching ${category} locations:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Failed to fetch ${category} locations`,
-          details: error instanceof Error ? error.message : 'Unknown error'
+      
+      // Try enhanced search as fallback
+      try {
+        console.log(`Trying enhanced search as fallback for ${category}...`);
+        const enhancedResponse = await ukLocationSearchService.searchByCategory(category === 'airport' ? 'airports' : 'train_stations');
+        
+        if (enhancedResponse.success && enhancedResponse.data) {
+          return enhancedResponse;
         }
+      } catch (fallbackError) {
+        console.error('Enhanced search fallback failed:', fallbackError);
+      }
+      
+      // Final fallback to hardcoded data
+      const fallbackData = this.getFallbackCategoryData(category);
+      return {
+        success: true,
+        data: fallbackData
       };
     }
   }
@@ -543,7 +627,7 @@ class LocationSearchService {
         };
       }
 
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
       if (!token) {
         return {
           success: false,
@@ -575,7 +659,7 @@ class LocationSearchService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Mapbox Place Details API Error:', errorText);
-
+        
         return {
           success: false,
           error: {
@@ -663,64 +747,12 @@ class LocationSearchService {
   }
 
   /**
-   * Fetch terminal info (returns mock data for now)
+   * Fetch terminal info using improved UK location search service
    */
   async fetchTerminalInfo(placeId: string, category: 'airport' | 'train_station'): Promise<LocationSearchResponse> {
     try {
-      // Return mock terminal/platform data
-      const terminals = category === 'airport' ? [
-        {
-          id: 'T1',
-          address: 'Terminal 1',
-          mainText: 'Terminal 1',
-          secondaryText: 'Main Terminal',
-          name: 'Terminal 1',
-          latitude: 0,
-          longitude: 0,
-          coordinates: { lat: 0, lng: 0 },
-          metadata: { primaryType: 'terminal', region: 'UK' }
-        },
-        {
-          id: 'T2',
-          address: 'Terminal 2',
-          mainText: 'Terminal 2',
-          secondaryText: 'Secondary Terminal',
-          name: 'Terminal 2',
-          latitude: 0,
-          longitude: 0,
-          coordinates: { lat: 0, lng: 0 },
-          metadata: { primaryType: 'terminal', region: 'UK' }
-        }
-      ] : [
-        {
-          id: 'P1',
-          address: 'Platform 1',
-          mainText: 'Platform 1',
-          secondaryText: 'Main Platform',
-          name: 'Platform 1',
-          latitude: 0,
-          longitude: 0,
-          coordinates: { lat: 0, lng: 0 },
-          metadata: { primaryType: 'platform', region: 'UK' }
-        },
-        {
-          id: 'P2',
-          address: 'Platform 2',
-          mainText: 'Platform 2',
-          secondaryText: 'Secondary Platform',
-          name: 'Platform 2',
-          latitude: 0,
-          longitude: 0,
-          coordinates: { lat: 0, lng: 0 },
-          metadata: { primaryType: 'platform', region: 'UK' }
-        }
-      ];
-
-      return {
-        success: true,
-        data: terminals
-      };
-
+      // Use the improved UK location search service
+      return await ukLocationSearchService.searchTerminals(placeId, category);
     } catch (error) {
       console.error('Error fetching terminal info:', error);
       return {

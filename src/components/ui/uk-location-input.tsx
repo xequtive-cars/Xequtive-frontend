@@ -11,7 +11,8 @@ import {
   ChevronLeft, 
   Loader2,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Building
 } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useToast } from "@/components/ui/use-toast";
@@ -37,9 +38,9 @@ function debounce<T extends (...args: any[]) => any>(
     
     // Only proceed if query meets minimum character threshold
     if (query && query.trim().length >= minChars) {
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, delay);
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
     } else if (query && query.trim().length < minChars) {
       // Clear suggestions if query is too short
       func('' as any);
@@ -48,7 +49,7 @@ function debounce<T extends (...args: any[]) => any>(
 }
 
 // Types for location data
-interface Location {
+export interface Location {
   address: string;
   latitude: number;
   longitude: number;
@@ -88,7 +89,7 @@ interface UKLocationInputProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  locationType?: 'pickup' | 'dropoff';
+  locationType?: 'pickup' | 'dropoff' | 'stop';
   showPopularLocations?: boolean;
   initialLocation?: Location | null;
   userLocation?: { latitude: number; longitude: number } | null;
@@ -200,11 +201,11 @@ export default function UKLocationInput({
     if (!userLocation) return null;
     
     return {
-      id: 'current-location',
+    id: 'current-location',
       address: 'Current Location',
-      mainText: 'Current Location',
+    mainText: 'Current Location',
       secondaryText: 'Use your current location',
-      name: 'Current Location',
+    name: 'Current Location',
       latitude: userLocation.latitude,
       longitude: userLocation.longitude,
       coordinates: {
@@ -212,8 +213,8 @@ export default function UKLocationInput({
         lng: userLocation.longitude
       },
       metadata: {
-        primaryType: 'current_location',
-        region: 'UK'
+      primaryType: 'current_location',
+      region: 'UK'
       }
     };
   }, [userLocation]);
@@ -225,17 +226,17 @@ export default function UKLocationInput({
       
       const response = await locationSearchService.fetchPopularLocations();
         
-      if (response.success && response.data) {
-        setPopularLocations(response.data);
-      } else {
-        // Failed to fetch popular locations - use fallback data
+              if (response.success && response.data) {
+          setPopularLocations(response.data);
+    } else {
+          // Failed to fetch popular locations - use fallback data
         setPopularLocations([]);
-      }
-    } catch (error) {
-      // Error fetching popular locations - use fallback data
-      setPopularLocations([]);
-    } finally {
-      setLoading(false);
+        }
+      } catch (error) {
+        // Error fetching popular locations - use fallback data
+        setPopularLocations([]);
+      } finally {
+        setLoading(false);
     }
   }, []);
 
@@ -246,15 +247,15 @@ export default function UKLocationInput({
       
       const response = await locationSearchService.fetchCategoryLocations(category);
       
-      if (response.success && response.data) {
-        setCategoryLocations(response.data);
-      } else {
-        // Failed to fetch category locations - use fallback
+              if (response.success && response.data) {
+          setCategoryLocations(response.data);
+        } else {
+          // Failed to fetch category locations - use fallback
         setCategoryLocations([]);
       }
     } catch (error) {
-      // Error fetching category locations - use fallback
-      setCategoryLocations([]);
+        // Error fetching category locations - use fallback
+        setCategoryLocations([]);
     } finally {
       setIsSearching(false);
     }
@@ -263,7 +264,7 @@ export default function UKLocationInput({
   // Load popular locations on component mount
   useEffect(() => {
     if (showPopularLocations) {
-      fetchPopularLocations();
+    fetchPopularLocations();
     }
   }, [showPopularLocations, fetchPopularLocations]);
 
@@ -293,15 +294,15 @@ export default function UKLocationInput({
         
         if (response.success && response.data) {
           setSuggestions(response.data);
-        } else {
+      } else {
           setSuggestions([]);
           // Location search failed - clear suggestions
-        }
-      } catch (error) {
+      }
+    } catch (error) {
         // Location search error - clear suggestions
         setSuggestions([]);
-      } finally {
-        setLoading(false);
+    } finally {
+      setLoading(false);
       }
     }, 300, 3), // 300ms debounce, 3 character minimum
     [sessionToken]
@@ -309,59 +310,113 @@ export default function UKLocationInput({
 
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion: LocationSuggestion) => {
+    console.log('Selected suggestion:', suggestion);
+    
+    // Check if this is an airport or train station that might have terminals
+    const isAirportOrStation = suggestion.metadata?.primaryType === 'airport' || 
+                               suggestion.metadata?.primaryType === 'train_station' ||
+                               suggestion.metadata?.category === 'airport' ||
+                               suggestion.metadata?.category === 'train_station';
+
+    if (isAirportOrStation && selectedCategory) {
+      // Show terminal selection instead of immediately selecting
+      setSelectedLocation(suggestion);
+      setDropdownView('terminals');
+      
+      // Fetch terminal information
+      const fetchTerminals = async () => {
+        try {
+          setIsSearching(true);
+          const response = await locationSearchService.fetchTerminalInfo(
+            suggestion.metadata?.placeId || suggestion.id,
+            selectedCategory
+          );
+          
+          if (response.success && response.data) {
+            setTerminalLocations(response.data);
+          } else {
+            setTerminalLocations([]);
+          }
+        } catch (error) {
+          setTerminalLocations([]);
+        } finally {
+          setIsSearching(false);
+        }
+      };
+      
+      fetchTerminals();
+      return;
+    }
+
+    // For regular locations or terminals, proceed with normal selection
+    // Ensure we have valid coordinates with proper precision
+    const lat = suggestion.latitude || suggestion.coordinates?.lat || 0;
+    const lng = suggestion.longitude || suggestion.coordinates?.lng || 0;
+    
+    // Validate coordinates are not zero or invalid
+    if (lat === 0 && lng === 0) {
+      console.error('Invalid coordinates received:', suggestion);
+      return;
+    }
+    
+    // Ensure coordinates have sufficient precision (at least 6 decimal places)
+    const preciseLat = parseFloat(lat.toFixed(6));
+    const preciseLng = parseFloat(lng.toFixed(6));
+    
     setInput(suggestion.address);
     setShowSuggestions(false);
   
-    // Create a properly formatted location object
-    const selectedLocation: Location = {
-      address: suggestion.address,
-      latitude: suggestion.latitude || suggestion.coordinates?.lat || 0,
-      longitude: suggestion.longitude || suggestion.coordinates?.lng || 0,
-      coordinates: {
-        lat: suggestion.latitude || suggestion.coordinates?.lat || 0,
-        lng: suggestion.longitude || suggestion.coordinates?.lng || 0,
-      },
-      type: suggestion.metadata?.primaryType || "landmark",
-      metadata: {
-        postcode: suggestion.metadata?.postcode,
-        city: suggestion.metadata?.city,
-        region: suggestion.metadata?.region,
-        category: suggestion.metadata?.category,
-        primaryType: suggestion.metadata?.primaryType,
-      },
+  // Create a properly formatted location object
+  const selectedLocation: Location = {
+        address: suggestion.address,
+    latitude: preciseLat,
+    longitude: preciseLng,
+        coordinates: {
+      lat: preciseLat,
+      lng: preciseLng,
+    },
+    type: suggestion.metadata?.primaryType || "landmark",
+    metadata: {
+      postcode: suggestion.metadata?.postcode,
+      city: suggestion.metadata?.city,
+      region: suggestion.metadata?.region,
+      category: suggestion.metadata?.category,
+      primaryType: suggestion.metadata?.primaryType,
+    },
+  };
+
+  // Update URL parameters based on location type
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    
+    const locationData = {
+      address: selectedLocation.address,
+      latitude: selectedLocation.latitude,
+      longitude: selectedLocation.longitude,
     };
 
-    // Update URL parameters based on location type
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      
-      const locationData = {
-        address: selectedLocation.address,
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude,
-      };
+    // Update URL parameter based on location type
+    if (locationType === 'pickup') {
+      params.set('pickup', encodeURIComponent(JSON.stringify(locationData)));
+    } else if (locationType === 'dropoff') {
+      params.set('dropoff', encodeURIComponent(JSON.stringify(locationData)));
+    }
 
-      // Update URL parameter based on location type
-      if (locationType === 'pickup') {
-        params.set('pickup', encodeURIComponent(JSON.stringify(locationData)));
-      } else if (locationType === 'dropoff') {
-        params.set('dropoff', encodeURIComponent(JSON.stringify(locationData)));
+    // Update URL without refreshing the page
+    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+    window.history.replaceState({}, '', newUrl);
+        }
+
+  // Call the onSelect callback with the properly formatted location
+  if (onSelect) {
+    onSelect(selectedLocation);
       }
 
-      // Update URL without refreshing the page
-      const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
-      window.history.replaceState({}, '', newUrl);
-    }
-
-    // Call the onSelect callback with the properly formatted location
-    if (onSelect) {
-      onSelect(selectedLocation);
-    }
-
-    // Clear suggestions after selection
-    setSuggestions([]);
-    setDropdownView('default');
-  };
+  // Clear suggestions after selection
+  setSuggestions([]);
+  setDropdownView('default');
+  setSelectedLocation(null);
+};
 
   // Handle clear input
   const handleClear = useCallback(() => {
@@ -370,8 +425,31 @@ export default function UKLocationInput({
     setSuggestions([]);
     setShowSuggestions(false);
     setHasSearched(false);
+    setDropdownView('default');
+    setSelectedCategory(null);
+    setCategoryLocations([]);
+    setTerminalLocations([]);
+    setSelectedLocation(null);
+    
+    // Call onSelect with cleared location to trigger parent component updates
+    if (onSelect) {
+      onSelect({
+        address: "",
+        latitude: 0,
+        longitude: 0,
+        coordinates: { lat: 0, lng: 0 },
+        type: "landmark",
+        metadata: {
+          postcode: undefined,
+          city: undefined,
+          region: undefined,
+          category: undefined,
+        },
+      });
+    }
+    
     inputRef.current?.focus();
-  }, [onChange]);
+  }, [onChange, onSelect]);
 
   // Determine what to show in dropdown
   const shouldShowPopular = !hasSearched && input.trim().length === 0 && showPopularLocations;
@@ -397,27 +475,27 @@ export default function UKLocationInput({
         <div className="space-y-1">
           {/* Current Location Option */}
           {createCurrentLocationOption() && (
-            <div
-              className="
-                flex items-center 
+          <div 
+            className="
+              flex items-center 
                 px-4 py-3 
-                cursor-pointer 
-                transition-colors duration-200 
-                hover:bg-muted/70 
+              cursor-pointer 
+              transition-colors duration-200 
+              hover:bg-muted/70 
                 text-foreground
-                border-b border-border
-              "
-              onClick={(e) => {
-                e.stopPropagation();
+              border-b border-border
+            "
+            onClick={(e) => {
+              e.stopPropagation();
                 handleSuggestionSelect(createCurrentLocationOption()!);
-              }}
-            >
+            }}
+          >
               <div className="flex items-center space-x-3">
                 <Navigation className="w-4 h-4 text-blue-500" />
                 <div>
                   <div className="font-medium text-sm">Current Location</div>
                   <div className="text-xs text-muted-foreground">Use your current location</div>
-                </div>
+          </div>
               </div>
             </div>
           )}
@@ -425,7 +503,7 @@ export default function UKLocationInput({
           {/* Category Buttons */}
           <div className="px-4 py-2">
             <div className="text-xs font-medium text-muted-foreground mb-2">Quick Access</div>
-            <div className="flex space-x-2">
+            <div className="grid grid-cols-2 gap-3 w-full">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -434,17 +512,18 @@ export default function UKLocationInput({
                   fetchCategoryLocations('airport');
                 }}
                 className="
-                  flex items-center space-x-2 
-                  px-3 py-2 
-                  text-xs 
-                  bg-muted/50 
-                  hover:bg-muted 
-                  rounded-md 
-                  transition-colors
-                  text-foreground
+                  flex items-center justify-center space-x-2 
+                  px-4 py-5 
+                  text-sm font-semibold
+                  bg-background border border-green-200 hover:border-green-300
+                  text-green-600 hover:text-green-700
+                  rounded-lg 
+                  transition-colors duration-150
+                  dark:bg-background dark:border-green-700 dark:hover:border-green-600
+                  dark:text-green-400 dark:hover:text-green-300
                 "
               >
-                <Plane className="w-3 h-3" />
+                <Plane className="w-5 h-5" />
                 <span>Airports</span>
               </button>
               <button
@@ -455,17 +534,18 @@ export default function UKLocationInput({
                   fetchCategoryLocations('train_station');
                 }}
                 className="
-                  flex items-center space-x-2 
-                  px-3 py-2 
-                  text-xs 
-                  bg-muted/50 
-                  hover:bg-muted 
-                  rounded-md 
-                  transition-colors
-                  text-foreground
+                  flex items-center justify-center space-x-2 
+                  px-4 py-5 
+                  text-sm font-semibold
+                  bg-background border border-blue-200 hover:border-blue-300
+                  text-blue-600 hover:text-blue-700
+                  rounded-lg 
+                  transition-colors duration-150
+                  dark:bg-background dark:border-blue-700 dark:hover:border-blue-600
+                  dark:text-blue-400 dark:hover:text-blue-300
                 "
               >
-                <Train className="w-3 h-3" />
+                <Train className="w-5 h-5" />
                 <span>Stations</span>
               </button>
             </div>
@@ -479,44 +559,44 @@ export default function UKLocationInput({
               </div>
               <div className="space-y-1">
                 {popularLocations.slice(0, 10).map((location, index) => (
-                  <div
+            <div
                     key={location.id || index}
-                    className="
-                      flex items-center 
-                      px-4 py-3 
-                      cursor-pointer 
-                      transition-colors duration-200 
-                      hover:bg-muted/70 
-                      text-foreground
-                    "
-                    onClick={(e) => {
-                      e.stopPropagation();
+              className="
+                      flex items-start 
+                px-4 py-3 
+                cursor-pointer 
+                transition-colors duration-200 
+                hover:bg-muted/70 
+                text-foreground
+              "
+              onClick={(e) => {
+                e.stopPropagation();
                       handleSuggestionSelect(location);
-                    }}
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-sm truncate">
+              }}
+            >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm break-words leading-tight">
                         {location.mainText || location.name || location.address}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
+                </div>
+                      <div className="text-xs text-muted-foreground break-words leading-tight mt-1">
                         {location.secondaryText || location.address}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                </div>
               </div>
             </div>
-          )}
+          ))}
         </div>
-      );
-    }
+            </div>
+          )}
+          </div>
+        );
+      }
 
     // Show category results (airports/trains)
     if (dropdownView === 'airports' || dropdownView === 'trains') {
       return (
         <div className="space-y-1">
           {/* Back button */}
-          <div
+          <div 
             className="
               flex items-center 
               px-4 py-3 
@@ -557,39 +637,39 @@ export default function UKLocationInput({
           {/* Category results */}
           {!isSearching && categoryLocations.length > 0 && (
             <div className="space-y-1">
-              {categoryLocations.map((location, index) => (
-                <div
-                  key={location.id || index}
-                  className="
-                    flex items-center 
-                    px-4 py-3 
-                    cursor-pointer 
-                    transition-colors duration-200 
-                    hover:bg-muted/70 
-                    text-foreground
-                  "
-                  onClick={(e) => {
-                    e.stopPropagation();
+          {categoryLocations.map((location, index) => (
+            <div
+              key={location.id || index}
+              className="
+                    flex items-start 
+                px-4 py-3 
+                cursor-pointer 
+                transition-colors duration-200 
+                hover:bg-muted/70 
+                text-foreground
+              "
+              onClick={(e) => {
+                e.stopPropagation();
                     handleSuggestionSelect(location);
                   }}
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-start space-x-3">
                     {dropdownView === 'airports' ? (
-                      <Plane className="w-4 h-4 text-green-500" />
+                      <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     ) : (
-                      <Train className="w-4 h-4 text-red-500" />
+                      <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                     )}
-                    <div className="flex-1">
-                      <div className="font-medium text-sm truncate">
-                        {location.mainText || location.name || location.address}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {location.secondaryText || location.address}
-                      </div>
-                    </div>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm break-words leading-tight">
+                  {location.mainText || location.name || location.address}
                 </div>
-              ))}
+                      <div className="text-xs text-muted-foreground break-words leading-tight mt-1">
+                  {location.secondaryText || location.address}
+                      </div>
+                </div>
+              </div>
+            </div>
+          ))}
             </div>
           )}
 
@@ -603,13 +683,12 @@ export default function UKLocationInput({
       );
     }
 
-    // Show search results when user is typing
-    if (input && suggestions.length > 0) {
+    // Show terminal selection
+    if (dropdownView === 'terminals' && selectedLocation) {
       return (
         <div className="space-y-1">
-          {suggestions.map((suggestion, index) => (
+          {/* Back button */}
             <div
-              key={suggestion.id || index}
               className="
                 flex items-center 
                 px-4 py-3 
@@ -617,23 +696,145 @@ export default function UKLocationInput({
                 transition-colors duration-200 
                 hover:bg-muted/70 
                 text-foreground
+              border-b border-border
               "
               onClick={(e) => {
                 e.stopPropagation();
-                handleSuggestionSelect(suggestion);
+              setDropdownView(selectedCategory === 'airport' ? 'airports' : 'trains');
+              setSelectedLocation(null);
+              setTerminalLocations([]);
               }}
             >
-              <div className="flex-1">
-                <div className="font-medium text-sm truncate">
-                  {suggestion.mainText || suggestion.name || suggestion.address}
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            <span className="text-sm">Back to {selectedCategory === 'airport' ? 'airports' : 'stations'}</span>
                 </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {suggestion.secondaryText || suggestion.address}
+
+          {/* Selected location info */}
+          <div className="px-4 py-3 border-b border-border bg-muted/30">
+            <div className="flex items-start space-x-3">
+              {selectedCategory === 'airport' ? (
+                <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              ) : (
+                <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm break-words leading-tight">
+                  {selectedLocation.mainText || selectedLocation.name || selectedLocation.address}
                 </div>
+                <div className="text-xs text-muted-foreground break-words leading-tight mt-1">
+                  {selectedLocation.secondaryText || selectedLocation.address}
               </div>
             </div>
-          ))}
         </div>
+          </div>
+
+          {/* Terminal title */}
+          <div className="px-4 py-2">
+            <div className="text-xs font-medium text-muted-foreground">
+              Select {selectedCategory === 'airport' ? 'Terminal' : 'Platform'}
+            </div>
+          </div>
+
+          {/* Loading state */}
+          {isSearching && (
+        <div className="p-4 text-center text-muted-foreground">
+          <div className="flex items-center justify-center space-x-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+                <p className="text-sm">Loading {selectedCategory === 'airport' ? 'terminals' : 'platforms'}...</p>
+          </div>
+        </div>
+          )}
+
+          {/* Terminal results */}
+          {!isSearching && terminalLocations.length > 0 && (
+            <div className="space-y-1">
+              {terminalLocations.map((terminal, index) => (
+                <div
+                  key={terminal.id || index}
+            className="
+                    flex items-start 
+                    px-4 py-3 
+              cursor-pointer 
+              transition-colors duration-200 
+              hover:bg-muted/70 
+              text-foreground
+            "
+            onClick={(e) => {
+                    e.stopPropagation();
+                    handleSuggestionSelect(terminal);
+            }}
+          >
+                  <div className="flex items-start space-x-3">
+                    {selectedCategory === 'airport' ? (
+                      <Building className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <Train className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm break-words leading-tight">
+                        {terminal.mainText || terminal.name || terminal.address}
+          </div>
+                      <div className="text-xs text-muted-foreground break-words leading-tight mt-1">
+                        {terminal.secondaryText || terminal.address}
+            </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No terminals found */}
+          {!isSearching && terminalLocations.length === 0 && (
+            <div className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">No {selectedCategory === 'airport' ? 'terminals' : 'platforms'} found</p>
+              <p className="text-xs mt-1">You can select the main location instead</p>
+              <button
+                className="mt-2 px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+              onClick={(e) => {
+                  e.stopPropagation();
+                  handleSuggestionSelect(selectedLocation);
+              }}
+            >
+                Select Main Location
+              </button>
+            </div>
+          )}
+          </div>
+      );
+    }
+
+    // Show search results when user is typing
+    if (input && suggestions.length > 0) {
+      return (
+              <div className="space-y-1">
+          {suggestions.map((suggestion, index) => (
+                  <div
+              key={suggestion.id || index}
+                    className="
+                flex items-start 
+                      px-4 py-3 
+                      cursor-pointer 
+                      transition-colors duration-200 
+                      hover:bg-muted/70 
+                      text-foreground
+                    "
+                    onClick={(e) => {
+                      e.stopPropagation();
+                handleSuggestionSelect(suggestion);
+                    }}
+                  >
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm break-words leading-tight">
+                  {suggestion.mainText || suggestion.name || suggestion.address}
+                      </div>
+                <div className="text-xs text-muted-foreground break-words leading-tight mt-1">
+                  {suggestion.secondaryText || suggestion.address}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
       );
     }
 
@@ -644,18 +845,18 @@ export default function UKLocationInput({
           <div className="flex items-center justify-center space-x-2">
             <Loader2 className="w-4 h-4 animate-spin" />
             <p>Searching...</p>
-          </div>
+            </div>
         </div>
       );
     }
 
     // Show no results when search completed but no results
     if (input && hasSearched && suggestions.length === 0 && !loading) {
-      return (
-        <div className="p-4 text-center text-muted-foreground">
+    return (
+      <div className="p-4 text-center text-muted-foreground">
           <p>No locations found</p>
-        </div>
-      );
+      </div>
+    );
     }
 
     // Show minimum character message
@@ -720,12 +921,13 @@ export default function UKLocationInput({
             type="button"
             onClick={handleClear}
             className="
-              absolute right-2 top-1/2 -translate-y-1/2 
-              text-muted-foreground hover:text-foreground
+              absolute right-0 top-1/2 -translate-y-1/2 
+              bg-black text-white hover:bg-gray-800
+              rounded-full p-0
               transition-colors
             "
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         )}
 
@@ -752,7 +954,7 @@ export default function UKLocationInput({
             w-full
             max-w-md
             mx-auto
-            max-h-[65vh]
+            max-h-[75vh]
             overflow-y-auto
           "
           style={{

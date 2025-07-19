@@ -119,10 +119,10 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex flex-col items-start gap-2 pr-8">
             <div className="flex justify-between items-center w-full">
-              <span>Booking Details</span>
-              <Badge className={`font-normal ${getStatusColor(status)}`}>
-                {getStatusText(status)}
-              </Badge>
+            <span>Booking Details</span>
+            <Badge className={`font-normal ${getStatusColor(status)}`}>
+              {getStatusText(status)}
+            </Badge>
             </div>
           </DialogTitle>
           <DialogDescription>

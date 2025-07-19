@@ -163,7 +163,11 @@ export function TimePicker({
 
   // Apply the selected time and close the picker
   const handleApplyTime = () => {
-    const formattedTime = formatTime(hours, minutes);
+    // Ensure hours and minutes are valid before formatting
+    const validHours = Math.min(Math.max(0, hours), 23);
+    const validMinutes = Math.min(Math.max(0, minutes), 59);
+    
+    const formattedTime = formatTime(validHours, validMinutes);
     onTimeChange(formattedTime);
     setOpen(false);
   };
@@ -183,7 +187,9 @@ export function TimePicker({
   // Handle minute change
   const handleMinuteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newMinute = parseInt(e.target.value, 10);
-    setMinutes(newMinute);
+    // Ensure minutes are valid (0-59)
+    const validMinute = Math.min(Math.max(0, newMinute), 59);
+    setMinutes(validMinute);
   };
 
   // Generate hour options
@@ -208,6 +214,7 @@ export function TimePicker({
     const minMinute = hours === getMinValidHour() ? getMinValidMinute() : 0;
     const options = [];
 
+    // Generate options in 5-minute increments (0, 5, 10, 15, ..., 55)
     for (let i = 0; i < 60; i += 5) {
       const isDisabled = hours === getMinValidHour() && i < minMinute;
       options.push(
@@ -217,16 +224,19 @@ export function TimePicker({
       );
     }
 
-    // Add the current minute if it's not a multiple of 5
-    if (minutes % 5 !== 0) {
+    // Only add the current minute if it's not already in the options and it's valid
+    if (minutes % 5 !== 0 && minutes >= 0 && minutes < 60) {
       const isDisabled = hours === getMinValidHour() && minutes < minMinute;
-      options.splice(
-        Math.floor(minutes / 5),
-        0,
-        <option key={minutes} value={minutes} disabled={isDisabled}>
-          {minutes.toString().padStart(2, "0")}
-        </option>
-      );
+      const insertIndex = Math.floor(minutes / 5) + 1;
+      if (insertIndex <= options.length) {
+        options.splice(
+          insertIndex,
+          0,
+          <option key={minutes} value={minutes} disabled={isDisabled}>
+            {minutes.toString().padStart(2, "0")}
+          </option>
+        );
+      }
     }
 
     return options;

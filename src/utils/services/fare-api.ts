@@ -59,6 +59,18 @@ export const getFareEstimate = async (
   initialRequest: FareRequest | Location
 ): Promise<EnhancedFareResponse> => {
   try {
+    // Check if user is authenticated before making the request
+    const isAuthenticated = await authService.isAuthenticated();
+    if (!isAuthenticated) {
+      return {
+        success: false,
+        data: { fare: createEmptyFareResponse() },
+        error: {
+          message: "Authentication required. Please sign in to calculate fares.",
+        },
+      };
+    }
+
     // If the request is a Location object, convert it to a FareRequest
     let request: FareRequest;
     if ("latitude" in initialRequest && "longitude" in initialRequest) {
@@ -210,35 +222,34 @@ export const getFareEstimate = async (
           data: { fare: response.data.fare },
         };
       } else {
-      return {
-        success: false,
-        data: { fare: createEmptyFareResponse() },
-        error: {
+        return {
+          success: false,
+          data: { fare: createEmptyFareResponse() },
+          error: {
             message: "Invalid response format from server",
-        },
-      };
-    }
+          },
+        };
+      }
     } catch (error) {
       // Handle 401 Unauthorized responses
-      if (error instanceof Error && error.message === 'Unauthorized') {
-      return {
-        success: false,
-        data: { fare: createEmptyFareResponse() },
-        error: {
-          message:
-              "Your session has expired. Please sign in again to continue.",
-        },
-      };
-    }
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        return {
+          success: false,
+          data: { fare: createEmptyFareResponse() },
+          error: {
+            message: "Authentication required. Please sign in to calculate fares.",
+          },
+        };
+      }
 
       return {
         success: false,
         data: { fare: createEmptyFareResponse() },
         error: {
-           message:
-             error instanceof Error
-               ? error.message
-               : "Failed to retrieve fare estimate",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to retrieve fare estimate",
         },
       };
     }
