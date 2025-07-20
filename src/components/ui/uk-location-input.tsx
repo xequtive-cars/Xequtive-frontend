@@ -923,7 +923,6 @@ export default function UKLocationInput({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           onClick={handleInputClick}
-          onTouchStart={handleInputClick} // Add touch support for mobile
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
