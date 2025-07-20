@@ -189,12 +189,32 @@ export default function UKLocationInput({
     setSessionToken(uuidv4());
   }, []);
 
+  // Initialize input value on mount
+  useEffect(() => {
+    if (value && value.trim()) {
+      console.log('UKLocationInput: Initializing input with value:', value);
+      setInput(value);
+    } else if (initialLocation?.address) {
+      console.log('UKLocationInput: Initializing input with initialLocation:', initialLocation.address);
+      setInput(initialLocation.address);
+    }
+  }, []); // Only run on mount
+
   // Update input when value prop changes (for URL parameter restoration)
   useEffect(() => {
     if (value !== undefined && value !== input) {
+      console.log('UKLocationInput: Updating input from value prop:', value);
       setInput(value);
     }
   }, [value, input]);
+
+  // Also handle initialLocation prop
+  useEffect(() => {
+    if (initialLocation?.address && !input) {
+      console.log('UKLocationInput: Setting input from initialLocation:', initialLocation.address);
+      setInput(initialLocation.address);
+    }
+  }, [initialLocation, input]);
 
   // Create current location option
   const createCurrentLocationOption = useCallback((): LocationSuggestion | null => {
@@ -903,6 +923,7 @@ export default function UKLocationInput({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           onClick={handleInputClick}
+          onTouchStart={handleInputClick} // Add touch support for mobile
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
@@ -911,8 +932,14 @@ export default function UKLocationInput({
             "placeholder:text-muted-foreground",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
             "disabled:opacity-50 disabled:cursor-not-allowed",
+            "touch-manipulation", // Improve touch handling on mobile
+            "text-base", // Ensure readable text size on mobile
             className
           )}
+          style={{
+            WebkitAppearance: 'none', // Remove iOS styling
+            WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
+          }}
         />
         
         {/* Clear button */}

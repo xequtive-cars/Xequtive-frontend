@@ -308,6 +308,43 @@ export default function NewBookingPage() {
   // Get date from search params
   const bookingDate = searchParams.get("date");
 
+  // Geocode function to convert address to coordinates
+  const geocodeAddress = async (address: string, type: 'pickup' | 'dropoff') => {
+    try {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+      if (!token) {
+        console.error('Mapbox token not found');
+        return;
+      }
+
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&country=gb&limit=1`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+          const feature = data.features[0];
+          const [longitude, latitude] = feature.center;
+          
+          const location = {
+            address: feature.place_name || address,
+            latitude,
+            longitude,
+          };
+
+          if (type === 'pickup') {
+            setPickupLocation(location);
+          } else if (type === 'dropoff') {
+            setDropoffLocation(location);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    }
+  };
+
   // Load state from query parameters on initial load
   useEffect(() => {
     // Only run on client-side
@@ -325,9 +362,10 @@ export default function NewBookingPage() {
       const hlParam = searchParams.get("hl"); // hand luggage
       const stopsParam = searchParams.get("stops");
 
-      // Restore pickup location
+      // Restore pickup location - handle both JSON objects and simple strings
       if (pickup) {
         try {
+          // Try to parse as JSON first (for complex objects)
           const pickupData = JSON.parse(decodeURIComponent(pickup));
           if (
             pickupData.address &&
@@ -342,13 +380,20 @@ export default function NewBookingPage() {
             setPickupAddress(pickupData.address);
           }
         } catch {
-          // Error parsing pickup location
+          // If JSON parsing fails, treat as simple string address
+          const pickupAddress = decodeURIComponent(pickup);
+          if (pickupAddress && pickupAddress.trim()) {
+            setPickupAddress(pickupAddress);
+            // Geocode the address to get coordinates
+            geocodeAddress(pickupAddress, 'pickup');
+          }
         }
       }
 
-      // Restore dropoff location
+      // Restore dropoff location - handle both JSON objects and simple strings
       if (dropoff) {
         try {
+          // Try to parse as JSON first (for complex objects)
           const dropoffData = JSON.parse(decodeURIComponent(dropoff));
           if (
             dropoffData.address &&
@@ -363,7 +408,13 @@ export default function NewBookingPage() {
             setDropoffAddress(dropoffData.address);
           }
         } catch {
-          // Error parsing dropoff location
+          // If JSON parsing fails, treat as simple string address
+          const dropoffAddress = decodeURIComponent(dropoff);
+          if (dropoffAddress && dropoffAddress.trim()) {
+            setDropoffAddress(dropoffAddress);
+            // Geocode the address to get coordinates
+            geocodeAddress(dropoffAddress, 'dropoff');
+          }
         }
       }
 

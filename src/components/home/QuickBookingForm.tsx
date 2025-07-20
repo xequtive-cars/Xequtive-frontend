@@ -23,14 +23,15 @@ export default function QuickBookingForm({ isAuthenticated }: QuickBookingFormPr
   return (
     <div className="w-full max-w-md bg-background rounded-xl border shadow-md relative">
       <div className="p-6 relative">
-        {/* Vertical connecting line */}
-        <div className="absolute left-8 top-16 bottom-16 border-l-2 border-primary/30 z-0"></div>
+        {/* Vertical connecting line - only show on desktop */}
+        <div className="hidden md:block absolute left-8 top-16 bottom-16 border-l-2 border-primary/30 z-0"></div>
 
         <div className="space-y-6">
           {/* Pickup location */}
           <div className="relative flex items-start z-50">
-            <div className="absolute left-0 top-3 w-6 h-6 rounded-full bg-primary"></div>
-            <div className="pl-12 w-full">
+            {/* Pickup dot - only show on desktop */}
+            <div className="hidden md:block absolute left-0 top-3 w-6 h-6 rounded-full bg-primary"></div>
+            <div className="w-full md:pl-12">
               <UKLocationInput
                 placeholder="Enter pickup address"
                 value={pickupLocation}
@@ -38,15 +39,16 @@ export default function QuickBookingForm({ isAuthenticated }: QuickBookingFormPr
                   setPickupLocation(location.address);
                 }}
                 locationType="pickup"
-                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-50 [&>div>div]:z-50"
+                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-50 [&>div>div]:z-50 [&>input]:touch-manipulation"
               />
             </div>
           </div>
 
           {/* Dropoff location */}
           <div className="relative flex items-start z-40">
-            <div className="absolute left-0 top-3 w-6 h-6 rounded-full bg-red-500"></div>
-            <div className="pl-12 w-full">
+            {/* Dropoff dot - only show on desktop */}
+            <div className="hidden md:block absolute left-0 top-3 w-6 h-6 rounded-full bg-red-500"></div>
+            <div className="w-full md:pl-12">
               <UKLocationInput
                 placeholder="Enter destination address"
                 value={dropoffLocation}
@@ -54,7 +56,7 @@ export default function QuickBookingForm({ isAuthenticated }: QuickBookingFormPr
                   setDropoffLocation(location.address);
                 }}
                 locationType="dropoff"
-                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-40 [&>div>div]:z-40"
+                className="text-sm h-12 rounded-md bg-background !w-full [&>input]:h-12 [&>input]:text-sm [&>input]:rounded-md [&>input]:px-3 [&>input]:bg-background [&>div]:relative [&>div]:z-40 [&>div>div]:z-40 [&>input]:touch-manipulation"
               />
             </div>
           </div>

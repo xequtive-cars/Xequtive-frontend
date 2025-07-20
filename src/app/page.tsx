@@ -250,7 +250,7 @@ function HomeContent() {
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="#"
+                    href="/about"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     About Us
@@ -258,7 +258,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/careers"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Careers
@@ -266,7 +266,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/press"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Press
@@ -279,7 +279,7 @@ function HomeContent() {
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="#"
+                    href="/services/airport-transfers"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Airport Transfers
@@ -287,7 +287,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/services/corporate-travel"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Corporate Travel
@@ -295,7 +295,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/services/event-transportation"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Event Transportation
@@ -308,7 +308,7 @@ function HomeContent() {
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="#"
+                    href="/legal/terms-of-service"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Terms of Service
@@ -316,7 +316,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/legal/privacy-policy"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Privacy Policy
@@ -324,7 +324,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/legal/cookie-policy"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Cookie Policy
@@ -337,7 +337,7 @@ function HomeContent() {
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="#"
+                    href="/help"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Help Center
@@ -345,7 +345,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/contact"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Email Us
@@ -353,7 +353,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="tel:+447831054649"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     +44 78 3105 4649
@@ -368,19 +368,19 @@ function HomeContent() {
             </p>
             <div className="flex items-center gap-6">
               <Link
-                href="#"
+                href="/legal/terms-of-service"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Terms
               </Link>
               <Link
-                href="#"
+                href="/legal/privacy-policy"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacy
               </Link>
               <Link
-                href="#"
+                href="/legal/cookie-policy"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cookies

@@ -78,6 +78,12 @@ function MobileMenuContent({
       </SheetHeader>
       
       <div className="flex-1 p-6 space-y-6">
+        {/* Theme toggle - moved to top */}
+        <div className="flex items-center justify-between pb-4 border-b">
+          <span className="text-sm font-medium">Theme</span>
+          <ThemeToggle />
+        </div>
+        
         {isAuthenticated ? (
           <>
             {/* User info */}
@@ -158,12 +164,6 @@ function MobileMenuContent({
       
       {/* Bottom section */}
       <div className="p-6 border-t space-y-4">
-        {/* Theme toggle */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Theme</span>
-          <ThemeToggle />
-        </div>
-        
         {/* Sign out for authenticated users */}
         {isAuthenticated && (
           <button
