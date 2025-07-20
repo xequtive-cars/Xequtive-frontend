@@ -6,7 +6,7 @@ import MapComponent from "@/components/map/MapComponent";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Check, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { UkLocationInput } from "@/components/ui/uk-location-input";
+import UKLocationInput from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
@@ -260,7 +260,7 @@ export default function NewBookingPageRedux() {
               {/* Pickup location */}
               <div className="space-y-2">
                 <label className="font-medium">Pickup Location</label>
-                <UkLocationInput
+                <UKLocationInput
                   value={pickupAddress}
                   onChange={handlePickupAddressChange}
                   locationType="pickup"
@@ -289,7 +289,7 @@ export default function NewBookingPageRedux() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <UkLocationInput
+                  <UKLocationInput
                     value={address}
                     onChange={createStopAddressChangeHandler(index)}
                     locationType="stop"
@@ -313,7 +313,7 @@ export default function NewBookingPageRedux() {
               {/* Dropoff location */}
               <div className="space-y-2">
                 <label className="font-medium">Dropoff Location</label>
-                <UkLocationInput
+                <UKLocationInput
                   value={dropoffAddress}
                   onChange={handleDropoffAddressChange}
                   locationType="dropoff"
@@ -559,6 +559,10 @@ export default function NewBookingPageRedux() {
                   checkedLuggage={checkedLuggage}
                   mediumLuggage={mediumLuggage}
                   handLuggage={handLuggage}
+                  babySeat={babySeat}
+                  childSeat={childSeat}
+                  boosterSeat={boosterSeat}
+                  wheelchair={wheelchair}
                   onBack={() => dispatch(handleBackToForm())}
                   onSelectVehicle={(vehicle) => {
                     handleVehicleSelect(vehicle);
@@ -640,6 +644,13 @@ export default function NewBookingPageRedux() {
                       <p className="font-medium">Passengers & Luggage</p>
                       <p>{getPassengerLuggageSummary()}</p>
                     </div>
+
+                    {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+                      <div>
+                        <p className="font-medium">Additional Requests</p>
+                        <p>{getAdditionalRequestsSummary()}</p>
+                      </div>
+                    )}
 
                     <div className="col-span-2">
                       <p className="font-medium">Selected Vehicle</p>

@@ -481,7 +481,37 @@ function UpdateBookingClientComponent({
                   <BookingForm
                   pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}
                   dropoffAddress={dropoffAddress} setDropoffAddress={setDropoffAddress}
-                  stopAddresses={stopAddresses} pickupLocation={pickupLocation} dropoffLocation={dropoffLocation}
+                  stopAddresses={stopAddresses} pickupLocation={pickupLocation ? {
+                    address: pickupLocation.address || '',
+                    latitude: pickupLocation.latitude,
+                    longitude: pickupLocation.longitude,
+                    coordinates: {
+                      lat: pickupLocation.latitude,
+                      lng: pickupLocation.longitude
+                    },
+                    type: 'landmark',
+                    metadata: {
+                      postcode: undefined,
+                      city: undefined,
+                      region: undefined,
+                      category: undefined,
+                    }
+                  } : null} dropoffLocation={dropoffLocation ? {
+                    address: dropoffLocation.address || '',
+                    latitude: dropoffLocation.latitude,
+                    longitude: dropoffLocation.longitude,
+                    coordinates: {
+                      lat: dropoffLocation.latitude,
+                      lng: dropoffLocation.longitude
+                    },
+                    type: 'landmark',
+                    metadata: {
+                      postcode: undefined,
+                      city: undefined,
+                      region: undefined,
+                      category: undefined,
+                    }
+                  } : null}
                   selectedDate={selectedDate} setSelectedDate={setSelectedDate}
                   selectedTime={selectedTime} setSelectedTime={setSelectedTime}
                   passengers={passengers} setPassengers={setPassengers}
@@ -554,6 +584,18 @@ function UpdateBookingClientComponent({
                         <label className="text-sm font-medium mb-1 block text-muted-foreground">Passengers & Luggage</label>
                         <div className="p-2 bg-muted/40 rounded-md text-sm">{getPassengerLuggageSummary()}</div>
                         </div>
+
+                        {/* Additional Requests */}
+                        {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Additional Requests
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {getAdditionalRequestsSummary()}
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -563,8 +605,9 @@ function UpdateBookingClientComponent({
                       {fareData && (
                         <VehicleSelection
                         fareData={fareData} pickupLocation={pickupLocation} dropoffLocation={dropoffLocation}
-                        selectedDate={selectedDate} selectedTime={selectedTime} passengers={passengers}
+                        additionalStops={additionalStops} selectedDate={selectedDate} selectedTime={selectedTime} passengers={passengers}
                         checkedLuggage={checkedLuggage} mediumLuggage={mediumLuggage} handLuggage={handLuggage}
+                        babySeat={babySeat} childSeat={childSeat} boosterSeat={boosterSeat} wheelchair={wheelchair}
                         onBack={handleBackToForm} onSelectVehicle={handleVehicleSelect} layout="vertical"
                         />
                       )}
@@ -642,6 +685,18 @@ function UpdateBookingClientComponent({
                         <label className="text-sm font-medium mb-1 block text-muted-foreground">Passengers & Luggage</label>
                         <div className="p-2 bg-muted/40 rounded-md text-sm">{getPassengerLuggageSummary()}</div>
                           </div>
+
+                        {/* Additional Requests */}
+                        {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Additional Requests
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {getAdditionalRequestsSummary()}
+                            </div>
+                          </div>
+                        )}
                         {selectedVehicle && (
                           <div className="mt-auto pt-4 border-t">
                             <div className="flex items-center justify-between">

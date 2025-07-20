@@ -1,5 +1,5 @@
-import { UkLocationInput } from "@/components/ui/uk-location-input";
-import { LocationSearchResult } from "@/lib/location-search-service";
+import UKLocationInput from "@/components/ui/uk-location-input";
+import { LocationSearchResponse } from "@/lib/location-search-service";
 
 interface StopLocationInputProps {
   value: string;
@@ -30,7 +30,7 @@ export function StopLocationInput({
   className,
 }: StopLocationInputProps) {
   // Create a wrapper to convert UkLocationInput's location format to our component's format
-  const handleLocationSelect = (location: LocationSearchResult) => {
+  const handleLocationSelect = (location: any) => {
     onLocationSelect({
       address: location.address,
       longitude: location.coordinates.lng,
@@ -39,11 +39,11 @@ export function StopLocationInput({
   };
 
   return (
-    <UkLocationInput
+          <UKLocationInput
       placeholder={`Enter stop ${stopNumber}`}
       value={value}
       onChange={onChange}
-      onLocationSelect={handleLocationSelect}
+              onSelect={handleLocationSelect}
       locationType="stop"
       initialSuggestionsTitle="Suggested stop locations"
       userLocation={userLocation}

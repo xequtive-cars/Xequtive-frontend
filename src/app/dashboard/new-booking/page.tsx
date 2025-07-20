@@ -1809,12 +1809,17 @@ export default function NewBookingPage() {
                             fareData={fareData}
                             pickupLocation={pickupLocation}
                             dropoffLocation={dropoffLocation}
+                            additionalStops={additionalStops}
                             selectedDate={selectedDate}
                             selectedTime={selectedTime}
                             passengers={passengers}
                             checkedLuggage={checkedLuggage}
                             mediumLuggage={mediumLuggage}
                             handLuggage={handLuggage}
+                            babySeat={babySeat}
+                            childSeat={childSeat}
+                            boosterSeat={boosterSeat}
+                            wheelchair={wheelchair}
                             onBack={handleBackToForm}
                             onSelectVehicle={handleVehicleSelect}
                             layout="vertical"
@@ -2074,6 +2079,18 @@ export default function NewBookingPage() {
                             {getPassengerLuggageSummary()}
                           </div>
                         </div>
+
+                        {/* Additional Requests */}
+                        {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Additional Requests
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {getAdditionalRequestsSummary()}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Journey details */}
                         <div className="mb-3">

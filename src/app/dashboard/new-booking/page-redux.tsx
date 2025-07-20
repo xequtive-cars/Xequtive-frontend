@@ -549,6 +549,10 @@ export default function NewBookingPageRedux() {
                   checkedLuggage={checkedLuggage}
                   mediumLuggage={mediumLuggage}
                   handLuggage={handLuggage}
+                  babySeat={babySeat}
+                  childSeat={childSeat}
+                  boosterSeat={boosterSeat}
+                  wheelchair={wheelchair}
                   onBack={() => dispatch(handleBackToForm())}
                   onSelectVehicle={(vehicle) => {
                     handleVehicleSelect(vehicle);
@@ -630,6 +634,13 @@ export default function NewBookingPageRedux() {
                       <p className="font-medium">Passengers & Luggage</p>
                       <p>{getPassengerLuggageSummary()}</p>
                     </div>
+
+                    {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+                      <div>
+                        <p className="font-medium">Additional Requests</p>
+                        <p>{getAdditionalRequestsSummary()}</p>
+                      </div>
+                    )}
 
                     <div className="col-span-2">
                       <p className="font-medium">Selected Vehicle</p>

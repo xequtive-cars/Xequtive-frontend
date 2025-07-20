@@ -301,7 +301,7 @@ export default function BookingForm({
     });
 
     // Update map center if MapComponent is available
-    if (mapRef.current && location.coordinates) {
+    if (mapRef.current && location?.coordinates) {
       mapRef.current.flyTo({
         center: [location.coordinates.lng, location.coordinates.lat],
         zoom: 12
@@ -328,7 +328,7 @@ export default function BookingForm({
     });
 
     // Update map center if MapComponent is available
-    if (mapRef.current && location.coordinates) {
+    if (mapRef.current && location?.coordinates) {
       mapRef.current.flyTo({
         center: [location.coordinates.lng, location.coordinates.lat],
         zoom: 12

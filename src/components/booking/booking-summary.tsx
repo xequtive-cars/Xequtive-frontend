@@ -22,6 +22,10 @@ interface BookingSummaryProps {
   checkedLuggage: number;
   mediumLuggage: number;
   handLuggage: number;
+  babySeat?: number;
+  childSeat?: number;
+  boosterSeat?: number;
+  wheelchair?: number;
   className?: string;
 }
 
@@ -35,6 +39,10 @@ export function BookingSummary({
   checkedLuggage,
   mediumLuggage,
   handLuggage,
+  babySeat = 0,
+  childSeat = 0,
+  boosterSeat = 0,
+  wheelchair = 0,
   className,
 }: BookingSummaryProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -160,6 +168,28 @@ export function BookingSummary({
               </p>
             </div>
           </div>
+
+          {/* Additional Requests */}
+          {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+            <div className="flex items-start gap-3 pt-2">
+              <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 mt-0.5">
+                <Users className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Additional Requests
+                </p>
+                <p className="text-sm font-medium">
+                  {[
+                    babySeat > 0 && `${babySeat} baby seat${babySeat !== 1 ? "s" : ""}`,
+                    childSeat > 0 && `${childSeat} child seat${childSeat !== 1 ? "s" : ""}`,
+                    boosterSeat > 0 && `${boosterSeat} booster seat${boosterSeat !== 1 ? "s" : ""}`,
+                    wheelchair > 0 && `${wheelchair} wheelchair${wheelchair !== 1 ? "s" : ""}`
+                  ].filter(Boolean).join(", ")}
+                </p>
+              </div>
+            </div>
+          )}
         </>
       )}
 

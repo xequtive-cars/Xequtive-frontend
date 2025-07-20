@@ -206,7 +206,7 @@ export default function UKLocationInput({
       console.log('UKLocationInput: Updating input from value prop:', value);
       setInput(value);
     }
-  }, [value, input]);
+  }, [value]);
 
   // Also handle initialLocation prop
   useEffect(() => {
@@ -931,13 +931,11 @@ export default function UKLocationInput({
             "placeholder:text-muted-foreground",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            "touch-manipulation", // Improve touch handling on mobile
             "text-base", // Ensure readable text size on mobile
             className
           )}
           style={{
             WebkitAppearance: 'none', // Remove iOS styling
-            WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
           }}
         />
         
@@ -947,8 +945,8 @@ export default function UKLocationInput({
             type="button"
             onClick={handleClear}
             className="
-              absolute right-0 top-1/2 -translate-y-1/2 
-              bg-black text-white hover:bg-gray-800
+              absolute right-[1px] top-1/2 -translate-y-1/2 
+              bg-black text-white
               rounded-full p-0
               transition-colors
             "
@@ -990,7 +988,10 @@ export default function UKLocationInput({
           }}
           onMouseDown={(e) => {
             // Prevent dropdown from closing when clicking inside
-            e.preventDefault();
+            // Don't prevent default on mobile to allow input focus
+            if (!('ontouchstart' in window)) {
+              e.preventDefault();
+            }
           }}
         >
           {/* Dropdown content */}

@@ -1,5 +1,5 @@
-import { UkLocationInput } from "@/components/ui/uk-location-input";
-import { LocationSearchResult } from "@/lib/location-search-service";
+import UKLocationInput from "@/components/ui/uk-location-input";
+import { LocationSearchResponse } from "@/lib/location-search-service";
 
 interface PickupLocationInputProps {
   value: string;
@@ -28,7 +28,7 @@ export function PickupLocationInput({
   className,
 }: PickupLocationInputProps) {
   // Create a wrapper to convert UkLocationInput's location format to our component's format
-  const handleLocationSelect = (location: LocationSearchResult) => {
+  const handleLocationSelect = (location: any) => {
     onLocationSelect({
       address: location.address,
       longitude: location.coordinates.lng,
@@ -37,11 +37,11 @@ export function PickupLocationInput({
   };
 
   return (
-    <UkLocationInput
+          <UKLocationInput
       placeholder="Enter pickup location"
       value={value}
       onChange={onChange}
-      onLocationSelect={handleLocationSelect}
+              onSelect={handleLocationSelect}
       locationType="pickup"
       initialSuggestionsTitle="Suggested pickup locations"
       userLocation={userLocation}

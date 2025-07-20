@@ -88,12 +88,17 @@ interface VehicleSelectionProps {
   fareData: FareResponse;
   pickupLocation: Location | null;
   dropoffLocation: Location | null;
+  additionalStops?: Location[];
   selectedDate: Date | undefined;
   selectedTime: string;
   passengers: number;
   checkedLuggage: number;
   mediumLuggage: number;
   handLuggage: number;
+  babySeat?: number;
+  childSeat?: number;
+  boosterSeat?: number;
+  wheelchair?: number;
   onBack: () => void;
   onSelectVehicle: (vehicle: VehicleOption) => void;
   layout?: "grid" | "vertical"; // Optional layout prop, defaults to grid
@@ -103,12 +108,17 @@ export default function VehicleSelection({
   fareData,
   pickupLocation,
   dropoffLocation,
+  additionalStops = [],
   selectedDate,
   selectedTime,
   passengers,
   checkedLuggage,
   mediumLuggage,
   handLuggage,
+  babySeat = 0,
+  childSeat = 0,
+  boosterSeat = 0,
+  wheelchair = 0,
   onBack,
   onSelectVehicle,
   layout = "grid", // Default to grid layout
@@ -274,6 +284,31 @@ export default function VehicleSelection({
                   {getPassengerLuggageSummary()}
                 </span>
               </div>
+
+              {/* Display stops if any */}
+              {additionalStops && additionalStops.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Stops:</span>
+                  <span className="font-medium">
+                    {additionalStops.length} stop{additionalStops.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+
+              {/* Display additional requests if any */}
+              {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Additional Requests:</span>
+                  <span className="font-medium">
+                    {[
+                      babySeat > 0 && `${babySeat} baby seat${babySeat !== 1 ? "s" : ""}`,
+                      childSeat > 0 && `${childSeat} child seat${childSeat !== 1 ? "s" : ""}`,
+                      boosterSeat > 0 && `${boosterSeat} booster seat${boosterSeat !== 1 ? "s" : ""}`,
+                      wheelchair > 0 && `${wheelchair} wheelchair${wheelchair !== 1 ? "s" : ""}`
+                    ].filter(Boolean).join(", ")}
+                  </span>
+                </div>
+              )}
 
               {/* Display fee notifications if any */}
               {fareData.notifications && fareData.notifications.length > 0 && (

@@ -87,6 +87,10 @@ interface VehicleSelectionContainerProps {
   checkedLuggage: number;
   mediumLuggage: number;
   handLuggage: number;
+  babySeat?: number;
+  childSeat?: number;
+  boosterSeat?: number;
+  wheelchair?: number;
   onBack: () => void;
   onSelectVehicle: (vehicle: VehicleOption) => void;
   selectedVehicle: VehicleOption | null;
@@ -103,6 +107,10 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
   checkedLuggage,
   mediumLuggage,
   handLuggage,
+  babySeat = 0,
+  childSeat = 0,
+  boosterSeat = 0,
+  wheelchair = 0,
   onBack,
   onSelectVehicle,
   selectedVehicle,
@@ -190,6 +198,10 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
         checkedLuggage={checkedLuggage}
         mediumLuggage={mediumLuggage}
         handLuggage={handLuggage}
+        babySeat={babySeat}
+        childSeat={childSeat}
+        boosterSeat={boosterSeat}
+        wheelchair={wheelchair}
         className="mb-6"
       />
 
