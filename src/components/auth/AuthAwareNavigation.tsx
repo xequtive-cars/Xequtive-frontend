@@ -20,6 +20,7 @@ import {
   Menu,
   Home,
   Plus,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -125,6 +126,14 @@ function MobileMenuContent({
               >
                 <Plus className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">New Booking</span>
+              </Link>
+              <Link
+                href="/hourly-booking"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                onClick={onClose}
+              >
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Hourly Booking</span>
               </Link>
               <Link
                 href="/dashboard/profile"
@@ -372,6 +381,14 @@ function AuthenticatedNavigation() {
                 >
                   <Plus className="h-4 w-4 text-muted-foreground" />
                   New Booking
+                </Link>
+                <Link
+                  href="/hourly-booking"
+                  className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Hourly Booking
                 </Link>
                 <Link
                   href="/dashboard/profile"

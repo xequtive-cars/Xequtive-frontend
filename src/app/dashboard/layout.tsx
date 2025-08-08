@@ -39,7 +39,7 @@ export default function DashboardLayout({
   const profileIncomplete = isProfileIncomplete(user);
 
   // Check if the current path is a booking flow path
-  const isBookingFlow = pathname?.includes("/new-booking");
+  const isBookingFlow = pathname?.includes("/new-booking") || pathname?.includes("/hourly-booking");
 
   useEffect(() => {
     setMounted(true);

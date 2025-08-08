@@ -678,7 +678,7 @@ class UKLocationSearchService {
         };
       }
 
-      let allFeatures: any[] = [];
+      const allFeatures: any[] = [];
 
       // Search for each query in the category
       for (const query of category.searchQueries) {
@@ -832,7 +832,7 @@ class UKLocationSearchService {
         `${query} popular`
       ];
 
-      let allFeatures: any[] = [];
+      const allFeatures: any[] = [];
 
       for (const searchQuery of famousPlacesQueries) {
         try {
@@ -1081,7 +1081,7 @@ class UKLocationSearchService {
         'railway platform'
       ];
 
-      let allTerminals: any[] = [];
+      const allTerminals: any[] = [];
 
       for (const query of terminalQueries) {
         try {
@@ -1264,7 +1264,7 @@ class UKLocationSearchService {
         }
       ];
 
-      let allFeatures: any[] = [];
+      const allFeatures: any[] = [];
 
       // Try each search strategy
       for (const strategy of searchStrategies) {
