@@ -303,7 +303,7 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="/hourly-booking"
+                    href="/dashboard/hourly-booking"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Hourly Booking

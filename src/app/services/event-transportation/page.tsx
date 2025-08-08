@@ -164,7 +164,7 @@ export default function EventTransportationPage() {
             </p>
             <div className="flex gap-4">
               <Button asChild size="lg">
-                <Link href="/hourly-booking">Book Now</Link>
+                <Link href="/dashboard/hourly-booking">Book Now</Link>
               </Button>
               <Button variant="outline" asChild size="lg">
                 <Link href="/contact">Contact Us</Link>

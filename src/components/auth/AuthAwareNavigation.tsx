@@ -128,7 +128,7 @@ function MobileMenuContent({
                 <span className="text-sm font-medium">New Booking</span>
               </Link>
               <Link
-                href="/hourly-booking"
+                href="/dashboard/hourly-booking"
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
                 onClick={onClose}
               >
@@ -383,7 +383,7 @@ function AuthenticatedNavigation() {
                   New Booking
                 </Link>
                 <Link
-                  href="/hourly-booking"
+                  href="/dashboard/hourly-booking"
                   className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
                   onClick={() => setDropdownOpen(false)}
                 >
