@@ -21,19 +21,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import { authService } from "@/lib/auth";
-import { toast } from "@/components/ui/use-toast";
-import {
-  setBabySeat,
-  setChildSeat,
-  setBoosterSeat,
-  setWheelchair,
-} from "@/store/slices/bookingSlice";
-import { useAppSelector, useAppDispatch } from "@/store";
+import { useAppSelector } from "@/store";
 import { format } from "date-fns";
+import { toast } from "@/components/ui/use-toast";
 
-// Import types from booking components
-import type { FareResponse, VehicleOption } from "@/components/booking/common/types";
+// Import types from hourly booking components
+import type { HourlyVehicleOption, HourlyFareResponse } from "@/types/hourlyBooking";
 
 // Create an interface for the map methods
 interface MapInterface {
@@ -205,8 +198,9 @@ const formatDate = (date: Date): string => {
 
 // Validate and correct time format
 const validateTime = (time: string): string => {
-  // If no time is provided, default to current time
-  if (!time) return "12:00";
+  // If no time is provided, default to a reasonable time (not 12:00)
+  // Since we need 24 hours advance notice, default to 00:00 (midnight)
+  if (!time) return "00:00";
 
   // Split time into hours and minutes
   const [hours, minutes] = time.split(":").map(Number);
@@ -226,7 +220,6 @@ const validateTime = (time: string): string => {
 export default function HourlyBookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useAppDispatch();
 
   // Map ref to keep track of the map interface
   const mapInstanceRef = useRef<MapInterface | null>(null);
@@ -262,9 +255,9 @@ export default function HourlyBookingPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Vehicle selection states
-  const [fareData, setFareData] = useState<any>(null);
+  const [fareData, setFareData] = useState<HourlyFareResponse | null>(null);
   const [showVehicleOptions, setShowVehicleOptions] = useState<boolean>(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<VehicleOption | null>(
+  const [selectedVehicle, setSelectedVehicle] = useState<HourlyVehicleOption | null>(
     null
   );
 
@@ -505,9 +498,9 @@ export default function HourlyBookingPage() {
       // Add pickup location to URL if available
       if (pickupLocation) {
         const pickupData = {
-          address: pickupLocation.address,
-          latitude: pickupLocation.latitude,
-          longitude: pickupLocation.longitude,
+          address: pickupLocation?.address || "",
+          latitude: pickupLocation?.latitude || 0,
+          longitude: pickupLocation?.longitude || 0,
         };
         params.set("pickup", encodeURIComponent(JSON.stringify(pickupData)));
       } else {
@@ -517,9 +510,9 @@ export default function HourlyBookingPage() {
       // Add dropoff location to URL if available
       if (dropoffLocation) {
         const dropoffData = {
-          address: dropoffLocation.address,
-          latitude: dropoffLocation.latitude,
-          longitude: dropoffLocation.longitude,
+          address: dropoffLocation?.address || "",
+          latitude: dropoffLocation?.latitude || 0,
+          longitude: dropoffLocation?.longitude || 0,
         };
         params.set("dropoff", encodeURIComponent(JSON.stringify(dropoffData)));
       } else {
@@ -1097,7 +1090,7 @@ export default function HourlyBookingPage() {
       }
 
       // Validate that coordinates are not zero or invalid
-      if (pickupLocation.latitude === 0 && pickupLocation.longitude === 0) {
+      if (!pickupLocation || (pickupLocation.latitude === 0 && pickupLocation.longitude === 0)) {
         toast({
           title: "Invalid pickup location",
           description: "Please select a valid pickup location.",
@@ -1107,7 +1100,7 @@ export default function HourlyBookingPage() {
         return;
       }
 
-      if (dropoffLocation && dropoffLocation.latitude === 0 && dropoffLocation.longitude === 0) {
+      if (dropoffLocation && (dropoffLocation.latitude === 0 && dropoffLocation.longitude === 0)) {
         toast({
           title: "Invalid dropoff location",
           description: "Please select a valid dropoff location.",
@@ -1118,7 +1111,7 @@ export default function HourlyBookingPage() {
       }
 
       // Check if locations are too similar (within 100 meters) - only for non-hourly bookings
-      if (bookingType !== 'hourly' && dropoffLocation) {
+      if (bookingType !== 'hourly' && dropoffLocation && pickupLocation) {
         const latDiff = Math.abs(pickupLocation.latitude - dropoffLocation.latitude);
         const lngDiff = Math.abs(pickupLocation.longitude - dropoffLocation.longitude);
         
@@ -1135,7 +1128,7 @@ export default function HourlyBookingPage() {
 
       // Validate and format time properly
       const validateAndFormatTime = (time: string): string => {
-        if (!time) return "12:00";
+        if (!time) return "00:00"; // Default to midnight instead of 12:00
         
         const [hours, minutes] = time.split(":").map(Number);
         
@@ -1183,12 +1176,12 @@ export default function HourlyBookingPage() {
           ...baseRequest,
           oneWayDetails: {
             pickupLocation: {
-              lat: pickupLocation.latitude,
-              lng: pickupLocation.longitude,
+              lat: pickupLocation?.latitude || 0,
+              lng: pickupLocation?.longitude || 0,
             },
             dropoffLocation: {
-              lat: dropoffLocation!.latitude,
-              lng: dropoffLocation!.longitude,
+              lat: dropoffLocation?.latitude || 0,
+              lng: dropoffLocation?.longitude || 0,
             },
             additionalStops: additionalStops.length > 0 ? additionalStops.map(stop => ({
               lat: stop.latitude,
@@ -1202,8 +1195,8 @@ export default function HourlyBookingPage() {
           hourlyDetails: {
             hours,
             pickupLocation: {
-              lat: pickupLocation.latitude,
-              lng: pickupLocation.longitude,
+              lat: pickupLocation?.latitude || 0,
+              lng: pickupLocation?.longitude || 0,
             },
             dropoffLocation: dropoffLocation ? {
               lat: dropoffLocation.latitude,
@@ -1220,12 +1213,12 @@ export default function HourlyBookingPage() {
           ...baseRequest,
           returnDetails: {
             outboundPickup: {
-              lat: pickupLocation.latitude,
-              lng: pickupLocation.longitude,
+              lat: pickupLocation?.latitude || 0,
+              lng: pickupLocation?.longitude || 0,
             },
             outboundDropoff: {
-              lat: dropoffLocation!.latitude,
-              lng: dropoffLocation!.longitude,
+              lat: dropoffLocation?.latitude || 0,
+              lng: dropoffLocation?.longitude || 0,
             },
             outboundDateTime: {
               date: selectedDate ? formatDate(selectedDate) : "",
@@ -1237,12 +1230,12 @@ export default function HourlyBookingPage() {
             })) : undefined,
             returnType: 'later-date', // For now, we'll use later-date as default
             returnPickup: {
-              lat: dropoffLocation!.latitude,
-              lng: dropoffLocation!.longitude,
+              lat: dropoffLocation?.latitude || 0,
+              lng: dropoffLocation?.longitude || 0,
             },
             returnDropoff: {
-              lat: pickupLocation.latitude,
-              lng: pickupLocation.longitude,
+              lat: pickupLocation?.latitude || 0,
+              lng: pickupLocation?.longitude || 0,
             },
             returnDateTime: {
               date: returnDate ? formatDate(returnDate) : "",
@@ -1256,29 +1249,10 @@ export default function HourlyBookingPage() {
         };
       }
 
-      console.log("🚀 Sending hourly fare request data:", JSON.stringify(fareRequestData, null, 2));
-      console.log("📍 Pickup location:", fareRequestData.pickupLocation);
-      console.log("📍 Dropoff location:", fareRequestData.dropoffLocation);
-      console.log("📍 Additional stops:", fareRequestData.additionalStops?.length || 0);
-      console.log("⏰ Hours:", fareRequestData.hours);
-      console.log("⏰ Formatted time:", fareRequestData.datetime.time);
-      console.log("📦 Total luggage:", fareRequestData.passengers.luggage);
-      console.log("👥 Passengers:", fareRequestData.passengers.count);
-      console.log("🚗 Number of vehicles:", fareRequestData.numVehicles);
+      const response: HourlyFareResponse = await hourlyBookingService.getFareEstimate(fareRequestData);
 
-      const response: any = await hourlyBookingService.getFareEstimate(fareRequestData);
-
-      console.log("📡 API Response:", JSON.stringify(response, null, 2));
-
-      // Check if response has the expected structure
-      if (response && response.fare && response.fare.vehicleOptions) {
-        setFareData(response);
-        setSelectedVehicle(null);
-        setShowVehicleOptions(true);
-        setCurrentStep("vehicleSelection");
-        setFetchError(null);
-      } else if (response && response.vehicleOptions) {
-        // Fallback for direct response structure
+      // Check if response has the expected structure for hourly bookings
+      if (response && response.fare && response.fare.vehicleOptions && response.fare.vehicleOptions.length > 0) {
         setFareData(response);
         setSelectedVehicle(null);
         setShowVehicleOptions(true);
@@ -1306,7 +1280,7 @@ export default function HourlyBookingPage() {
   };
 
   // Handle vehicle selection
-  const handleVehicleSelect = (vehicle: any) => {
+  const handleVehicleSelect = (vehicle: HourlyVehicleOption) => {
     setSelectedVehicle(vehicle);
   };
 
@@ -1348,14 +1322,26 @@ export default function HourlyBookingPage() {
       return;
     }
 
-    if (
-      !pickupLocation ||
-      !dropoffLocation ||
-      !selectedDate ||
-      !selectedTime ||
-      !selectedVehicle
-    ) {
-      setBookingError("Missing required booking information");
+    // Validate required fields based on booking type
+    const validationErrors = [];
+    
+    if (!pickupLocation) validationErrors.push("Pickup location is required");
+    if (!selectedDate) validationErrors.push("Date is required");
+    if (!selectedTime) validationErrors.push("Time is required");
+    if (!selectedVehicle) validationErrors.push("Vehicle selection is required");
+    
+    // Booking type specific validations
+    if (bookingType === 'one-way') {
+      if (!dropoffLocation) validationErrors.push("Dropoff location is required for one-way bookings");
+    } else if (bookingType === 'return') {
+      if (!dropoffLocation) validationErrors.push("Dropoff location is required for return bookings");
+      if (!returnDate) validationErrors.push("Return date is required for return bookings");
+      if (!returnTime) validationErrors.push("Return time is required for return bookings");
+    }
+    // For hourly bookings, dropoffLocation is optional
+    
+    if (validationErrors.length > 0) {
+      setBookingError(`Missing required information: ${validationErrors.join(', ')}`);
       return;
     }
 
@@ -1376,7 +1362,7 @@ export default function HourlyBookingPage() {
         },
         bookingType,
         datetime: {
-          date: format(selectedDate, 'yyyy-MM-dd'),
+          date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : "",
           time: formattedTime
         },
         passengers: {
@@ -1384,8 +1370,8 @@ export default function HourlyBookingPage() {
           luggage: checkedLuggage + mediumLuggage + handLuggage
         },
         vehicle: {
-          id: selectedVehicle.id,
-          name: selectedVehicle.name
+          id: selectedVehicle!.id,
+          name: selectedVehicle!.name
         },
         numVehicles: multipleVehicles,
         specialRequests: personalDetails.specialRequests
@@ -1398,17 +1384,17 @@ export default function HourlyBookingPage() {
           ...baseBookingData,
           oneWayDetails: {
             pickupLocation: {
-              address: pickupLocation.address || "",
+              address: pickupLocation?.address || "",
               coordinates: {
-                lat: pickupLocation.latitude,
-                lng: pickupLocation.longitude
+                lat: pickupLocation?.latitude || 0,
+                lng: pickupLocation?.longitude || 0
               }
             },
             dropoffLocation: {
-              address: dropoffLocation!.address || "",
+              address: dropoffLocation?.address || "",
               coordinates: {
-                lat: dropoffLocation!.latitude,
-                lng: dropoffLocation!.longitude
+                lat: dropoffLocation?.latitude || 0,
+                lng: dropoffLocation?.longitude || 0
               }
             },
             additionalStops: additionalStops.map(stop => ({
@@ -1426,10 +1412,10 @@ export default function HourlyBookingPage() {
           hourlyDetails: {
             hours,
             pickupLocation: {
-              address: pickupLocation.address || "",
+              address: pickupLocation?.address || "",
               coordinates: {
-                lat: pickupLocation.latitude,
-                lng: pickupLocation.longitude
+                lat: pickupLocation?.latitude || 0,
+                lng: pickupLocation?.longitude || 0
               }
             },
             dropoffLocation: dropoffLocation ? {
@@ -1453,21 +1439,21 @@ export default function HourlyBookingPage() {
           ...baseBookingData,
           returnDetails: {
             outboundPickup: {
-              address: pickupLocation.address || "",
+              address: pickupLocation?.address || "",
               coordinates: {
-                lat: pickupLocation.latitude,
-                lng: pickupLocation.longitude
+                lat: pickupLocation?.latitude || 0,
+                lng: pickupLocation?.longitude || 0
               }
             },
             outboundDropoff: {
-              address: dropoffLocation!.address || "",
+              address: dropoffLocation?.address || "",
               coordinates: {
-                lat: dropoffLocation!.latitude,
-                lng: dropoffLocation!.longitude
+                lat: dropoffLocation?.latitude || 0,
+                lng: dropoffLocation?.longitude || 0
               }
             },
             outboundDateTime: {
-              date: format(selectedDate, 'yyyy-MM-dd'),
+              date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : "",
               time: formattedTime
             },
             outboundStops: additionalStops.map(stop => ({
@@ -1479,17 +1465,17 @@ export default function HourlyBookingPage() {
             })),
             returnType: 'later-date', // For now, we'll use later-date as default
             returnPickup: {
-              address: dropoffLocation!.address || "",
+              address: dropoffLocation?.address || "",
               coordinates: {
-                lat: dropoffLocation!.latitude,
-                lng: dropoffLocation!.longitude
+                lat: dropoffLocation?.latitude || 0,
+                lng: dropoffLocation?.longitude || 0
               }
             },
             returnDropoff: {
-              address: pickupLocation.address || "",
+              address: pickupLocation?.address || "",
               coordinates: {
-                lat: pickupLocation.latitude,
-                lng: pickupLocation.longitude
+                lat: pickupLocation?.latitude || 0,
+                lng: pickupLocation?.longitude || 0
               }
             },
             returnDateTime: {
@@ -1752,21 +1738,21 @@ export default function HourlyBookingPage() {
                     setDropoffAddress={setDropoffAddress}
                     stopAddresses={stopAddresses}
                     pickupLocation={pickupLocation ? {
-                      address: pickupLocation.address || "",
-                      latitude: pickupLocation.latitude,
-                      longitude: pickupLocation.longitude,
+                      address: pickupLocation?.address || "",
+                      latitude: pickupLocation?.latitude || 0,
+                      longitude: pickupLocation?.longitude || 0,
                       coordinates: {
-                        lat: pickupLocation.latitude,
-                        lng: pickupLocation.longitude
+                        lat: pickupLocation?.latitude || 0,
+                        lng: pickupLocation?.longitude || 0
                       }
                     } : null}
                     dropoffLocation={dropoffLocation ? {
-                      address: dropoffLocation.address || "",
-                      latitude: dropoffLocation.latitude,
-                      longitude: dropoffLocation.longitude,
+                      address: dropoffLocation?.address || "",
+                      latitude: dropoffLocation?.latitude || 0,
+                      longitude: dropoffLocation?.longitude || 0,
                       coordinates: {
-                        lat: dropoffLocation.latitude,
-                        lng: dropoffLocation.longitude
+                        lat: dropoffLocation?.latitude || 0,
+                        lng: dropoffLocation?.longitude || 0
                       }
                     } : null}
                     returnDate={returnDate}
@@ -1844,14 +1830,14 @@ export default function HourlyBookingPage() {
                       <StableMapComponent
                         className="h-full"
                         pickupLocation={pickupLocation ? {
-                          latitude: pickupLocation.latitude,
-                          longitude: pickupLocation.longitude,
-                          address: pickupLocation.address
+                          latitude: pickupLocation?.latitude || 0,
+                          longitude: pickupLocation?.longitude || 0,
+                          address: pickupLocation?.address || ""
                         } : null}
                         dropoffLocation={dropoffLocation ? {
-                          latitude: dropoffLocation.latitude,
-                          longitude: dropoffLocation.longitude,
-                          address: dropoffLocation.address
+                          latitude: dropoffLocation?.latitude || 0,
+                          longitude: dropoffLocation?.longitude || 0,
+                          address: dropoffLocation?.address || ""
                         } : null}
                         stops={additionalStops}
                         showCurrentLocation={true}
@@ -2092,14 +2078,14 @@ export default function HourlyBookingPage() {
 
                               {/* Fare Notifications */}
                               {fareData &&
-                                fareData.notifications &&
-                                fareData.notifications.length > 0 && (
+                                fareData.fare?.notifications &&
+                                fareData.fare.notifications.length > 0 && (
                                   <div className="mt-2 border-t pt-2 border-border/40">
                                     <div className="text-muted-foreground mb-1 text-xs font-medium">
                                       Special Conditions:
                                     </div>
                                     <ul className="space-y-1">
-                                      {fareData.notifications.map(
+                                      {fareData.fare.notifications.map(
                                         (notification: string, index: number) => (
                                           <li
                                             key={index}

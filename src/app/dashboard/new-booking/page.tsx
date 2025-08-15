@@ -206,8 +206,9 @@ const formatDate = (date: Date): string => {
 
 // Validate and correct time format
 const validateTime = (time: string): string => {
-  // If no time is provided, default to current time
-  if (!time) return "12:00";
+  // If no time is provided, default to a reasonable time (not 12:00)
+  // Since we need 24 hours advance notice, default to 00:00 (midnight)
+  if (!time) return "00:00";
 
   // Split time into hours and minutes
   const [hours, minutes] = time.split(":").map(Number);
@@ -1114,7 +1115,7 @@ export default function NewBookingPage() {
 
       // Validate and format time properly
       const validateAndFormatTime = (time: string): string => {
-        if (!time) return "12:00";
+        if (!time) return "00:00"; // Default to midnight instead of 12:00
         
         const [hours, minutes] = time.split(":").map(Number);
         
@@ -1287,7 +1288,6 @@ export default function NewBookingPage() {
     agree: boolean
   ) => {
 
-
     if (!agree) {
       setBookingError("You must agree to the terms and conditions to proceed.");
       return;
@@ -1328,8 +1328,6 @@ export default function NewBookingPage() {
           boosterSeat,
           wheelchair,
       };
-
-
 
       // Call booking API
       const bookingResponse = await bookingService.createBooking(

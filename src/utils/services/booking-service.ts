@@ -62,19 +62,22 @@ export interface BookingRequest {
     };
     specialRequests?: string;
     travelInformation?: {
-      type: "flight" | "train";
+      type: "flight";
       details: {
+        type: "flight"; // Add type field in details
         airline?: string;
         flightNumber?: string;
         departureAirport?: string;
-        arrivalAirport?: string;
         scheduledDeparture?: string;
-        actualDeparture?: string;
-        status?: "on-time" | "delayed" | "cancelled";
+      };
+    } | {
+      type: "train";
+      details: {
+        type: "train"; // Add type field in details
         trainOperator?: string;
         trainNumber?: string;
         departureStation?: string;
-        arrivalStation?: string;
+        scheduledDeparture?: string;
       };
     };
   };
@@ -285,7 +288,7 @@ class BookingService {
     try {
       if (!bookingDetails.pickupLocation || !bookingDetails.dropoffLocation) {
         throw new Error("Pickup and dropoff locations are required");
-    }
+      }
 
       if (!bookingDetails.selectedDate) {
         throw new Error("Date is required");
@@ -295,7 +298,7 @@ class BookingService {
         throw new Error("Vehicle selection is required");
       }
 
-      // Format the date properly
+      // Format the date for the backend
       const formattedDate = format(bookingDetails.selectedDate, "yyyy-MM-dd");
 
       // Strip spaces from phone number for backend validation
@@ -304,32 +307,30 @@ class BookingService {
       // Construct travel information based on personal details
       let travelInformation: BookingRequest['booking']['travelInformation'] = undefined;
       
-      if (personalDetails.flightInformation && (
-        personalDetails.flightInformation.airline || 
-        personalDetails.flightInformation.flightNumber ||
-        personalDetails.flightInformation.scheduledDeparture
-      )) {
+      if (personalDetails.flightInformation && 
+          personalDetails.flightInformation.airline && 
+          personalDetails.flightInformation.flightNumber && 
+          personalDetails.flightInformation.scheduledDeparture) {
         travelInformation = {
           type: "flight",
           details: {
+            type: "flight", // Add type field in details
             airline: personalDetails.flightInformation.airline,
             flightNumber: personalDetails.flightInformation.flightNumber,
             scheduledDeparture: personalDetails.flightInformation.scheduledDeparture,
-            status: personalDetails.flightInformation.status,
           }
         };
-      } else if (personalDetails.trainInformation && (
-        personalDetails.trainInformation.trainOperator || 
-        personalDetails.trainInformation.trainNumber ||
-        personalDetails.trainInformation.scheduledDeparture
-      )) {
+      } else if (personalDetails.trainInformation && 
+                 personalDetails.trainInformation.trainOperator && 
+                 personalDetails.trainInformation.trainNumber && 
+                 personalDetails.trainInformation.scheduledDeparture) {
         travelInformation = {
           type: "train",
           details: {
+            type: "train", // Add type field in details
             trainOperator: personalDetails.trainInformation.trainOperator,
             trainNumber: personalDetails.trainInformation.trainNumber,
             scheduledDeparture: personalDetails.trainInformation.scheduledDeparture,
-            status: personalDetails.trainInformation.status,
           }
         };
       }
@@ -399,7 +400,10 @@ class BookingService {
       );
 
       if (!response.success) {
-        console.error("Booking creation failed:", response.error);
+        console.error("=== API RESPONSE ERROR ===");
+        console.error("Response:", response);
+        console.error("Error details:", response.error);
+        console.error("========================================");
         throw new Error(response.error?.message || "Failed to create booking");
       }
 
@@ -529,32 +533,30 @@ class BookingService {
       // Construct travel information based on personal details
       let travelInformation: BookingRequest['booking']['travelInformation'] = undefined;
       
-      if (personalDetails.flightInformation && (
-        personalDetails.flightInformation.airline || 
-        personalDetails.flightInformation.flightNumber ||
-        personalDetails.flightInformation.scheduledDeparture
-      )) {
+      if (personalDetails.flightInformation && 
+          personalDetails.flightInformation.airline && 
+          personalDetails.flightInformation.flightNumber && 
+          personalDetails.flightInformation.scheduledDeparture) {
         travelInformation = {
           type: "flight",
           details: {
+            type: "flight", // Add type field in details
             airline: personalDetails.flightInformation.airline,
             flightNumber: personalDetails.flightInformation.flightNumber,
             scheduledDeparture: personalDetails.flightInformation.scheduledDeparture,
-            status: personalDetails.flightInformation.status,
           }
         };
-      } else if (personalDetails.trainInformation && (
-        personalDetails.trainInformation.trainOperator || 
-        personalDetails.trainInformation.trainNumber ||
-        personalDetails.trainInformation.scheduledDeparture
-      )) {
+      } else if (personalDetails.trainInformation && 
+                 personalDetails.trainInformation.trainOperator && 
+                 personalDetails.trainInformation.trainNumber && 
+                 personalDetails.trainInformation.scheduledDeparture) {
         travelInformation = {
           type: "train",
           details: {
+            type: "train", // Add type field in details
             trainOperator: personalDetails.trainInformation.trainOperator,
             trainNumber: personalDetails.trainInformation.trainNumber,
             scheduledDeparture: personalDetails.trainInformation.scheduledDeparture,
-            status: personalDetails.trainInformation.status,
           }
         };
       }

@@ -45,7 +45,7 @@ export function AdditionalRequestsForm({
   return (
     <div
       className={cn(
-        "w-[110%] border rounded-lg shadow-sm bg-muted/40",
+        "w-[100%] md:w-[110%] border rounded-lg shadow-sm bg-muted/40",
         className
       )}
     >

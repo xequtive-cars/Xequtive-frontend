@@ -43,34 +43,6 @@ export function TimePicker({
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false);
 
-  // Parse initial hours and minutes from the time prop
-  const [hours, setHours] = React.useState<number>(() => {
-    if (time) {
-      const [hourStr] = time.split(":");
-      return parseInt(hourStr, 10);
-    }
-    return 12;
-  });
-
-  const [minutes, setMinutes] = React.useState<number>(() => {
-    if (time) {
-      const [, minuteStr] = time.split(":");
-      return parseInt(minuteStr, 10);
-    }
-    return 0;
-  });
-
-  // Update local state when external time prop changes
-  React.useEffect(() => {
-    if (time) {
-      const [hourStr, minuteStr] = time.split(":");
-      if (hourStr && minuteStr) {
-        setHours(parseInt(hourStr, 10));
-        setMinutes(parseInt(minuteStr, 10));
-      }
-    }
-  }, [time]);
-
   // Get now and minimum booking time (24 hours from now)
   const now = React.useMemo(() => new Date(), []);
   const minBookingTime = React.useMemo(() => addHours(now, 24), [now]);
@@ -90,23 +62,6 @@ export function TimePicker({
       selectedDate.getMonth() === today.getMonth() &&
       selectedDate.getDate() === today.getDate() + 1
     : false;
-
-  // Format hours and minutes to HH:MM
-  const formatTime = (h: number, m: number): string => {
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-  };
-
-  // Check if the selected date and time are valid (at least 24 hours in the future)
-  const isTimeValid = (h: number, m: number): boolean => {
-    if (!selectedDate) return true;
-
-    // Create a date object with the selected date and time
-    const selectedDateTime = new Date(selectedDate);
-    selectedDateTime.setHours(h, m, 0, 0);
-
-    // Compare with minimum booking time
-    return selectedDateTime >= minBookingTime;
-  };
 
   // Get the minimum valid hour for today or tomorrow
   const getMinValidHour = React.useCallback((): number => {
@@ -136,6 +91,35 @@ export function TimePicker({
     return 0;
   }, [selectedDate, minBookingTime, isToday, isTomorrow, now]);
 
+  // Get the first available time (first valid hour with 0 minutes)
+  const getFirstAvailableTime = React.useCallback((): { hours: number; minutes: number } => {
+    if (!selectedDate) return { hours: 0, minutes: 0 };
+    
+    const minHour = getMinValidHour();
+    if (minHour >= 24) return { hours: 0, minutes: 0 }; // No valid hours
+    
+    return { hours: minHour, minutes: 0 };
+  }, [selectedDate, getMinValidHour]);
+
+  // Parse initial hours and minutes from the time prop, or use first available time
+  const [hours, setHours] = React.useState<number>(() => {
+    if (time) {
+      const [hourStr] = time.split(":");
+      return parseInt(hourStr, 10);
+    }
+    // Default to first available hour instead of 12
+    return getFirstAvailableTime().hours;
+  });
+
+  const [minutes, setMinutes] = React.useState<number>(() => {
+    if (time) {
+      const [, minuteStr] = time.split(":");
+      return parseInt(minuteStr, 10);
+    }
+    // Default to 0 minutes instead of 0
+    return getFirstAvailableTime().minutes;
+  });
+
   // Get the minimum valid minute for the selected hour
   const getMinValidMinute = React.useCallback((): number => {
     if (!selectedDate) return 0;
@@ -146,7 +130,7 @@ export function TimePicker({
     if (hours > minHour) return 0;
 
     // If hours are less than min valid hour, no minutes are valid
-    if (hours < minHour) return 60;
+    if (hours < minHour) return 0; // Changed from 60 to 0
 
     // If hours equal min valid hour, minutes must be >= now.getMinutes()
     if (isToday && hours === minBookingTime.getHours()) {
@@ -160,6 +144,39 @@ export function TimePicker({
 
     return 0;
   }, [selectedDate, getMinValidHour, hours, isToday, isTomorrow, minBookingTime, now]);
+
+  // Update local state when external time prop changes
+  React.useEffect(() => {
+    if (time) {
+      const [hourStr, minuteStr] = time.split(":");
+      if (hourStr && minuteStr) {
+        setHours(parseInt(hourStr, 10));
+        setMinutes(parseInt(minuteStr, 10));
+      }
+    } else {
+      // If no time provided, set to first available time
+      const firstTime = getFirstAvailableTime();
+      setHours(firstTime.hours);
+      setMinutes(firstTime.minutes);
+    }
+  }, [time, getFirstAvailableTime]);
+
+  // Format hours and minutes to HH:MM
+  const formatTime = (h: number, m: number): string => {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  };
+
+  // Check if the selected date and time are valid (at least 24 hours in the future)
+  const isTimeValid = (h: number, m: number): boolean => {
+    if (!selectedDate) return true;
+
+    // Create a date object with the selected date and time
+    const selectedDateTime = new Date(selectedDate);
+    selectedDateTime.setHours(h, m, 0, 0);
+
+    // Compare with minimum booking time
+    return selectedDateTime >= minBookingTime;
+  };
 
   // Apply the selected time and close the picker
   const handleApplyTime = () => {

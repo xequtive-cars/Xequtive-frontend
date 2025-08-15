@@ -41,13 +41,43 @@ export function AdvancedTimePicker({
       : new Date() // Default to current date if no date is provided
   , [lockedDate]);
 
-  const [time, setTime] = React.useState<string>(
-    datetime ? format(datetime, "HH:mm") : "12:00" // Default to noon if no specific time
-  );
-
   // Validate minimum booking time
   const now = new Date();
   const minimumDate = addHours(now, 24);
+
+  // Get the first available time for the locked date
+  const getFirstAvailableTime = React.useMemo((): string => {
+    if (!validLockedDate) return "00:00";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const isToday = validLockedDate.getFullYear() === today.getFullYear() &&
+                   validLockedDate.getMonth() === today.getMonth() &&
+                   validLockedDate.getDate() === today.getDate();
+    
+    const isTomorrow = validLockedDate.getFullYear() === today.getFullYear() &&
+                      validLockedDate.getMonth() === today.getMonth() &&
+                      validLockedDate.getDate() === today.getDate() + 1;
+    
+    if (isToday) {
+      // For today, use the minimum booking time hour
+      const minHour = minimumDate.getHours();
+      return `${minHour.toString().padStart(2, "0")}:00`;
+    } else if (isTomorrow) {
+      // For tomorrow, calculate the minimum hour
+      const hoursToAdd = 24 - now.getHours();
+      const minHour = Math.max(0, 24 - hoursToAdd);
+      return `${minHour.toString().padStart(2, "0")}:00`;
+    }
+    
+    // For any future date beyond 24h, all hours are valid
+    return "00:00";
+  }, [validLockedDate, minimumDate, now]);
+
+  const [time, setTime] = React.useState<string>(
+    datetime ? format(datetime, "HH:mm") : getFirstAvailableTime // Use first available time instead of 12:00
+  );
 
   // Handle time change
   const handleTimeChange = (newTime: string) => {

@@ -200,23 +200,21 @@ export function PersonalDetailsForm({
       email,
       phone,
       specialRequests: specialRequests || "",
-      ...(flightInformation && (flightInformation.airline || flightInformation.flightNumber || flightInformation.scheduledDeparture) && {
+      ...(flightInformation && flightInformation.airline && flightInformation.flightNumber && flightInformation.scheduledDeparture && {
         flightInformation: {
-          airline: flightInformation.airline || "",
-          flightNumber: flightInformation.flightNumber || "",
-          scheduledDeparture: flightInformation.scheduledDeparture || "",
+          airline: flightInformation.airline,
+          flightNumber: flightInformation.flightNumber,
+          scheduledDeparture: flightInformation.scheduledDeparture,
         }
       }),
-      ...(trainInformation && (trainInformation.trainOperator || trainInformation.trainNumber || trainInformation.scheduledDeparture) && {
+      ...(trainInformation && trainInformation.trainOperator && trainInformation.trainNumber && trainInformation.scheduledDeparture && {
         trainInformation: {
-          trainOperator: trainInformation.trainOperator || "",
-          trainNumber: trainInformation.trainNumber || "",
-          scheduledDeparture: trainInformation.scheduledDeparture || "",
+          trainOperator: trainInformation.trainOperator,
+          trainNumber: trainInformation.trainNumber,
+          scheduledDeparture: trainInformation.scheduledDeparture,
         }
       }),
     };
-
-
 
     onSubmit(submissionData, termsAgreed, e);
   };

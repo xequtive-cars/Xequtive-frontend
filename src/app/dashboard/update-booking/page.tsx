@@ -62,7 +62,7 @@ interface FareRequest {
 // Helper functions
 const formatDate = (date: Date): string => date.toISOString().split("T")[0];
 const validateTime = (time: string): string => {
-  if (!time) return "12:00";
+  if (!time) return "00:00"; // Default to midnight instead of 12:00
   const [hours, minutes] = time.split(":").map(Number);
   const validHours = Math.min(Math.max(0, Math.floor(hours)), 23);
   const validMinutes = Math.min(Math.max(0, Math.floor(minutes)), 59);

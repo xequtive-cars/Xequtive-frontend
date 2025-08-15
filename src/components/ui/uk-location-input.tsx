@@ -946,9 +946,10 @@ export default function UKLocationInput({
             onClick={handleClear}
             className="
               absolute right-[1px] top-1/2 -translate-y-1/2 
-              bg-black text-white
+              bg-primary text-primary-foreground
               rounded-full p-0
               transition-colors
+              hover:bg-primary/90
             "
           >
             <X className="w-5 h-5" />
