@@ -553,7 +553,7 @@ const MapComponent = ({
       if (showCurrentLocation && lastUserCoords && map.current) {
         const userMarkerEl = document.createElement('div');
         userMarkerEl.className = 'w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg';
-        userMarkerEl.style.zIndex = '1000';
+        userMarkerEl.style.zIndex = '10';
         
         const userMarker = new mapboxgl.Marker({
           element: userMarkerEl,
@@ -567,7 +567,7 @@ const MapComponent = ({
       if (hasValidPickup && map.current) {
         const pickupMarkerEl = document.createElement('div');
         pickupMarkerEl.className = 'w-8 h-8 bg-green-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center';
-        pickupMarkerEl.style.zIndex = '1001';
+        pickupMarkerEl.style.zIndex = '11';
         
         const pickupText = document.createElement('span');
         pickupText.className = 'text-white font-bold text-sm';
@@ -586,7 +586,7 @@ const MapComponent = ({
       if (hasValidDropoff && map.current) {
         const dropoffMarkerEl = document.createElement('div');
         dropoffMarkerEl.className = 'w-8 h-8 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center';
-        dropoffMarkerEl.style.zIndex = '1001';
+        dropoffMarkerEl.style.zIndex = '11';
         
         const dropoffText = document.createElement('span');
         dropoffText.className = 'text-white font-bold text-sm';
@@ -606,7 +606,7 @@ const MapComponent = ({
         if (map.current) {
           const stopMarkerEl = document.createElement('div');
           stopMarkerEl.className = 'w-8 h-8 bg-black rounded-full border-2 border-white shadow-lg flex items-center justify-center';
-          stopMarkerEl.style.zIndex = '1001';
+          stopMarkerEl.style.zIndex = '11';
           
           const stopText = document.createElement('span');
           stopText.className = 'text-white font-bold text-sm';

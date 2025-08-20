@@ -249,6 +249,40 @@ export default function NewBookingPage() {
   const [stopAddresses, setStopAddresses] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string>("");
+  
+  // New state variables for one-way, hourly, and return booking system
+  const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
+  const [returnTime, setReturnTime] = useState<string>("");
+  const [bookingType, setBookingType] = useState<'one-way' | 'hourly' | 'return'>('one-way');
+  const [hours, setHours] = useState<number>(3);
+  const [multipleVehicles, setMultipleVehicles] = useState<number>(1);
+  const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
+
+  // Debug logging for hours state
+  useEffect(() => {
+    console.log("🔍 Hours state changed:", { hours, type: typeof hours, bookingType });
+  }, [hours, bookingType]);
+
+                // Ensure hours are properly set when booking type changes to hourly
+  useEffect(() => {
+    if (bookingType === 'hourly' && (hours < 3 || hours > 12)) {
+      console.log("🔄 Resetting hours to valid range for hourly booking");
+      setHours(3);
+    }
+  }, [bookingType, hours]);
+
+  // Debug logging for fare calculation
+  useEffect(() => {
+    if (bookingType === 'hourly') {
+      console.log("🔍 Hourly booking state:", { 
+        hours, 
+        type: typeof hours, 
+        isValid: hours >= 3 && hours <= 12,
+        bookingType 
+      });
+    }
+  }, [hours, bookingType]);
+
 
   // Passenger/luggage states
   const [passengers, setPassengers] = useState<number>(1);
@@ -1068,10 +1102,22 @@ export default function NewBookingPage() {
       setFetchError(null);
 
       // Check if we have the required location data
-      if (!pickupLocation || !dropoffLocation) {
+      if (!pickupLocation) {
         toast({
-          title: "Missing location information",
-          description: "Please provide both pickup and dropoff locations.",
+          title: "Missing pickup location",
+          description: "Please provide a pickup location.",
+          variant: "destructive",
+        });
+        setIsFetching(false);
+        return;
+      }
+
+      // For hourly bookings, dropoff location is optional
+      // For one-way and return bookings, dropoff location is required
+      if (bookingType !== 'hourly' && !dropoffLocation) {
+        toast({
+          title: "Missing dropoff location",
+          description: "Please provide a dropoff location for one-way and return bookings.",
           variant: "destructive",
         });
         setIsFetching(false);
@@ -1089,7 +1135,7 @@ export default function NewBookingPage() {
         return;
       }
 
-      if (dropoffLocation.latitude === 0 && dropoffLocation.longitude === 0) {
+      if (dropoffLocation && (dropoffLocation.latitude === 0 && dropoffLocation.longitude === 0)) {
         toast({
           title: "Invalid dropoff location",
           description: "Please select a valid dropoff location.",
@@ -1099,18 +1145,44 @@ export default function NewBookingPage() {
         return;
       }
 
-      // Check if locations are too similar (within 100 meters)
-      const latDiff = Math.abs(pickupLocation.latitude - dropoffLocation.latitude);
-      const lngDiff = Math.abs(pickupLocation.longitude - dropoffLocation.longitude);
-      
-      if (latDiff < 0.001 && lngDiff < 0.001) {
-        toast({
-          title: "Locations too similar",
-          description: "Please select different pickup and dropoff locations.",
-          variant: "destructive",
-        });
-        setIsFetching(false);
-        return;
+      // Check if locations are too similar (within 100 meters) - only for non-hourly bookings
+      if (bookingType !== 'hourly' && dropoffLocation && pickupLocation) {
+        const latDiff = Math.abs(pickupLocation.latitude - dropoffLocation.latitude);
+        const lngDiff = Math.abs(pickupLocation.longitude - dropoffLocation.longitude);
+        
+        if (latDiff < 0.001 && lngDiff < 0.001) {
+          toast({
+            title: "Locations too similar",
+            description: "Please select different pickup and dropoff locations.",
+            variant: "destructive",
+          });
+          setIsFetching(false);
+          return;
+        }
+      }
+
+      // Additional validation for return bookings
+      if (bookingType === 'return') {
+        if (returnType === 'later-date') {
+          if (!returnDate) {
+            toast({
+              title: "Missing return date",
+              description: "Please select a return date for later-date returns.",
+              variant: "destructive",
+            });
+            setIsFetching(false);
+            return;
+          }
+          if (!returnTime) {
+            toast({
+              title: "Missing return time",
+              description: "Please select a return time for later-date returns.",
+              variant: "destructive",
+            });
+            setIsFetching(false);
+            return;
+          }
+        }
       }
 
       // Validate and format time properly
@@ -1142,8 +1214,8 @@ export default function NewBookingPage() {
         return;
       }
 
-      // Log the data being sent to backend for debugging
-      const fareRequestData = {
+      // Prepare base request data
+      const baseRequest = {
         locations: {
           pickup: {
             address: pickupLocation.address || "",
@@ -1152,13 +1224,15 @@ export default function NewBookingPage() {
               lng: Number(pickupLocation.longitude.toFixed(6)),
             },
           },
-          dropoff: {
-            address: dropoffLocation.address || "",
-            coordinates: {
-              lat: Number(dropoffLocation.latitude.toFixed(6)),
-              lng: Number(dropoffLocation.longitude.toFixed(6)),
+          ...(dropoffLocation && {
+            dropoff: {
+              address: dropoffLocation.address || "",
+              coordinates: {
+                lat: Number(dropoffLocation.latitude.toFixed(6)),
+                lng: Number(dropoffLocation.longitude.toFixed(6)),
+              },
             },
-          },
+          }),
           stops: additionalStops.map((stop) => ({
             address: stop.address || "",
             coordinates: {
@@ -1181,16 +1255,83 @@ export default function NewBookingPage() {
           boosterSeat,
           wheelchair,
         },
+        // Add enhanced booking type parameters
+        bookingType,
+        ...(bookingType === 'hourly' && { 
+          hours: Math.max(3, Math.min(12, Number(hours) || 3)), // Ensure hours is a valid number between 3-12
+          hourlyDetails: {
+            hours: Math.max(3, Math.min(12, Number(hours) || 3)), // Ensure hours is a valid number between 3-12
+            pickupLocation: {
+              address: pickupLocation.address || "",
+              coordinates: {
+                lat: Number(pickupLocation.latitude.toFixed(6)),
+                lng: Number(pickupLocation.longitude.toFixed(6)),
+              },
+            },
+            ...(dropoffLocation && {
+              dropoffLocation: {
+                address: dropoffLocation.address || "",
+                coordinates: {
+                  lat: Number(dropoffLocation.latitude.toFixed(6)),
+                  lng: Number(dropoffLocation.longitude.toFixed(6)),
+                },
+              },
+            }),
+            additionalStops: additionalStops.map((stop) => ({
+              address: stop.address || "",
+              coordinates: {
+                lat: Number(stop.latitude.toFixed(6)),
+                lng: Number(stop.longitude.toFixed(6)),
+              },
+            })),
+          }
+        }),
+        ...(bookingType === 'return' && { 
+          returnType,
+          ...(returnType === 'later-date' && returnDate && returnTime && {
+            returnDate: formatDate(returnDate),
+            returnTime: validateAndFormatTime(returnTime),
+          }),
+          
+        }),
       };
 
-      console.log("🚀 Sending fare request data:", JSON.stringify(fareRequestData, null, 2));
-      console.log("📍 Pickup coordinates:", fareRequestData.locations.pickup.coordinates);
-      console.log("📍 Dropoff coordinates:", fareRequestData.locations.dropoff.coordinates);
-      console.log("⏰ Formatted time:", fareRequestData.datetime.time);
+      console.log("🚀 Sending enhanced fare request data:", JSON.stringify(baseRequest, null, 2));
+      console.log("📍 Pickup coordinates:", baseRequest.locations.pickup.coordinates);
+      if (baseRequest.locations.dropoff) {
+        console.log("📍 Dropoff coordinates:", baseRequest.locations.dropoff.coordinates);
+      }
+      console.log("⏰ Formatted time:", baseRequest.datetime.time);
+      console.log("📋 Booking type:", baseRequest.bookingType);
+      if (baseRequest.bookingType === 'hourly') {
+        console.log("⏱️ Hours:", baseRequest.hourlyDetails?.hours);
+        console.log("⏱️ Hours (direct):", baseRequest.hours);
+        console.log("⏱️ Hours type:", typeof baseRequest.hours);
+        if (baseRequest.hours !== undefined) {
+          console.log("⏱️ Hours validation:", baseRequest.hours >= 3 && baseRequest.hours <= 12);
+        }
+      }
+      if (baseRequest.bookingType === 'return') {
+        console.log("🔄 Return type:", baseRequest.returnType);
+        if (baseRequest.returnType === 'later-date') {
+          console.log("📅 Return date:", baseRequest.returnDate);
+          console.log("🕐 Return time:", baseRequest.returnTime);
+        }
+      }
 
-      const response = await getFareEstimate(fareRequestData);
+      console.log("📡 Calling fare API with endpoint: /api/fare-estimate/enhanced");
+      console.log("📡 Request payload:", {
+        bookingType: baseRequest.bookingType,
+        hours: baseRequest.hours,
+        hasHourlyDetails: !!baseRequest.hourlyDetails,
+        hourlyDetailsHours: baseRequest.hourlyDetails?.hours
+      });
+      
+      const response = await getFareEstimate(baseRequest);
 
       if (!response.success) {
+        console.log("❌ Fare calculation failed:", response.error);
+        
         // Handle authentication errors specifically
         if (response.error?.message?.includes("Authentication required")) {
           toast({
@@ -1207,6 +1348,16 @@ export default function NewBookingPage() {
           return;
         }
 
+        // Handle hours validation errors specifically
+        if (response.error?.message?.includes("Hours must be between 3 and 12")) {
+          toast({
+            title: "Validation Error",
+            description: "Hours must be between 3 and 12 for hourly bookings. Please adjust your selection.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         toast({
           title: "Fare Calculation Failed",
           description: response.error?.message || "Failed to calculate fare. Please try again.",
@@ -1216,10 +1367,12 @@ export default function NewBookingPage() {
       }
 
       if (response.success && response.data?.fare) {
+        console.log("✅ Fare calculation successful:", response.data.fare);
         setFareData(response.data.fare);
         setShowVehicleOptions(true);
         setFetchError(null);
       } else {
+        console.log("❌ Fare calculation failed - no fare data:", response);
         setFetchError(response.error?.message || "Failed to calculate fare");
         toast({
           title: "Fare calculation failed",
@@ -1229,12 +1382,23 @@ export default function NewBookingPage() {
       }
     } catch (error) {
       console.error("Error calculating fare:", error);
-      setFetchError("An unexpected error occurred. Please try again.");
-      toast({
-        title: "Error",
-        description: "Failed to calculate fare. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Check if it's a validation error
+      if (error instanceof Error && error.message.includes("Hours must be between 3 and 12")) {
+        setFetchError("Invalid hours selection. Hours must be between 3 and 12 for hourly bookings.");
+        toast({
+          title: "Validation Error",
+          description: "Hours must be between 3 and 12 for hourly bookings.",
+          variant: "destructive",
+        });
+      } else {
+        setFetchError("An unexpected error occurred. Please try again.");
+        toast({
+          title: "Error",
+          description: "Failed to calculate fare. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsFetching(false);
     }
@@ -1293,15 +1457,32 @@ export default function NewBookingPage() {
       return;
     }
 
-    if (
-      !pickupLocation ||
-      !dropoffLocation ||
-      !selectedDate ||
-      !selectedTime ||
-      !selectedVehicle
-    ) {
+    // Validation based on booking type
+    if (!pickupLocation || !selectedDate || !selectedTime || !selectedVehicle) {
       setBookingError("Missing required booking information");
       return;
+    }
+
+          // Additional validation for different booking types
+      if (bookingType === 'hourly') {
+        if (!hours || hours < 3 || hours > 12) {
+          setBookingError("Hourly bookings must be between 3 and 12 hours");
+          return;
+        }
+      } else if (bookingType === 'return') {
+        if (!returnType) {
+          setBookingError("Return type is required for return bookings");
+          return;
+        }
+        if (returnType === 'later-date' && (!returnDate || !returnTime)) {
+          setBookingError("Return date and time are required for later-date return bookings");
+          return;
+        }
+      } else if (bookingType === 'one-way') {
+      if (!dropoffLocation) {
+        setBookingError("Dropoff location is required for one-way bookings");
+        return;
+      }
     }
 
     setIsCreatingBooking(true);
@@ -1310,6 +1491,7 @@ export default function NewBookingPage() {
     try {
       // Validate and correct time format
       const formattedTime = validateTime(selectedTime);
+      const formattedReturnTime = returnTime ? validateTime(returnTime) : "";
 
       // Prepare booking data for logging
       const bookingData = {
@@ -1318,6 +1500,11 @@ export default function NewBookingPage() {
           additionalStops,
           selectedDate,
           selectedTime: formattedTime,
+          returnDate,
+          returnTime: formattedReturnTime,
+          bookingType,
+          hours: bookingType === 'hourly' ? hours : undefined,
+          returnType: bookingType === 'return' ? returnType : undefined,
           passengers,
           checkedLuggage,
           mediumLuggage,
@@ -1329,17 +1516,37 @@ export default function NewBookingPage() {
           wheelchair,
       };
 
-      // Call booking API
-      const bookingResponse = await bookingService.createBooking(
+      // Call booking API with enhanced parameters
+      const bookingResponse = await bookingService.createEnhancedBooking(
         personalDetails,
-        bookingData
+        {
+          pickupLocation,
+          dropoffLocation: dropoffLocation || undefined,
+          additionalStops,
+          selectedDate,
+          selectedTime: formattedTime,
+          returnDate,
+          returnTime: formattedReturnTime,
+          bookingType,
+          hours: bookingType === 'hourly' ? hours : undefined,
+          returnType: bookingType === 'return' ? returnType : undefined,
+          passengers,
+          checkedLuggage,
+          mediumLuggage,
+          handLuggage,
+          selectedVehicle,
+          babySeat,
+          childSeat,
+          boosterSeat,
+          wheelchair,
+        }
       );
 
       // Update success state with the booking ID and notifications if any
       setBookingSuccess({
         show: true,
-        bookingId: bookingResponse.bookingId,
-        notifications: bookingResponse.details?.notifications || [],
+        bookingId: bookingResponse.data.bookingId,
+        notifications: bookingResponse.data.details?.notifications || [],
       });
 
       // Clear form fields by resetting state
@@ -1351,6 +1558,12 @@ export default function NewBookingPage() {
       setStopAddresses([]);
       setSelectedDate(undefined);
       setSelectedTime("");
+      setReturnDate(undefined);
+      setReturnTime("");
+      setBookingType('one-way');
+      setHours(3);
+      setMultipleVehicles(1);
+      setReturnType('wait-and-return');
       setPassengers(1);
       setCheckedLuggage(0);
       setMediumLuggage(0);
@@ -1598,6 +1811,9 @@ export default function NewBookingPage() {
                     dropoffAddress={dropoffAddress}
                     setDropoffAddress={setDropoffAddress}
                     stopAddresses={stopAddresses}
+                    setStopAddresses={setStopAddresses}
+                    setPickupLocation={setPickupLocation}
+                    setDropoffLocation={setDropoffLocation}
                     pickupLocation={pickupLocation ? {
                       address: pickupLocation.address || "",
                       latitude: pickupLocation.latitude,
@@ -1651,6 +1867,19 @@ export default function NewBookingPage() {
                     }
                     disabled={locationPermission.denied}
                     reorderStops={reorderStops}
+                    // New props for one-way, hourly, and return booking system
+                    returnDate={returnDate}
+                    setReturnDate={setReturnDate}
+                    returnTime={returnTime}
+                    setReturnTime={setReturnTime}
+                    bookingType={bookingType}
+                    setBookingType={setBookingType}
+                    hours={hours}
+                    setHours={setHours}
+                    multipleVehicles={multipleVehicles}
+                    setMultipleVehicles={setMultipleVehicles}
+                    returnType={returnType}
+                    setReturnType={setReturnType}
                   />
                 )}
               </div>
@@ -1821,6 +2050,9 @@ export default function NewBookingPage() {
                             onBack={handleBackToForm}
                             onSelectVehicle={handleVehicleSelect}
                             layout="vertical"
+                            bookingType={bookingType}
+                            returnType={returnType}
+                            hours={hours}
                           />
                         )}
                       </div>
@@ -1871,8 +2103,8 @@ export default function NewBookingPage() {
                             </div>
                           </div>
 
-                          {/* Additional stops */}
-                          {additionalStops.length > 0 && (
+                          {/* Additional stops - Only show for one-way bookings */}
+                          {bookingType === 'one-way' && additionalStops.length > 0 && (
                             <div className="mb-4">
                               <label className="text-sm font-medium mb-1 block text-muted-foreground">
                                 Additional Stops
@@ -1922,6 +2154,54 @@ export default function NewBookingPage() {
                               {getPassengerLuggageSummary()}
                             </div>
                           </div>
+
+                          {/* Return Journey Details - Only show for return bookings */}
+                          {bookingType === 'return' && (
+                            <div className="mb-4">
+                              <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                                Return Journey
+                              </label>
+                              <div className="p-2 bg-muted/40 rounded-md text-sm">
+                                {returnType === 'wait-and-return' ? (
+                                  <div>
+                                    <div className="flex justify-between mb-1">
+                                      <span className="text-muted-foreground">Type:</span>
+                                      <span className="font-medium">Wait & Return</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Route:</span>
+                                      <span className="font-medium">
+                                        {dropoffLocation?.address || "Not specified"} → {pickupLocation?.address || "Not specified"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : returnType === 'later-date' && returnDate && returnTime ? (
+                                  <div>
+                                    <div className="flex justify-between mb-1">
+                                      <span className="text-muted-foreground">Type:</span>
+                                      <span className="font-medium">Later Date</span>
+                                    </div>
+                                    <div className="flex justify-between mb-1">
+                                      <span className="text-muted-foreground">Return Date:</span>
+                                      <span className="font-medium">
+                                        {returnDate.toLocaleDateString("en-GB", {
+                                          day: "numeric",
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Return Time:</span>
+                                      <span className="font-medium">{returnTime}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">Return details not specified</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Journey details */}
                           <div className="mb-4">
@@ -2016,18 +2296,32 @@ export default function NewBookingPage() {
                           </div>
                         </div>
 
-                        {/* Dropoff field */}
-                        <div>
-                          <label className="text-sm font-medium mb-1 block text-muted-foreground">
-                            Dropoff Location
-                          </label>
-                          <div className="p-2 bg-muted/40 rounded-md text-sm">
-                            {dropoffLocation?.address || "Not specified"}
+                        {/* Dropoff field - Only show for non-hourly bookings */}
+                        {bookingType !== 'hourly' && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Dropoff Location
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {dropoffLocation?.address || "Not specified"}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Additional stops */}
-                        {additionalStops.length > 0 && (
+                        {/* Hours field - Only show for hourly bookings */}
+                        {bookingType === 'hourly' && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Duration
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {hours} hours
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Additional stops - Only show for one-way bookings */}
+                        {bookingType === 'one-way' && additionalStops.length > 0 && (
                           <div>
                             <label className="text-sm font-medium mb-1 block text-muted-foreground">
                               Stops ({additionalStops.length})
@@ -2078,6 +2372,54 @@ export default function NewBookingPage() {
                           </div>
                         </div>
 
+                        {/* Return Journey Details - Only show for return bookings */}
+                        {bookingType === 'return' && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block text-muted-foreground">
+                              Return Journey
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              {returnType === 'wait-and-return' ? (
+                                <div>
+                                  <div className="flex justify-between mb-1">
+                                    <span className="text-muted-foreground">Type:</span>
+                                    <span className="font-medium">Wait & Return</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Route:</span>
+                                    <span className="font-medium">
+                                      {dropoffLocation?.address || "Not specified"} → {pickupLocation?.address || "Not specified"}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : returnType === 'later-date' && returnDate && returnTime ? (
+                                <div>
+                                  <div className="flex justify-between mb-1">
+                                    <span className="text-muted-foreground">Type:</span>
+                                    <span className="font-medium">Later Date</span>
+                                  </div>
+                                  <div className="flex justify-between mb-1">
+                                    <span className="text-muted-foreground">Return Date:</span>
+                                    <span className="font-medium">
+                                      {returnDate.toLocaleDateString("en-GB", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Return Time:</span>
+                                    <span className="font-medium">{returnTime}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">Return details not specified</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Additional Requests */}
                         {(babySeat > 0 || childSeat > 0 || boosterSeat > 0 || wheelchair > 0) && (
                           <div>
@@ -2090,66 +2432,99 @@ export default function NewBookingPage() {
                           </div>
                         )}
 
-                        {/* Journey details */}
-                        <div className="mb-3">
-                          <label className="text-xs font-medium mb-1 block text-muted-foreground">
-                            Journey Info
-                          </label>
-                          <div className="p-2 bg-muted/40 rounded-md text-sm">
-                            <div className="flex justify-between mb-1">
-                              <span className="text-muted-foreground">
-                                Distance:
-                              </span>
-                              <span className="font-medium">
-                                {fareData?.journey?.distance_miles
-                                  ? `${fareData.journey.distance_miles.toFixed(
-                                      1
-                                    )} miles`
-                                  : "Not available"}
-                              </span>
+                        {/* Journey details - Only show for non-hourly bookings */}
+                        {bookingType !== 'hourly' && (
+                          <div className="mb-3">
+                            <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                              Journey Info
+                            </label>
+                            <div className="p-2 bg-muted/40 rounded-md text-sm">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground">
+                                  Distance:
+                                </span>
+                                <span className="font-medium">
+                                  {fareData?.journey?.distance_miles
+                                    ? `${fareData.journey.distance_miles.toFixed(
+                                        1
+                                      )} miles`
+                                    : "Not available"}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Duration:
+                                </span>
+                                <span className="font-medium">
+                                  {fareData?.journey?.duration_minutes
+                                    ? `${Math.floor(
+                                        fareData.journey.duration_minutes / 60
+                                      )}h ${
+                                        fareData.journey.duration_minutes % 60
+                                      }m`
+                                    : "Not available"}
+                                  </span>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Duration:
-                              </span>
-                              <span className="font-medium">
-                                {fareData?.journey?.duration_minutes
-                                  ? `${Math.floor(
-                                      fareData.journey.duration_minutes / 60
-                                    )}h ${
-                                      fareData.journey.duration_minutes % 60
-                                    }m`
-                                  : "Not available"}
-                              </span>
-                            </div>
-
-                            {/* Fare Notifications */}
-                            {fareData &&
-                              fareData.notifications &&
-                              fareData.notifications.length > 0 && (
-                                <div className="mt-2 border-t pt-2 border-border/40">
-                                  <div className="text-muted-foreground mb-1 text-xs font-medium">
-                                    Special Conditions:
-                                  </div>
-                                  <ul className="space-y-1">
-                                    {fareData.notifications.map(
-                                      (notification, index) => (
-                                        <li
-                                          key={index}
-                                          className="text-xs flex items-start"
-                                        >
-                                          <span className="bg-blue-100 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center mr-1.5 mt-0.5 flex-shrink-0">
-                                            i
-                                          </span>
-                                          <span>{notification}</span>
-                                        </li>
-                                      )
-                                    )}
-                                  </ul>
-                                </div>
-                              )}
                           </div>
-                        </div>
+                        )}
+
+                        {/* Fare Notifications */}
+                        {fareData &&
+                          fareData.notifications &&
+                          fareData.notifications.length > 0 && (
+                            <div className="mt-2 border-t pt-2 border-border/40">
+                              <div className="text-muted-foreground mb-1 text-xs font-medium">
+                                Special Conditions:
+                              </div>
+                              <ul className="space-y-1">
+                                {fareData.notifications.map(
+                                  (notification, index) => (
+                                    <li
+                                      key={index}
+                                      className="text-xs flex items-start"
+                                    >
+                                      <span className="bg-blue-100 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center mr-1.5 mt-0.5 flex-shrink-0">
+                                        i
+                                      </span>
+                                      <span>{notification}</span>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          )}
+
+                        {/* Return Journey Details - Only show for return bookings */}
+                        {bookingType === 'return' && returnType === 'later-date' && returnDate && returnTime && (
+                          <div className="mt-3 border-t pt-3 border-border/40">
+                            <div className="text-muted-foreground mb-2 text-xs font-medium">
+                              Return Journey:
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Date:</span>
+                                <span className="font-medium">
+                                  {returnDate.toLocaleDateString("en-GB", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Time:</span>
+                                <span className="font-medium">{returnTime}</span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Route:</span>
+                                <span className="font-medium">
+                                  {dropoffLocation?.address || "Not specified"} → {pickupLocation?.address || "Not specified"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -2176,6 +2551,9 @@ export default function NewBookingPage() {
                           onBack={handleBackToForm}
                           onSelectVehicle={handleVehicleSelect}
                           layout="vertical"
+                          bookingType={bookingType}
+                          returnType={returnType}
+                          hours={hours}
                         />
                       )}
                     </div>

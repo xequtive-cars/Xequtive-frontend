@@ -73,7 +73,7 @@ export interface ReturnDetails {
     lng: number;
   }>;
   returnType: 'wait-and-return' | 'later-date';
-  waitDuration?: number; // for wait-and-return
+
   returnPickup?: {
     lat: number;
     lng: number;
@@ -175,7 +175,6 @@ export interface HourlyBookingRequest {
     outboundDateTime: HourlyBookingDateTime;
     outboundStops?: HourlyBookingStop[];
     returnType: 'wait-and-return' | 'later-date';
-    waitDuration?: number;
     returnPickup?: HourlyBookingLocation;
     returnDropoff?: HourlyBookingLocation;
     returnDateTime?: HourlyBookingDateTime;
@@ -212,7 +211,7 @@ export interface HourlyBookingResponse {
       returnDetails?: {
         returnType: 'wait-and-return' | 'later-date';
         returnDateTime?: string;
-        waitDuration?: number;
+  
       };
     };
   };

@@ -414,6 +414,212 @@ class BookingService {
     }
   }
 
+  /**
+   * Create an enhanced booking with support for one-way, hourly, and return bookings
+   */
+  async createEnhancedBooking(
+    personalDetails: {
+      fullName: string;
+      email: string;
+      phone: string;
+      specialRequests: string;
+      flightInformation?: {
+        airline?: string;
+        flightNumber?: string;
+        scheduledDeparture?: string;
+        status?: "on-time" | "delayed" | "cancelled";
+      };
+      trainInformation?: {
+        trainOperator?: string;
+        trainNumber?: string;
+        scheduledDeparture?: string;
+        status?: "on-time" | "delayed" | "cancelled";
+      };
+    },
+    bookingDetails: {
+      pickupLocation: Location;
+      dropoffLocation?: Location;
+      additionalStops: Location[];
+      selectedDate: Date;
+      selectedTime: string;
+      returnDate?: Date;
+      returnTime?: string;
+      bookingType: 'one-way' | 'hourly' | 'return';
+      hours?: number;
+      returnType?: 'wait-and-return' | 'later-date';
+    
+      passengers: number;
+      checkedLuggage: number;
+      mediumLuggage: number;
+      handLuggage: number;
+      selectedVehicle: VehicleOption;
+      babySeat: number;
+      childSeat: number;
+      boosterSeat: number;
+      wheelchair: number;
+    }
+  ): Promise<EnhancedBookingResponse> {
+    try {
+      // Validate booking details based on booking type
+      if (bookingDetails.bookingType === 'hourly') {
+        if (!bookingDetails.hours || bookingDetails.hours < 3 || bookingDetails.hours > 12) {
+          throw new Error("Hours must be between 3 and 12 for hourly bookings");
+        }
+      } else if (bookingDetails.bookingType === 'return') {
+        if (!bookingDetails.returnType) {
+          throw new Error("Return type is required for return bookings");
+        }
+        if (bookingDetails.returnType === 'later-date' && (!bookingDetails.returnDate || !bookingDetails.returnTime)) {
+          throw new Error("Return date and time are required for later-date return bookings");
+        }
+      } else if (bookingDetails.bookingType === 'one-way') {
+        if (!bookingDetails.dropoffLocation) {
+          throw new Error("Dropoff location is required for one-way bookings");
+        }
+      }
+
+      // Format the date for the backend
+      const formattedDate = format(bookingDetails.selectedDate, "yyyy-MM-dd");
+
+      // Strip spaces from phone number for backend validation
+      const cleanedPhoneNumber = personalDetails.phone.replace(/\s+/g, '');
+
+      // Construct travel information based on personal details
+      let travelInformation: any = undefined;
+      
+      if (personalDetails.flightInformation && 
+          personalDetails.flightInformation.airline && 
+          personalDetails.flightInformation.flightNumber && 
+          personalDetails.flightInformation.scheduledDeparture) {
+        travelInformation = {
+          type: "flight",
+          details: {
+            type: "flight",
+            airline: personalDetails.flightInformation.airline,
+            flightNumber: personalDetails.flightInformation.flightNumber,
+            scheduledDeparture: personalDetails.flightInformation.scheduledDeparture,
+            ...(personalDetails.flightInformation.status && { 
+              status: personalDetails.flightInformation.status 
+            }),
+          }
+        };
+      } else if (personalDetails.trainInformation && 
+                 personalDetails.trainInformation.trainOperator && 
+                 personalDetails.trainInformation.trainNumber && 
+                 personalDetails.trainInformation.scheduledDeparture) {
+        travelInformation = {
+          type: "train",
+          details: {
+            type: "train",
+            trainOperator: personalDetails.trainInformation.trainOperator,
+            trainNumber: personalDetails.trainInformation.trainNumber,
+            scheduledDeparture: personalDetails.trainInformation.scheduledDeparture,
+            ...(personalDetails.trainInformation.status && { 
+              status: personalDetails.trainInformation.status 
+            }),
+          }
+        };
+      }
+
+      // Prepare the enhanced booking request
+      const enhancedBookingRequest: any = {
+        customer: {
+          fullName: personalDetails.fullName,
+          email: personalDetails.email,
+          phoneNumber: cleanedPhoneNumber,
+        },
+        booking: {
+          locations: {
+            pickup: {
+              address: bookingDetails.pickupLocation.address || '',
+              coordinates: {
+                lat: bookingDetails.pickupLocation.latitude,
+                lng: bookingDetails.pickupLocation.longitude,
+              },
+            },
+            ...(bookingDetails.dropoffLocation && {
+              dropoff: {
+                address: bookingDetails.dropoffLocation.address || '',
+                coordinates: {
+                  lat: bookingDetails.dropoffLocation.latitude,
+                  lng: bookingDetails.dropoffLocation.longitude,
+                },
+              },
+            }),
+            ...(bookingDetails.additionalStops.length > 0 && {
+              additionalStops: bookingDetails.additionalStops.map((stop) => ({
+                address: stop.address || '',
+                coordinates: {
+                  lat: stop.latitude,
+                  lng: stop.longitude,
+                },
+              })),
+            }),
+          },
+          datetime: {
+            date: formattedDate,
+            time: bookingDetails.selectedTime,
+          },
+          passengers: {
+            count: bookingDetails.passengers,
+            checkedLuggage: bookingDetails.checkedLuggage,
+            handLuggage: bookingDetails.handLuggage,
+            mediumLuggage: bookingDetails.mediumLuggage,
+            babySeat: bookingDetails.babySeat,
+            childSeat: bookingDetails.childSeat,
+            boosterSeat: bookingDetails.boosterSeat,
+            wheelchair: bookingDetails.wheelchair,
+          },
+          vehicle: {
+            id: bookingDetails.selectedVehicle.id,
+            name: bookingDetails.selectedVehicle.name,
+            price: {
+              amount: bookingDetails.selectedVehicle.price.amount,
+              currency: bookingDetails.selectedVehicle.price.currency,
+            },
+          },
+          specialRequests: personalDetails.specialRequests,
+          ...(travelInformation && { travelInformation }),
+          // Add enhanced booking type parameters
+          bookingType: bookingDetails.bookingType,
+          ...(bookingDetails.bookingType === 'hourly' && {
+            hours: bookingDetails.hours,
+          }),
+          ...(bookingDetails.bookingType === 'return' && {
+            returnType: bookingDetails.returnType || 'wait-and-return',
+            ...(bookingDetails.returnType === 'later-date' && {
+              returnDate: format(bookingDetails.returnDate!, "yyyy-MM-dd"),
+              returnTime: bookingDetails.returnTime,
+            }),
+
+          }),
+        },
+      };
+
+
+
+      console.log("🚀 Enhanced booking request:", JSON.stringify(enhancedBookingRequest, null, 2));
+      console.log("📋 Booking type:", bookingDetails.bookingType);
+      if (bookingDetails.bookingType === 'hourly') {
+        console.log("⏱️ Hours:", bookingDetails.hours);
+        console.log("🚗 Vehicle:", enhancedBookingRequest.booking.vehicle.name);
+      }
+
+      const response = await apiClient.post<EnhancedBookingResponse>(
+        "/api/bookings/create-enhanced",
+        enhancedBookingRequest
+      );
+
+      console.log("✅ Booking creation response:", response);
+      
+      // The API response is already the EnhancedBookingResponse, no need to check success property
+      return response;
+    } catch (error) {
+      console.error("Error creating enhanced booking:", error);
+      throw error;
+    }
+  }
+
   async getUserBookings(
     statusFilter?: string
   ): Promise<GetUserBookingsResponse> {

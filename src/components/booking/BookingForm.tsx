@@ -24,6 +24,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import { Slider } from "@/components/ui/slider";
 
 // Add type for location parameter
 type LocationData = {
@@ -38,8 +39,11 @@ interface BookingFormProps {
   dropoffAddress: string;
   setDropoffAddress: (value: string) => void;
   stopAddresses: string[];
+  setStopAddresses: (value: string[]) => void;
   pickupLocation: Location | null;
   dropoffLocation: Location | null;
+  setPickupLocation: (location: Location | null) => void;
+  setDropoffLocation: (location: Location | null) => void;
   selectedDate: Date | undefined;
   setSelectedDate: (value: Date | undefined) => void;
   selectedTime: string;
@@ -84,6 +88,20 @@ interface BookingFormProps {
   onGoToAdditionalRequests: () => void;
   disabled?: boolean;
   reorderStops?: (fromIndex: number, toIndex: number) => void;
+  // New props for one-way, hourly, and return booking system
+  returnDate?: Date | undefined;
+  setReturnDate?: (value: Date | undefined) => void;
+  returnTime?: string;
+  setReturnTime?: (value: string) => void;
+  bookingType: 'one-way' | 'hourly' | 'return';
+  setBookingType: (value: 'one-way' | 'hourly' | 'return') => void;
+  hours: number;
+  setHours: (value: number) => void;
+  multipleVehicles: number;
+  setMultipleVehicles: (value: number) => void;
+  returnType?: 'wait-and-return' | 'later-date';
+  setReturnType?: (value: 'wait-and-return' | 'later-date') => void;
+
 }
 
 // Add SortableStopInputField component
@@ -237,8 +255,11 @@ export default function BookingForm({
   dropoffAddress,
   setDropoffAddress,
   stopAddresses,
+  setStopAddresses,
   pickupLocation,
   dropoffLocation,
+  setPickupLocation,
+  setDropoffLocation,
   selectedDate,
   setSelectedDate,
   selectedTime,
@@ -271,7 +292,29 @@ export default function BookingForm({
   onGoToAdditionalRequests,
   disabled,
   reorderStops,
+  // New props for one-way, hourly, and return booking system
+  returnDate,
+  setReturnDate,
+  returnTime,
+  setReturnTime,
+  bookingType,
+  setBookingType,
+  hours,
+  setHours,
+  multipleVehicles,
+  setMultipleVehicles,
+  returnType,
+  setReturnType,
 }: BookingFormProps) {
+  // Function to reset location data when booking type changes
+  const resetLocationData = () => {
+    setPickupAddress("");
+    setDropoffAddress("");
+    setPickupLocation(null);
+    setDropoffLocation(null);
+    setStopAddresses([]);
+  };
+
   // Add currentStep state
   const [currentStep, setCurrentStep] = useState<"location" | "luggage">("location");
 
@@ -462,7 +505,78 @@ export default function BookingForm({
         <Card className="w-[100%] md:w-[110%] booking-form-card">
           <CardContent>
             <div className="space-y-3">
-              {/* Pickup */}
+              {/* 1. Booking Type Selection - Moved to top */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="relative group">
+                    <Button
+                      type="button"
+                      variant={bookingType === 'one-way' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setBookingType('one-way');
+                        resetLocationData();
+                        setFormModified(true);
+                      }}
+                      className="h-9 text-xs w-full"
+                      disabled={disabled || isFetching}
+                    >
+                      One-Way
+                    </Button>
+                    {/* Hover Tooltip - Below button */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-red-600 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[99999]">
+                      Point-to-point journey
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-red-600"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative group">
+                    <Button
+                      type="button"
+                      variant={bookingType === 'hourly' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setBookingType('hourly');
+                        resetLocationData();
+                        setFormModified(true);
+                      }}
+                      className="h-9 text-xs w-full"
+                      disabled={disabled || isFetching}
+                    >
+                      Hourly (3-12h)
+                    </Button>
+                    {/* Hover Tooltip - Below button */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-red-600 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[99999]">
+                      Continuous service
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-red-600"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative group">
+                    <Button
+                      type="button"
+                      variant={bookingType === 'return' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setBookingType('return');
+                        resetLocationData();
+                        setFormModified(true);
+                      }}
+                      className="h-9 text-xs w-full"
+                      disabled={disabled || isFetching}
+                    >
+                      Return
+                    </Button>
+                    {/* Hover Tooltip - Below button */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-red-600 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[99999]">
+                      Round-trip with discount
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-red-600"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Pickup */}
               <UKLocationInput
                 placeholder="Enter pickup location"
                 value={pickupAddress}
@@ -506,7 +620,7 @@ export default function BookingForm({
               />
 
               {/* Stops */}
-              {stopAddresses.length > 0 && (
+              {stopAddresses.length > 0 && bookingType === 'one-way' && (
                 <div className="pt-2 pb-1">
                   {stopAddresses.length > 1 && (
                     <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
@@ -599,66 +713,70 @@ export default function BookingForm({
               )}
 
               {/* Add stop button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  addStop();
-                  setFormModified(true);
-                }}
-                className="w-full h-9 text-sm"
-                disabled={
-                  stopAddresses.length >= 7 ||
-                  disabled ||
-                  isFetching ||
-                  !pickupAddress ||
-                  !dropoffAddress
-                }
-              >
-                <Plus size={16} className="mr-2" />
-                Add Stop
-              </Button>
+              {bookingType === 'one-way' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    addStop();
+                    setFormModified(true);
+                  }}
+                  className="w-full h-9 text-sm"
+                  disabled={
+                    stopAddresses.length >= 7 ||
+                    disabled ||
+                    isFetching ||
+                    !pickupAddress ||
+                    !dropoffAddress
+                  }
+                >
+                  <Plus size={16} className="mr-2" />
+                  Add Stop
+                </Button>
+              )}
 
-              {/* Dropoff */}
-              <UKLocationInput
-                placeholder="Enter dropoff location"
-                value={dropoffAddress}
-                onChange={setDropoffAddress}
-                initialLocation={
-                  dropoffAddress
-                    ? {
-                        address: dropoffAddress,
-                        latitude: dropoffLocation?.latitude || 0,
-                        longitude: dropoffLocation?.longitude || 0,
-                        coordinates: dropoffLocation
-                          ? {
-                              lat: dropoffLocation.latitude,
-                              lng: dropoffLocation.longitude,
-                            }
-                          : { lat: 0, lng: 0 },
-                        type: "landmark",
-                        metadata: {
-                          postcode: undefined,
-                          city: undefined,
-                          region: undefined,
-                          category: undefined,
-                        },
-                      }
-                    : null
-                }
-                onSelect={(location: Location) => {
-                  setDropoffAddress(location.address);
-                  handleDropoffLocationSelect({
-                    address: location.address,
-                    longitude: location.longitude,
-                    latitude: location.latitude,
-                  });
-                  setFormModified(true);
-                }}
-                locationType="dropoff"
-                className="bg-muted/40 text-sm h-10 rounded-md w-full"
-                disabled={disabled || isFetching}
-              />
+              {/* Dropoff Location - Only show for non-hourly bookings */}
+              {bookingType !== 'hourly' && (
+                <UKLocationInput
+                  placeholder="Enter dropoff location"
+                  value={dropoffAddress}
+                  onChange={setDropoffAddress}
+                  initialLocation={
+                    dropoffAddress
+                      ? {
+                          address: dropoffAddress,
+                          latitude: dropoffLocation?.latitude || 0,
+                          longitude: dropoffLocation?.longitude || 0,
+                          coordinates: dropoffLocation
+                            ? {
+                                lat: dropoffLocation.latitude,
+                                lng: dropoffLocation.longitude,
+                              }
+                            : { lat: 0, lng: 0 },
+                          type: "landmark",
+                          metadata: {
+                            postcode: undefined,
+                            city: undefined,
+                            region: undefined,
+                            category: undefined,
+                          },
+                        }
+                      : null
+                  }
+                  onSelect={(location: Location) => {
+                    setDropoffAddress(location.address);
+                    handleDropoffLocationSelect({
+                      address: location.address,
+                      longitude: location.longitude,
+                      latitude: location.latitude,
+                    });
+                    setFormModified(true);
+                  }}
+                  locationType="dropoff"
+                  className="bg-muted/40 text-sm h-10 rounded-md w-full"
+                  disabled={disabled || isFetching}
+                />
+              )}
 
               {/* Date and Time */}
               <div className="grid grid-cols-2 gap-3">
@@ -683,108 +801,202 @@ export default function BookingForm({
                 />
               </div>
 
-              {/* Passenger & Luggage Field */}
-              <Card>
-                <CardContent className="py-0">
-                  <div className="flex items-center justify-between py-0">
-                    <div>
-                      {passengers > 1 ||
-                      checkedLuggage > 0 ||
-                      mediumLuggage > 0 ||
-                      handLuggage > 0 ? (
-                        <p className="text-sm">
-                          {getPassengerLuggageSummary()}
-                        </p>
-                      ) : (
-                        <>
-                          <h3 className="text-base font-small">
-                            Passengers & Luggage
-                          </h3>
-                          <p className="text-xs text-gray-500">1 passenger</p>
-                        </>
-                      )}
+              {/* Return leg for return bookings */}
+              {bookingType === 'return' && (
+                <div className="space-y-3">
+                  {/* Return Type Selection */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium text-muted-foreground">Return Type</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={returnType === 'wait-and-return' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                          setReturnType && setReturnType('wait-and-return');
+                          setFormModified(true);
+                        }}
+                        className="h-9 text-xs"
+                        disabled={disabled || isFetching}
+                      >
+                        Wait & Return
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={returnType === 'later-date' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                          setReturnType && setReturnType('later-date');
+                          setFormModified(true);
+                        }}
+                        className="h-9 text-xs"
+                        disabled={disabled || isFetching}
+                      >
+                        Later Date
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 transition-transform"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentStep("luggage");
-                      }}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Additional Requests Field */}
-              <Card>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between py-0">
-                    <div>
-                      {babySeat > 0 ||
-                      childSeat > 0 ||
-                      boosterSeat > 0 ||
-                      wheelchair > 0 ? (
-                        <p className="text-sm">
-                          {getAdditionalRequestsSummary()}
-                        </p>
-                      ) : (
-                        <>
-                          <h3 className="text-base font-medium">
-                            Additional Requests
-                          </h3>
-                          <p className="text-xs text-gray-500">Not specified</p>
-                        </>
-                      )}
+                  {/* Return Date/Time - Only show for later-date returns */}
+                  {returnType === 'later-date' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <DatePicker
+                        date={returnDate}
+                        onDateChange={(date) => {
+                          setReturnDate && setReturnDate(date);
+                          setFormModified(true);
+                        }}
+                        className="w-full bg-muted/40 h-10 text-sm [&>button]:h-10 rounded-md"
+                        disabled={disabled || isFetching}
+                      />
+                      <TimePicker
+                        time={returnTime || ''}
+                        onTimeChange={(time) => {
+                          setReturnTime && setReturnTime(time);
+                          setFormModified(true);
+                        }}
+                        className="w-full bg-muted/40 h-10 text-sm [&>button]:h-10 rounded-md"
+                        disabled={disabled || isFetching}
+                        selectedDate={returnDate}
+                      />
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 transition-transform"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onGoToAdditionalRequests();
-                      }}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Calculate Fare Button */}
-              <div className="pt-1">
-                <Button
-                  disabled={
-                    !pickupLocation ||
-                    !dropoffLocation ||
-                    !selectedDate ||
-                    !selectedTime ||
-                    isFetching ||
-                    disabled
-                  }
-                  onClick={calculateFare}
-                  className="w-full h-10 text-sm font-semibold"
-                >
-                  {isFetching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Calculating...
-                    </>
-                  ) : (
-                    "Calculate Fare"
                   )}
-                </Button>
-              </div>
 
-              {fetchError && (
-                <div className="text-sm text-destructive mt-2">
-                  {fetchError}
+
                 </div>
               )}
+
+              {/* 4. Passenger & Luggage Field */}
+              <div className="space-y-3">
+                {/* Hours Slider for Hourly Bookings */}
+                {bookingType === 'hourly' && (
+                  <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                    <div className="flex justify-between text-sm">
+                      <span>Hours: {hours}</span>
+                      <span className="text-muted-foreground">3-12 hours</span>
+                    </div>
+                    <Slider
+                      value={[hours]}
+                      onValueChange={(value) => {
+                        setHours(value[0]);
+                        setFormModified(true);
+                      }}
+                      min={3}
+                      max={12}
+                      step={1}
+                      className="w-full"
+                      disabled={disabled || isFetching}
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      <div>• <strong>3-6 hours:</strong> Higher hourly rates</div>
+                      <div>• <strong>6-12 hours:</strong> Lower hourly rates</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Passenger & Luggage Field */}
+                <Card>
+                  <CardContent className="py-0">
+                    <div className="flex items-center justify-between py-0">
+                      <div>
+                        {passengers > 1 ||
+                        checkedLuggage > 0 ||
+                        mediumLuggage > 0 ||
+                        handLuggage > 0 ? (
+                          <p className="text-sm">
+                            {getPassengerLuggageSummary()}
+                          </p>
+                        ) : (
+                          <>
+                            <h3 className="text-base font-small">
+                              Passengers & Luggage
+                            </h3>
+                            <p className="text-xs text-gray-500">1 passenger</p>
+                          </>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 transition-transform"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentStep("luggage");
+                        }}
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Additional Requests Field */}
+                <Card>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between py-0">
+                      <div>
+                        {babySeat > 0 ||
+                        childSeat > 0 ||
+                        boosterSeat > 0 ||
+                        wheelchair > 0 ? (
+                          <p className="text-sm">
+                            {getAdditionalRequestsSummary()}
+                          </p>
+                        ) : (
+                          <>
+                            <h3 className="text-base font-medium">
+                              Additional Requests
+                            </h3>
+                            <p className="text-xs text-gray-500">Not specified</p>
+                          </>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 transition-transform"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onGoToAdditionalRequests();
+                        }}
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Calculate Fare Button */}
+                <div className="pt-1">
+                  <Button
+                    disabled={
+                      !pickupLocation ||
+                      (bookingType !== 'hourly' && !dropoffLocation) ||
+                      !selectedDate ||
+                      !selectedTime ||
+                      isFetching ||
+                      disabled
+                    }
+                    onClick={calculateFare}
+                    className="w-full h-10 text-sm font-semibold"
+                  >
+                    {isFetching ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Calculating...
+                      </>
+                    ) : (
+                      "Calculate Fare"
+                    )}
+                  </Button>
+                </div>
+
+                {fetchError && (
+                  <div className="text-sm text-destructive mt-2">
+                    {fetchError}
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

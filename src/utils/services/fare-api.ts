@@ -22,7 +22,7 @@ interface LocationData {
 interface FareRequest {
   locations: {
     pickup: LocationData;
-    dropoff: LocationData;
+    dropoff?: LocationData; // Made optional for hourly bookings
     stops?: LocationData[];
   };
   datetime: {
@@ -39,6 +39,13 @@ interface FareRequest {
     boosterSeat: number;
     wheelchair: number;
   };
+  // Enhanced booking type parameters
+  bookingType?: 'one-way' | 'hourly' | 'return';
+  hours?: number; // Required for hourly bookings (3-12)
+  returnType?: 'wait-and-return' | 'later-date'; // Required for return bookings
+  returnDate?: string; // Required for later-date returns (YYYY-MM-DD)
+  returnTime?: string; // Required for later-date returns (HH:mm)
+
 }
 
 type EnhancedFareResponse = ApiResponse<{ fare: FareResponse }>;
@@ -132,7 +139,7 @@ export const getFareEstimate = async (
       : "12:00";
 
     // Prepare request payload with strict validation
-    const payload = {
+    const payload: any = {
       locations: {
         pickup: {
           address: request.locations?.pickup?.address || "",
@@ -141,13 +148,15 @@ export const getFareEstimate = async (
             lng: request.locations?.pickup?.coordinates?.lng || 0,
           },
         },
-        dropoff: {
-          address: request.locations?.dropoff?.address || "",
-          coordinates: {
-            lat: request.locations?.dropoff?.coordinates?.lat || 0,
-            lng: request.locations?.dropoff?.coordinates?.lng || 0,
+        ...(request.locations?.dropoff && {
+          dropoff: {
+            address: request.locations.dropoff.address || "",
+            coordinates: {
+              lat: request.locations.dropoff.coordinates.lat || 0,
+              lng: request.locations.dropoff.coordinates.lng || 0,
+            },
           },
-        },
+        }),
         stops:
           request.locations?.stops
             ?.filter((stop: LocationData) => stop.address && stop.address.trim() !== "")
@@ -189,23 +198,56 @@ export const getFareEstimate = async (
           Math.min(Number(request.passengers?.wheelchair) || 0, 2)
         ),
       },
+      // Add enhanced booking parameters if provided
+      ...(request.bookingType && { bookingType: request.bookingType }),
+      ...(request.hours && { hours: request.hours }),
+      ...(request.returnType && { returnType: request.returnType }),
+      ...(request.returnDate && { returnDate: request.returnDate }),
+      ...(request.returnTime && { returnTime: request.returnTime }),
+      
     };
 
     // Validate payload before sending
-    if (
-      !payload.locations.pickup.address ||
-      !payload.locations.dropoff.address
-    ) {
-      throw new Error("Pickup and dropoff addresses are required");
+    if (!payload.locations.pickup.address) {
+      throw new Error("Pickup address is required");
+    }
+
+    // For hourly bookings, dropoff is optional
+    if (request.bookingType !== 'hourly' && !request.locations?.dropoff?.address) {
+      throw new Error("Dropoff address is required for non-hourly bookings");
     }
 
     if (
       payload.locations.pickup.coordinates.lat === 0 ||
-      payload.locations.pickup.coordinates.lng === 0 ||
+      payload.locations.pickup.coordinates.lng === 0
+    ) {
+      throw new Error("Valid coordinates are required for pickup");
+    }
+
+    // Validate dropoff coordinates if present
+    if (payload.locations.dropoff && (
       payload.locations.dropoff.coordinates.lat === 0 ||
       payload.locations.dropoff.coordinates.lng === 0
-    ) {
-      throw new Error("Valid coordinates are required for pickup and dropoff");
+    )) {
+      throw new Error("Valid coordinates are required for dropoff");
+    }
+
+    // Validate enhanced parameters
+    if (request.bookingType === 'hourly') {
+      const hoursValue = request.hours;
+      if (!hoursValue || hoursValue < 3 || hoursValue > 12) {
+        throw new Error("Hours must be between 3 and 12 for hourly bookings");
+      }
+    }
+
+    if (request.bookingType === 'return') {
+      if (!request.returnType) {
+        throw new Error("Return type is required for return bookings");
+      }
+      if (request.returnType === 'later-date' && (!request.returnDate || !request.returnTime)) {
+        throw new Error("Return date and time are required for later-date returns");
+      }
+
     }
 
     // Use the API client for the request

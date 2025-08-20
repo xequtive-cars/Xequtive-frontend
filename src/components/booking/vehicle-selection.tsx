@@ -102,6 +102,9 @@ interface VehicleSelectionProps {
   onBack: () => void;
   onSelectVehicle: (vehicle: VehicleOption) => void;
   layout?: "grid" | "vertical"; // Optional layout prop, defaults to grid
+  bookingType?: 'one-way' | 'hourly' | 'return';
+  returnType?: 'wait-and-return' | 'later-date';
+  hours?: number;
 }
 
 export default function VehicleSelection({
@@ -122,6 +125,9 @@ export default function VehicleSelection({
   onBack,
   onSelectVehicle,
   layout = "grid", // Default to grid layout
+  bookingType = 'one-way',
+  returnType = 'wait-and-return',
+  hours = 1,
 }: VehicleSelectionProps) {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
     null
@@ -403,9 +409,35 @@ export default function VehicleSelection({
                   {vehicle.name}
                 </h3>
                 <div className="text-right">
-                  <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono">
-                    £{vehicle.price.amount}
-                  </div>
+                  {bookingType === 'return' ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground line-through">
+                        £{vehicle.price.amount}
+                      </div>
+                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono text-green-600">
+                        £{(vehicle.price.amount * 0.9).toFixed(0)}
+                      </div>
+                      <div className="text-xs text-green-600 font-medium">
+                        10% discount
+                      </div>
+                    </div>
+                  ) : bookingType === 'hourly' ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">
+                        £{(vehicle.price.amount / hours).toFixed(0)}/hour
+                      </div>
+                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono">
+                        £{vehicle.price.amount}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Total for {hours}h
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono">
+                      £{vehicle.price.amount}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -520,9 +552,35 @@ export default function VehicleSelection({
 
               {/* Right: Price - responsive text sizes */}
               <div className="text-right ml-2">
-                <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
-                  £{vehicle.price.amount}
-                </div>
+                {bookingType === 'return' ? (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground line-through">
+                      £{vehicle.price.amount}
+                    </div>
+                    <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono text-green-600">
+                      £{(vehicle.price.amount * 0.9).toFixed(0)}
+                    </div>
+                    <div className="text-xs text-green-600 font-medium">
+                      10% discount
+                    </div>
+                  </div>
+                ) : bookingType === 'hourly' ? (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">
+                      £{(vehicle.price.amount / hours).toFixed(0)}/hour
+                    </div>
+                    <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
+                      £{vehicle.price.amount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Total for {hours}h
+                    </div>
+                  </div>
+                ) : (
+                  <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
+                    £{vehicle.price.amount}
+                  </div>
+                )}
 
                 {selectedVehicleId === vehicle.id && (
                   <div className="text-xs sm:text-sm text-primary font-medium">

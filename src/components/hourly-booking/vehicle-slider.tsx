@@ -129,8 +129,8 @@ export function VehicleSlider({
             {/* Price Breakdown */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Hourly Rate:</span>
-                <span className="font-medium">£{currentVehicle.price.breakdown?.hourlyRate}/hour</span>
+                <span className="text-sm text-muted-foreground">Base Fare:</span>
+                <span className="font-medium">£{currentVehicle.price.breakdown?.baseFare}/hour</span>
               </div>
               {currentVehicle.price.breakdown?.timeSurcharge && (
                 <div className="flex justify-between items-center">

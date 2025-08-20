@@ -66,6 +66,13 @@ export function HourlyBookingForm({ className }: HourlyBookingFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Function to reset location data when booking type changes
+  const resetLocationData = () => {
+    setPickupLocation(null);
+    setDropoffLocation(null);
+    setAdditionalStops([]);
+  };
+
   const calculateFare = async () => {
     if (!selectedDate || !selectedTime || !pickupLocation) return;
 
@@ -419,7 +426,10 @@ export function HourlyBookingForm({ className }: HourlyBookingFormProps) {
                     <Button
                       key={type.value}
                       variant={bookingType === type.value ? "default" : "outline"}
-                      onClick={() => setBookingType(type.value as 'one-way' | 'hourly' | 'return')}
+                      onClick={() => {
+                        setBookingType(type.value as 'one-way' | 'hourly' | 'return');
+                        resetLocationData();
+                      }}
                       className="h-12"
                     >
                       {type.label}

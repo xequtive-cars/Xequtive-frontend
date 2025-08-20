@@ -243,6 +243,8 @@ export default function HourlyBookingPage() {
   // Return leg date/time for 'return' bookings
   const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
   const [returnTime, setReturnTime] = useState<string>("");
+  const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
+
 
   // Passenger/luggage states
   const [passengers, setPassengers] = useState<number>(1);
@@ -1228,23 +1230,26 @@ export default function HourlyBookingPage() {
               lat: stop.latitude,
               lng: stop.longitude,
             })) : undefined,
-            returnType: 'later-date', // For now, we'll use later-date as default
-            returnPickup: {
-              lat: dropoffLocation?.latitude || 0,
-              lng: dropoffLocation?.longitude || 0,
-            },
-            returnDropoff: {
-              lat: pickupLocation?.latitude || 0,
-              lng: pickupLocation?.longitude || 0,
-            },
-            returnDateTime: {
-              date: returnDate ? formatDate(returnDate) : "",
-              time: validateAndFormatTime(returnTime),
-            },
-            returnStops: additionalStops.length > 0 ? additionalStops.map(stop => ({
-              lat: stop.latitude,
-              lng: stop.longitude,
-            })) : undefined,
+            returnType: returnType || 'wait-and-return',
+
+            ...(returnType === 'later-date' && {
+              returnPickup: {
+                lat: dropoffLocation?.latitude || 0,
+                lng: dropoffLocation?.longitude || 0,
+              },
+              returnDropoff: {
+                lat: pickupLocation?.latitude || 0,
+                lng: pickupLocation?.longitude || 0,
+              },
+              returnDateTime: {
+                date: returnDate ? formatDate(returnDate) : "",
+                time: validateAndFormatTime(returnTime || ""),
+              },
+              returnStops: additionalStops.length > 0 ? additionalStops.map(stop => ({
+                lat: stop.latitude,
+                lng: stop.longitude,
+              })) : undefined,
+            }),
           }
         };
       }
@@ -1731,74 +1736,49 @@ export default function HourlyBookingPage() {
             <>
               {/* Booking Form */}
               <div className="md:w-[31%] h-fit">
-                  <HourlyBookingForm
-                    pickupAddress={pickupAddress}
-                    setPickupAddress={setPickupAddress}
-                    dropoffAddress={dropoffAddress}
-                    setDropoffAddress={setDropoffAddress}
-                    stopAddresses={stopAddresses}
-                    pickupLocation={pickupLocation ? {
-                      address: pickupLocation?.address || "",
-                      latitude: pickupLocation?.latitude || 0,
-                      longitude: pickupLocation?.longitude || 0,
-                      coordinates: {
-                        lat: pickupLocation?.latitude || 0,
-                        lng: pickupLocation?.longitude || 0
-                      }
-                    } : null}
-                    dropoffLocation={dropoffLocation ? {
-                      address: dropoffLocation?.address || "",
-                      latitude: dropoffLocation?.latitude || 0,
-                      longitude: dropoffLocation?.longitude || 0,
-                      coordinates: {
-                        lat: dropoffLocation?.latitude || 0,
-                        lng: dropoffLocation?.longitude || 0
-                      }
-                    } : null}
-                    returnDate={returnDate}
-                    setReturnDate={setReturnDate}
-                    returnTime={returnTime}
-                    setReturnTime={setReturnTime}
-                    selectedDate={selectedDate}
-                    setSelectedDate={setSelectedDate}
-                    selectedTime={selectedTime}
-                    setSelectedTime={setSelectedTime}
-                    passengers={passengers}
-                    setPassengers={setPassengers}
-                    checkedLuggage={checkedLuggage}
-                    setCheckedLuggage={setCheckedLuggage}
-                    mediumLuggage={mediumLuggage}
-                    setMediumLuggage={setMediumLuggage}
-                    handLuggage={handLuggage}
-                    setHandLuggage={setHandLuggage}
-                    babySeat={babySeat}
-                    childSeat={childSeat}
-                    boosterSeat={boosterSeat}
-                    wheelchair={wheelchair}
-                    userLocation={userLocation}
-                    showVehicleOptions={showVehicleOptions}
-                    setFormModified={setFormModified}
-                    isFetching={isFetching}
-                    fetchError={fetchError}
-                    handlePickupLocationSelect={handlePickupLocationSelect}
-                    handleDropoffLocationSelect={handleDropoffLocationSelect}
-                    handleStopLocationSelect={handleStopLocationSelect}
-                    updateStopAddress={updateStopAddress}
-                    addStop={addStop}
-                    removeStop={removeStop}
-                    calculateFare={handleCalculateFare}
-                    getPassengerLuggageSummary={getPassengerLuggageSummary}
-                    getAdditionalRequestsSummary={getAdditionalRequestsSummary}
-
-                    disabled={locationPermission.denied}
-                    reorderStops={reorderStops}
-                    bookingType={bookingType}
-                    setBookingType={setBookingType}
-                    hours={hours}
-                    setHours={setHours}
-                    multipleVehicles={multipleVehicles}
-                    setMultipleVehicles={setMultipleVehicles}
-                  />
+                                      <HourlyBookingForm
+                      pickupAddress={pickupAddress}
+                      setPickupAddress={setPickupAddress}
+                      dropoffAddress={dropoffAddress}
+                      setDropoffAddress={setDropoffAddress}
+                      pickupLocation={pickupLocation}
+                      dropoffLocation={dropoffLocation}
+                      setPickupLocation={setPickupLocation}
+                      setDropoffLocation={setDropoffLocation}
+                      handlePickupLocationSelect={handlePickupLocationSelect}
+                      handleDropoffLocationSelect={handleDropoffLocationSelect}
+                      selectedDate={selectedDate}
+                      setSelectedDate={setSelectedDate}
+                      selectedTime={selectedTime}
+                      setSelectedTime={setSelectedTime}
+                      returnDate={returnDate}
+                      setReturnDate={setReturnDate}
+                      returnTime={returnTime}
+                      setReturnTime={setReturnTime}
+                      bookingType={bookingType}
+                      setBookingType={setBookingType}
+                      hours={hours}
+                      setHours={setHours}
+                      passengers={passengers}
+                      setPassengers={setPassengers}
+                      checkedLuggage={checkedLuggage}
+                      setCheckedLuggage={setCheckedLuggage}
+                      mediumLuggage={mediumLuggage}
+                      setMediumLuggage={setMediumLuggage}
+                      handLuggage={handLuggage}
+                      setHandLuggage={setHandLuggage}
+                      multipleVehicles={multipleVehicles}
+                      setMultipleVehicles={setMultipleVehicles}
+                      calculateFare={handleCalculateFare}
+                      isFetching={isFetching}
+                      fetchError={fetchError}
+                      disabled={locationPermission.denied}
+                      setFormModified={setFormModified}
+                      returnType={returnType}
+                      setReturnType={setReturnType}
+                      userLocation={userLocation}
+                      showVehicleOptions={showVehicleOptions}
+                    />
                 </div>
 
               {/* Map Section - Width adjusted proportionally */}
@@ -2212,8 +2192,8 @@ export default function HourlyBookingPage() {
                           </div>
                         </div>
 
-                        {/* Return date and time for return bookings */}
-                        {bookingType === 'return' && returnDate && returnTime && (
+                        {/* Return date and time for later-date return bookings */}
+                        {bookingType === 'return' && returnType === 'later-date' && returnDate && returnTime && (
                           <div className="grid grid-cols-2 gap-3 mb-3">
                             <div>
                               <label className="text-xs font-medium mb-1 block text-muted-foreground">
@@ -2486,8 +2466,8 @@ export default function HourlyBookingPage() {
                           </div>
                         </div>
 
-                        {/* Return date and time for return bookings */}
-                        {bookingType === 'return' && returnDate && returnTime && (
+                        {/* Return date and time for later-date return bookings */}
+                        {bookingType === 'return' && returnType === 'later-date' && returnDate && returnTime && (
                           <div>
                             <label className="text-sm font-medium mb-1 block text-muted-foreground">
                               Return Date & Time
