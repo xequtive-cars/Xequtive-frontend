@@ -61,6 +61,69 @@ export const locationToLocationData = (location: Location): LocationData => {
   };
 };
 
+// Helper function to correct vehicle capacities according to updated API documentation
+function correctVehicleCapacities(vehicleOptions: VehicleOption[]): VehicleOption[] {
+  let correctedVehicles = vehicleOptions.map(vehicle => {
+    // Create a copy of the vehicle to avoid mutating the original
+    const correctedVehicle = { ...vehicle };
+    
+    // Apply correct capacities based on vehicle ID or name
+    if (vehicle.id === 'estate' || vehicle.name.toLowerCase().includes('estate')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, luggage: 4 };
+    } else if (vehicle.id === 'large-mpv' || vehicle.name.toLowerCase().includes('mpv-6')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, luggage: 4 };
+    } else if (vehicle.id === 'extra-large-mpv' || vehicle.name.toLowerCase().includes('mpv-8')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, passengers: 8, luggage: 8 };
+    } else if (vehicle.id === 'executive-saloon' || vehicle.name.toLowerCase().includes('executive saloon')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, passengers: 4 };
+    } else if (vehicle.id === 'executive-mpv' || vehicle.name.toLowerCase().includes('executive mpv')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, passengers: 8, luggage: 8 };
+    } else if (vehicle.id === 'vip' || vehicle.name.toLowerCase().includes('vip saloon')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, passengers: 3, luggage: 2 };
+    } else if (vehicle.id === 'vip-mpv' || vehicle.name.toLowerCase().includes('vip mpv') || vehicle.name.toLowerCase().includes('vip suv')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, passengers: 6, luggage: 6 };
+    } else if (vehicle.id === 'wav' || vehicle.name.toLowerCase().includes('wheelchair') || vehicle.name.toLowerCase().includes('accessible')) {
+      correctedVehicle.capacity = { ...vehicle.capacity, passengers: 4, luggage: 2 };
+    }
+    
+    return correctedVehicle;
+  });
+
+  // Add missing VIP vehicles if they're not present
+  const hasVipSaloon = correctedVehicles.some(v => 
+    v.id === 'vip' || v.name.toLowerCase().includes('vip saloon')
+  );
+  const hasVipMpv = correctedVehicles.some(v => 
+    v.id === 'vip-mpv' || v.name.toLowerCase().includes('vip mpv') || v.name.toLowerCase().includes('vip suv')
+  );
+
+  if (!hasVipSaloon) {
+    correctedVehicles.push({
+      id: 'vip',
+      name: 'VIP Saloon',
+      description: 'High-end luxury saloon for up to 3 passengers, 2 luggage pieces, and 2 hand luggage items.',
+      capacity: { passengers: 3, luggage: 2 },
+      price: { amount: 0, currency: 'GBP' }, // Price will be calculated by backend
+      features: ['WiFi', 'Premium Interior', 'Professional Driver'],
+      vehicleType: 'vip' as any
+    });
+  }
+
+  if (!hasVipMpv) {
+    correctedVehicles.push({
+      id: 'vip-mpv',
+      name: 'VIP MPV/SUV',
+      description: 'Premium VIP vehicle for up to 6 passengers, 6 luggage pieces, and 6 hand luggage items.',
+      capacity: { passengers: 6, luggage: 6 },
+      price: { amount: 0, currency: 'GBP' }, // Price will be calculated by backend
+      features: ['WiFi', 'Premium Interior', 'Professional Driver', 'Spacious'],
+      vehicleType: 'vip' as any
+    });
+  }
+
+  return correctedVehicles;
+}
+
 // Main fare estimation function
 export const getFareEstimate = async (
   initialRequest: FareRequest | Location
@@ -168,7 +231,7 @@ export const getFareEstimate = async (
       },
       passengers: {
         // Ensure all passenger fields are present and have a default of 0
-        count: Math.max(1, Math.min(Number(request.passengers?.count) || 1, 16)),
+        count: Math.max(1, Math.min(Number(request.passengers?.count) || 1, 8)),
         checkedLuggage: Math.max(
           0,
           Math.min(Number(request.passengers?.checkedLuggage) || 0, 8)
@@ -259,9 +322,15 @@ export const getFareEstimate = async (
 
       // The API client returns the full backend response, so we need to extract the fare data
       if (response.success && response.data && response.data.fare) {
+        // Correct vehicle capacities before returning
+        const correctedFare = {
+          ...response.data.fare,
+          vehicleOptions: correctVehicleCapacities(response.data.fare.vehicleOptions)
+        };
+        
         return {
           success: true,
-          data: { fare: response.data.fare },
+          data: { fare: correctedFare },
         };
       } else {
         return {

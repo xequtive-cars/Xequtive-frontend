@@ -113,13 +113,13 @@ export function PassengerLuggageForm({
           {/* Checked Luggage selection */}
           <div className="space-y-3">
             <label className="text-lg font-medium block">
-              Checked Luggage (Large Bags)
+              Checked Luggage (Large Luggage)
             </label>
             <div className="flex items-center justify-between h-16 border rounded-md p-4 bg-muted/40">
               <div className="flex items-center gap-3 px-3">
                 <Briefcase className="h-6 w-6 text-muted-foreground" />
                 <span className="text-lg">
-                  {checkedLuggage} Large {checkedLuggage === 1 ? "Bag" : "Bags"}
+                  {checkedLuggage} Large {checkedLuggage === 1 ? "Luggage" : "Luggage"}
                 </span>
               </div>
               <div className="flex items-center">
@@ -159,13 +159,13 @@ export function PassengerLuggageForm({
           {/* Medium Luggage selection */}
           <div className="space-y-3">
             <label className="text-lg font-medium block">
-              Medium Luggage (Medium Bags)
+              Medium Luggage (Medium Luggage)
             </label>
             <div className="flex items-center justify-between h-16 border rounded-md p-4 bg-muted/40">
               <div className="flex items-center gap-3 px-3">
                 <Briefcase className="h-6 w-6 text-muted-foreground" />
                 <span className="text-lg">
-                  {mediumLuggage} Medium {mediumLuggage === 1 ? "Bag" : "Bags"}
+                  {mediumLuggage} Medium {mediumLuggage === 1 ? "Luggage" : "Luggage"}
                 </span>
               </div>
               <div className="flex items-center">
@@ -205,13 +205,13 @@ export function PassengerLuggageForm({
           {/* Hand Luggage selection */}
           <div className="space-y-3">
             <label className="text-lg font-medium block">
-              Hand Luggage (Small Bags)
+              Hand Luggage (Small Luggage)
             </label>
             <div className="flex items-center justify-between h-16 border rounded-md p-4 bg-muted/40">
               <div className="flex items-center gap-3 px-3">
                 <Briefcase className="h-6 w-6 text-muted-foreground" />
                 <span className="text-lg">
-                  {handLuggage} Small {handLuggage === 1 ? "Bag" : "Bags"}
+                  {handLuggage} Small {handLuggage === 1 ? "Luggage" : "Luggage"}
                 </span>
               </div>
               <div className="flex items-center">

@@ -291,9 +291,9 @@ function UpdateBookingClientComponent({
     const parts = [];
     if (passengers > 0) parts.push(`${passengers} ${passengers === 1 ? "passenger" : "passengers"}`);
     const luggageParts = [];
-    if (checkedLuggage > 0) luggageParts.push(`${checkedLuggage} large ${checkedLuggage === 1 ? "bag" : "bags"}`);
-    if (mediumLuggage > 0) luggageParts.push(`${mediumLuggage} medium ${mediumLuggage === 1 ? "bag" : "bags"}`);
-    if (handLuggage > 0) luggageParts.push(`${handLuggage} small ${handLuggage === 1 ? "bag" : "bags"}`);
+    if (checkedLuggage > 0) luggageParts.push(`${checkedLuggage} large ${checkedLuggage === 1 ? "luggage" : "luggage"}`);
+    if (mediumLuggage > 0) luggageParts.push(`${mediumLuggage} medium ${mediumLuggage === 1 ? "luggage" : "luggage"}`);
+    if (handLuggage > 0) luggageParts.push(`${handLuggage} small ${handLuggage === 1 ? "luggage" : "luggage"}`);
     if (luggageParts.length > 0) parts.push(luggageParts.join(", "));
     return parts.join(" with ");
   };

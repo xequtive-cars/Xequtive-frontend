@@ -148,7 +148,7 @@ export function BookingSummary({
                 {checkedLuggage > 0 && (
                   <span>
                     {checkedLuggage} large{" "}
-                    {checkedLuggage === 1 ? "bag" : "bags"}
+                    {checkedLuggage === 1 ? "luggage" : "luggage"}
                   </span>
                 )}
                 {checkedLuggage > 0 &&
@@ -156,13 +156,13 @@ export function BookingSummary({
                 {mediumLuggage > 0 && (
                   <span>
                     {mediumLuggage} medium{" "}
-                    {mediumLuggage === 1 ? "bag" : "bags"}
+                    {mediumLuggage === 1 ? "luggage" : "luggage"}
                   </span>
                 )}
                 {mediumLuggage > 0 && handLuggage > 0 && <span>, </span>}
                 {handLuggage > 0 && (
                   <span>
-                    {handLuggage} small {handLuggage === 1 ? "bag" : "bags"}
+                    {handLuggage} small {handLuggage === 1 ? "luggage" : "luggage"}
                   </span>
                 )}
               </p>

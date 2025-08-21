@@ -155,12 +155,12 @@ export default function NewBookingPageRedux() {
     const luggageParts = [];
     if (checkedLuggage > 0) {
       luggageParts.push(
-        `${checkedLuggage} large ${checkedLuggage === 1 ? "bag" : "bags"}`
+        `${checkedLuggage} large ${checkedLuggage === 1 ? "luggage" : "luggage"}`
       );
     }
     if (handLuggage > 0) {
       luggageParts.push(
-        `${handLuggage} small ${handLuggage === 1 ? "bag" : "bags"}`
+        `${handLuggage} small ${handLuggage === 1 ? "luggage" : "luggage"}`
       );
     }
 

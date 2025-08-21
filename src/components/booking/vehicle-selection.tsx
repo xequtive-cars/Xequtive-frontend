@@ -48,40 +48,32 @@ const getVehicleTypeOrder = (
   // Direct name matching - most reliable approach
   if (name.includes("standard saloon")) return 1;
   if (name.includes("estate")) return 2;
-  if (name.includes("mpv-6")) return 3;
-  if (name.includes("mpv-8") && !name.includes("vip")) return 4;
-  if (name.includes("executive saloon") && !name.includes("vip")) return 5;
-  if (name.includes("vip executive saloon")) return 6;
-  if (name.includes("vip executive mpv")) return 7;
+  if (name.includes("mpv-6") || name.includes("large-mpv")) return 3;
+  if (name.includes("mpv-8") || name.includes("extra-large-mpv")) return 4;
+  if (name.includes("executive saloon")) return 5;
+  if (name.includes("executive mpv")) return 6;
+  if (name.includes("vip") && name.includes("saloon")) return 7;
+  if (name.includes("vip") && (name.includes("mpv") || name.includes("suv"))) return 8;
   if (
     name.includes("wheelchair") ||
     name.includes("wav") ||
     name.includes("accessible")
   )
-    return 8;
+    return 9;
 
   // Fallback to ID-based checks if name doesn't match specific patterns
   if (id.includes("standard")) return 1;
   if (id.includes("estate")) return 2;
-  if (
-    id.includes("mpv-6") ||
-    (id.includes("mpv") && id.includes("6") && !id.includes("vip"))
-  )
-    return 3;
-  if (
-    id.includes("mpv-8") ||
-    (id.includes("mpv") && id.includes("8") && !id.includes("vip"))
-  )
-    return 4;
-  if ((id.includes("executive") || id.includes("exec")) && !id.includes("vip"))
-    return 5;
-  if (id.includes("vip") && id.includes("executive") && !id.includes("mpv"))
-    return 6;
-  if (id.includes("vip") && id.includes("mpv")) return 7;
-  if (id.includes("wav")) return 8;
+  if (id.includes("large-mpv") || id.includes("mpv-6")) return 3;
+  if (id.includes("extra-large-mpv") || id.includes("mpv-8")) return 4;
+  if (id.includes("executive-saloon")) return 5;
+  if (id.includes("executive-mpv")) return 6;
+  if (id.includes("vip") && !id.includes("mpv")) return 7;
+  if (id.includes("vip-mpv") || (id.includes("vip") && id.includes("mpv"))) return 8;
+  if (id.includes("wav")) return 9;
 
   // Default sorting
-  return 9;
+  return 10;
 };
 
 interface VehicleSelectionProps {
@@ -175,17 +167,17 @@ export default function VehicleSelection({
     const luggageParts = [];
     if (checkedLuggage > 0) {
       luggageParts.push(
-        `${checkedLuggage} large ${checkedLuggage === 1 ? "bag" : "bags"}`
+        `${checkedLuggage} large ${checkedLuggage === 1 ? "luggage" : "luggage"}`
       );
     }
     if (mediumLuggage > 0) {
       luggageParts.push(
-        `${mediumLuggage} medium ${mediumLuggage === 1 ? "bag" : "bags"}`
+        `${mediumLuggage} medium ${mediumLuggage === 1 ? "luggage" : "luggage"}`
       );
     }
     if (handLuggage > 0) {
       luggageParts.push(
-        `${handLuggage} small ${handLuggage === 1 ? "bag" : "bags"}`
+        `${handLuggage} small ${handLuggage === 1 ? "luggage" : "luggage"}`
       );
     }
 
@@ -449,19 +441,19 @@ export default function VehicleSelection({
 
             {/* Capacity Badges - responsive sizing */}
             <div className="mt-auto">
-              <div className="flex flex-wrap gap-1 sm:gap-2 mb-2">
-                <Badge
-                  variant={capacity.passengerOk ? "outline" : "destructive"}
-                  className="text-xs sm:text-sm py-0 h-5 sm:h-6"
-                >
-                  {vehicle.capacity.passengers} seats
-                </Badge>
-                <Badge
-                  variant={capacity.luggageOk ? "outline" : "destructive"}
-                  className="text-xs sm:text-sm py-0 h-5 sm:h-6"
-                >
-                  {vehicle.capacity.luggage} bags
-                </Badge>
+                                  <div className="flex flex-wrap gap-1 sm:gap-2 mb-2">
+                      <Badge
+                        variant={capacity.passengerOk ? "outline" : "destructive"}
+                        className="text-xs sm:text-sm py-0 h-5 sm:h-6"
+                      >
+                        {vehicle.capacity.passengers} Passengers
+                      </Badge>
+                      <Badge
+                        variant={capacity.luggageOk ? "outline" : "destructive"}
+                        className="text-xs sm:text-sm py-0 h-5 sm:h-6"
+                      >
+                        {vehicle.capacity.luggage} Luggage
+                      </Badge>
                 {vehicle.features?.includes("WiFi") && (
                   <Badge
                     variant="secondary"
@@ -536,7 +528,7 @@ export default function VehicleSelection({
                     >
                       {vehicle.capacity.passengers}
                     </Badge>
-                    seats
+                    Passengers
                   </span>
                   <span className="flex items-center">
                     <Badge
@@ -545,7 +537,7 @@ export default function VehicleSelection({
                     >
                       {vehicle.capacity.luggage}
                     </Badge>
-                    bags
+                    Luggage
                   </span>
                 </div>
               </div>

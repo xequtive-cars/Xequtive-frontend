@@ -121,7 +121,7 @@ export function VehicleSlider({
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">{currentVehicle.capacity.luggage} Luggage</p>
-                  <p className="text-xs text-muted-foreground">Large bags</p>
+                  <p className="text-xs text-muted-foreground">Maximum luggage</p>
                 </div>
               </div>
             </div>

@@ -101,13 +101,13 @@ export function PassengerLuggageForm({
           {/* Checked Luggage selection */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium block">
-              Checked Luggage (Large Bags)
+              Checked Luggage (Large Luggage)
             </label>
             <div className="flex items-center justify-between h-12 border rounded-md p-2 bg-muted/40">
               <div className="flex items-center gap-2 px-2">
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  {checkedLuggage} Large {checkedLuggage === 1 ? "Bag" : "Bags"}
+                  {checkedLuggage} Large {checkedLuggage === 1 ? "Luggage" : "Luggage"}
                 </span>
               </div>
               <div className="flex items-center">
@@ -147,13 +147,13 @@ export function PassengerLuggageForm({
           {/* Hand Luggage selection */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium block">
-              Hand Luggage (Small Bags)
+              Hand Luggage (Small Luggage)
             </label>
             <div className="flex items-center justify-between h-12 border rounded-md p-2 bg-muted/40">
               <div className="flex items-center gap-2 px-2">
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  {handLuggage} Small {handLuggage === 1 ? "Bag" : "Bags"}
+                  {handLuggage} Small {handLuggage === 1 ? "Luggage" : "Luggage"}
                 </span>
               </div>
               <div className="flex items-center">
