@@ -12,9 +12,9 @@ export default function AboutPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">About Us</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-primary">ABOUT US</h1>
         <p className="text-xl text-muted-foreground mt-2">
-          Premium executive transportation services
+          Experience reliable transportation with comfort and premium vehicle options.
         </p>
       </div>
 
@@ -26,9 +26,10 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
-              XEQUTIVE is a premium transportation service dedicated to providing exceptional 
-              travel experiences for executives, business professionals, and discerning travelers 
-              across the United Kingdom.
+              XEQUTIVE is a car booking service dedicated to providing reliable transportation for executives, business professionals, local and international travelers.
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-4">
+              We offer both standard and executive car services for Airport Transfers, Hotels, City-to-City, Cruise-Terminals, Events, Tours, Business and local travel.
             </p>
           </CardContent>
         </Card>

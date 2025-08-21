@@ -17,7 +17,7 @@ export default function AirportTransfersPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">AIRPORT TRANSFERS</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#8B0000]">AIRPORT TRANSFERS</h1>
         <p className="text-xl text-muted-foreground mt-2">
           Professional and reliable airport transfer services
         </p>

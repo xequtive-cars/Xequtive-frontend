@@ -18,7 +18,7 @@ export function HeroSection({ isAuthenticated }: HeroSectionProps) {
           Premium Car Booking Service
         </h1>
         <p className="text-xl md:text-2xl text-muted-foreground mx-auto max-w-[600px] leading-relaxed">
-        Experience reliable, comfort transportation with premium vehicle options.
+        Experience reliable transportation with comfort and premium vehicle options.
         </p>
       </div>
 

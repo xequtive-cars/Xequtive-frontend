@@ -17,8 +17,8 @@ export default function EventTransportationPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">EVENTS & GROUP TRANSPORTATION</h1>
-        <p className="text-xl text-muted-foreground mt-2">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#8B0000]">EVENTS:</h1>
+        <p className="text-lg md:text-xl text-muted-foreground mt-2">
           Flexible and customized booking options for events and special occasions
         </p>
       </div>
@@ -109,47 +109,14 @@ export default function EventTransportationPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Perfect For:</CardTitle>
+            <CardTitle>Weddings & Special Occasions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Weddings</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Corporate Events</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Birthday Celebrations</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Anniversary Parties</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">City Tours</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Day Trips</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Cruise Terminal Transfers</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-sm">Group Travel</span>
-                </div>
-              </div>
-            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              Make your special day memorable with our luxury transportation services. 
+              From elegant wedding cars to VIP event transportation, we ensure your 
+              special occasions are perfectly catered for.
+            </p>
           </CardContent>
         </Card>
 

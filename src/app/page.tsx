@@ -68,7 +68,7 @@ function HomeContent() {
                 Why Choose XEQUTIVE
               </h2>
               <p className="text-xl text-muted-foreground max-w-[600px] leading-relaxed">
-                Premium service designed for executives and luxury travelers
+                Reliable service with premium options for executives & luxury travellers
               </p>
             </div>
 
