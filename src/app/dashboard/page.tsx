@@ -30,13 +30,13 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [activeBookings, setActiveBookings] = useState<
-    GetUserBookingsResponse["data"]
+    GetUserBookingsResponse["data"]["bookings"]
   >([]);
   const [historyBookings, setHistoryBookings] = useState<
-    GetUserBookingsResponse["data"]
+    GetUserBookingsResponse["data"]["bookings"]
   >([]);
   const [cancelledBookings, setCancelledBookings] = useState<
-    GetUserBookingsResponse["data"]
+    GetUserBookingsResponse["data"]["bookings"]
   >([]);
   const [loadingActive, setLoadingActive] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellingBooking, setCancellingBooking] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<
-    GetUserBookingsResponse["data"][0] | null
+    GetUserBookingsResponse["data"]["bookings"][0] | null
   >(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
@@ -57,7 +57,7 @@ export default function DashboardPage() {
         "pending,confirmed"
       );
       if (response.success) {
-        setActiveBookings(response.data);
+        setActiveBookings(response.data.bookings);
       }
     } catch (error) {
       console.error("Failed to fetch active bookings:", error);
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         "assigned,in_progress,completed,declined,no_show"
       );
       if (response.success) {
-        setHistoryBookings(response.data);
+        setHistoryBookings(response.data.bookings);
       }
     } catch (error) {
       console.error("Failed to fetch booking history:", error);
@@ -99,7 +99,7 @@ export default function DashboardPage() {
     try {
       const response = await bookingService.getUserBookings("cancelled");
       if (response.success) {
-        setCancelledBookings(response.data);
+        setCancelledBookings(response.data.bookings);
       }
     } catch (error) {
       console.error("Failed to fetch cancelled bookings:", error);
@@ -177,7 +177,7 @@ export default function DashboardPage() {
 
   // Open details modal
   const handleViewDetails = useCallback(
-    (booking: GetUserBookingsResponse["data"][0]) => {
+    (booking: GetUserBookingsResponse["data"]["bookings"][0]) => {
       setSelectedBooking(booking);
       setDetailsModalOpen(true);
     },
@@ -186,7 +186,7 @@ export default function DashboardPage() {
 
   // Handle editing a booking
   const handleEditBooking = useCallback(
-    (booking: GetUserBookingsResponse["data"][0]) => {
+    (booking: GetUserBookingsResponse["data"]["bookings"][0]) => {
       // Create URL parameters with current booking details to pre-fill the form
       const params = new URLSearchParams();
       
@@ -194,9 +194,9 @@ export default function DashboardPage() {
       params.set('bookingId', booking.id);
       
       // Add current booking details for pre-filling
-      if (booking.pickupLocation?.address) {
+      if (booking.locations.pickup?.address) {
         const pickupData = {
-          address: booking.pickupLocation.address,
+          address: booking.locations.pickup.address,
           // Note: We don't have coordinates from the booking response, 
           // so the form will need to geocode the address
           latitude: 0,
@@ -205,9 +205,9 @@ export default function DashboardPage() {
         params.set('pickup', encodeURIComponent(JSON.stringify(pickupData)));
       }
       
-      if (booking.dropoffLocation?.address) {
+      if (booking.locations.dropoff?.address) {
         const dropoffData = {
-          address: booking.dropoffLocation.address,
+          address: booking.locations.dropoff.address,
           latitude: 0,
           longitude: 0
         };

@@ -16,11 +16,11 @@ import Link from "next/link";
 
 export default function RideHistoryPage() {
   const [historyBookings, setHistoryBookings] = useState<
-    GetUserBookingsResponse["data"]
+    GetUserBookingsResponse["data"]["bookings"]
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<
-    GetUserBookingsResponse["data"][0] | null
+    GetUserBookingsResponse["data"]["bookings"][0] | null
   >(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const { toast } = useToast();
@@ -33,7 +33,7 @@ export default function RideHistoryPage() {
         "assigned,in_progress,completed,cancelled,declined,no_show"
       );
       if (response.success) {
-        setHistoryBookings(response.data);
+        setHistoryBookings(response.data.bookings);
       }
     } catch (error) {
       console.error("Failed to fetch booking history:", error);
@@ -48,7 +48,7 @@ export default function RideHistoryPage() {
   }, [toast]);
 
   // Open details modal
-  const handleViewDetails = (booking: GetUserBookingsResponse["data"][0]) => {
+  const handleViewDetails = (booking: GetUserBookingsResponse["data"]["bookings"][0]) => {
     setSelectedBooking(booking);
     setDetailsModalOpen(true);
   };

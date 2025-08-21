@@ -187,6 +187,7 @@ export interface HourlyBookingResponse {
   success: boolean;
   data: {
     bookingId: string;
+    referenceNumber?: string;
     message: string;
     details: {
       customerName: string;

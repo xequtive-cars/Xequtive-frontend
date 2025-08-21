@@ -270,10 +270,12 @@ export default function HourlyBookingPage() {
   const [bookingSuccess, setBookingSuccess] = useState<{
     show: boolean;
     bookingId: string;
+    referenceNumber?: string;
     notifications: string[];
   }>({
     show: false,
     bookingId: "",
+    referenceNumber: "",
     notifications: [],
   });
 
@@ -1503,10 +1505,19 @@ export default function HourlyBookingPage() {
       // Call booking API
       const bookingResponse = await hourlyBookingService.createBooking(bookingData);
 
-      // Update success state with the booking ID and notifications if any
+
+
+      // Try multiple possible paths for reference number
+      // The backend should return referenceNumber at the root level according to docs
+      const referenceNumber = (bookingResponse as any).data?.referenceNumber || 
+                             (bookingResponse as any).data?.details?.referenceNumber ||
+                             undefined;
+
+      // Update success state with the booking ID, reference number, and notifications if any
       setBookingSuccess({
         show: true,
         bookingId: bookingResponse.data.bookingId,
+        referenceNumber: referenceNumber,
         notifications: [],
       });
 
@@ -2560,8 +2571,9 @@ export default function HourlyBookingPage() {
             <div className="py-4">
               <p className="mb-2 text-sm font-medium">Booking Reference:</p>
               <div className="text-lg font-bold font-mono bg-primary/10 py-3 px-4 rounded-md text-center mb-4">
-                {bookingSuccess.bookingId}
+                {bookingSuccess.referenceNumber || bookingSuccess.bookingId}
               </div>
+
 
               <div className="bg-slate-50 border border-slate-200 rounded-md p-4 mb-4">
                 <h4 className="font-medium text-slate-800 mb-2">

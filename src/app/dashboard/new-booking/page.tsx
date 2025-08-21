@@ -308,10 +308,12 @@ export default function NewBookingPage() {
   const [bookingSuccess, setBookingSuccess] = useState<{
     show: boolean;
     bookingId: string;
+    referenceNumber?: string;
     notifications: string[];
   }>({
     show: false,
     bookingId: "",
+    referenceNumber: "",
     notifications: [],
   });
 
@@ -1542,10 +1544,16 @@ export default function NewBookingPage() {
         }
       );
 
-      // Update success state with the booking ID and notifications if any
+      // Debug: Log the full booking response to see the structure
+      // Extract reference number from the response
+      const referenceNumber = (bookingResponse as any).data?.referenceNumber || 
+                             (bookingResponse as any).data?.details?.referenceNumber ||
+                             undefined;
+      
       setBookingSuccess({
         show: true,
         bookingId: bookingResponse.data.bookingId,
+        referenceNumber: referenceNumber,
         notifications: bookingResponse.data.details?.notifications || [],
       });
 
@@ -2753,8 +2761,9 @@ export default function NewBookingPage() {
             <div className="py-4">
               <p className="mb-2 text-sm font-medium">Booking Reference:</p>
               <div className="text-lg font-bold font-mono bg-primary/10 py-3 px-4 rounded-md text-center mb-4">
-                {bookingSuccess.bookingId}
+                {bookingSuccess.referenceNumber || bookingSuccess.bookingId}
               </div>
+
 
               <div className="bg-slate-50 border border-slate-200 rounded-md p-4 mb-4">
                 <h4 className="font-medium text-slate-800 mb-2">

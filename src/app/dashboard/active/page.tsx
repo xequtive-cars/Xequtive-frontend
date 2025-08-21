@@ -28,14 +28,14 @@ import {
 export default function ActiveBookingsPage() {
   const router = useRouter();
   const [activeBookings, setActiveBookings] = useState<
-    GetUserBookingsResponse["data"]
+    GetUserBookingsResponse["data"]["bookings"]
   >([]);
   const [loadingActive, setLoadingActive] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellingBooking, setCancellingBooking] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<
-    GetUserBookingsResponse["data"][0] | null
+    GetUserBookingsResponse["data"]["bookings"][0] | null
   >(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const { toast } = useToast();
@@ -48,7 +48,7 @@ export default function ActiveBookingsPage() {
         "pending,confirmed"
       );
       if (response.success) {
-        setActiveBookings(response.data);
+        setActiveBookings(response.data.bookings);
       }
     } catch (error) {
       console.error("Failed to fetch active bookings:", error);
@@ -110,14 +110,14 @@ export default function ActiveBookingsPage() {
   };
 
   // Open details modal
-  const handleViewDetails = (booking: GetUserBookingsResponse["data"][0]) => {
+  const handleViewDetails = (booking: GetUserBookingsResponse["data"]["bookings"][0]) => {
     setSelectedBooking(booking);
     setDetailsModalOpen(true);
   };
 
   // Handle editing a booking
   const handleEditBooking = useCallback(
-    (booking: GetUserBookingsResponse["data"][0]) => {
+    (booking: GetUserBookingsResponse["data"]["bookings"][0]) => {
       // Create URL parameters with current booking details to pre-fill the form
       const params = new URLSearchParams();
       
@@ -125,9 +125,9 @@ export default function ActiveBookingsPage() {
       params.set('bookingId', booking.id);
       
       // Add current booking details for pre-filling
-      if (booking.pickupLocation?.address) {
+      if (booking.locations.pickup?.address) {
         const pickupData = {
-          address: booking.pickupLocation.address,
+          address: booking.locations.pickup.address,
           // Note: We don't have coordinates from the booking response, 
           // so the form will need to geocode the address
           latitude: 0,
@@ -136,9 +136,9 @@ export default function ActiveBookingsPage() {
         params.set('pickup', encodeURIComponent(JSON.stringify(pickupData)));
       }
       
-      if (booking.dropoffLocation?.address) {
+      if (booking.locations.dropoff?.address) {
         const dropoffData = {
-          address: booking.dropoffLocation.address,
+          address: booking.locations.dropoff.address,
           latitude: 0,
           longitude: 0
         };

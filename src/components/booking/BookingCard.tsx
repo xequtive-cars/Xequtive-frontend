@@ -58,25 +58,73 @@ const getStatusText = (status: string) => {
 interface BookingCardProps {
   booking: {
     id: string;
+    referenceNumber?: string;
+    customer: {
+      fullName: string;
+      email: string;
+      phoneNumber: string;
+    };
+    bookingType: 'one-way' | 'hourly' | 'return';
+    status: string;
     pickupDate: string;
     pickupTime: string;
-    pickupLocation: {
-      address: string;
+    locations: {
+      pickup: {
+        address: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+        };
+      };
+      dropoff?: {
+        address: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+        };
+      };
+      additionalStops: Array<{
+        address: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+        };
+      }>;
     };
-    dropoffLocation: {
-      address: string;
+    vehicle: {
+      id: string;
+      name: string;
+      price: {
+        amount: number;
+        currency: string;
+      };
     };
-    additionalStops?: Array<{
-      address: string;
-    }>;
-    vehicleType: string;
-    price: number;
-    status: string;
-    journey: {
+    journey?: {
       distance_miles: number;
       duration_minutes: number;
     };
+    hours?: number;
+    returnType?: 'wait-and-return' | 'later-date';
+    returnDate?: string;
+    returnTime?: string;
+    passengers: {
+      count: number;
+      checkedLuggage: number;
+      handLuggage: number;
+      mediumLuggage: number;
+      babySeat: number;
+      childSeat: number;
+      boosterSeat: number;
+      wheelchair: number;
+    };
+    specialRequests?: string;
+    additionalStops: Array<{
+      address: string;
+    }>;
+    waitingTime: number;
+    travelInformation?: any;
     createdAt: string;
+    updatedAt: string;
   };
   onCancel?: (id: string) => void;
   showCancelButton?: boolean;
@@ -95,14 +143,18 @@ const BookingCard: React.FC<BookingCardProps> = ({
 }) => {
   const {
     id,
+    referenceNumber,
+    customer,
+    bookingType,
+    status,
     pickupDate,
     pickupTime,
-    pickupLocation,
-    dropoffLocation,
-    additionalStops,
-    vehicleType,
-    price,
-    status,
+    locations,
+    vehicle,
+    hours,
+    returnType,
+    returnDate,
+    returnTime,
     journey,
   } = booking;
 
@@ -138,10 +190,23 @@ const BookingCard: React.FC<BookingCardProps> = ({
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-semibold">{vehicleType}</CardTitle>
-          <Badge className={`font-normal ${getStatusColor(status)}`}>
-            {getStatusText(status)}
-          </Badge>
+          <div>
+            <CardTitle className="text-lg font-semibold">{vehicle.name}</CardTitle>
+            {referenceNumber && (
+              <p className="text-sm text-muted-foreground font-mono">
+                Ref: {referenceNumber}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className={`font-normal ${getStatusColor(status)}`}>
+              {getStatusText(status)}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {bookingType === 'hourly' ? 'Hourly Service' : 
+               bookingType === 'return' ? 'Return Trip' : 'One-Way Trip'}
+            </Badge>
+          </div>
         </div>
         <CardDescription>
           <div className="flex items-center gap-1 mt-1">
@@ -150,6 +215,12 @@ const BookingCard: React.FC<BookingCardProps> = ({
             <span className="mx-1">•</span>
             <ClockIcon className="h-4 w-4" />
             <span>{pickupTime}</span>
+            {hours && (
+              <>
+                <span className="mx-1">•</span>
+                <span className="text-sm font-medium">{hours}h service</span>
+              </>
+            )}
           </div>
         </CardDescription>
       </CardHeader>
@@ -160,29 +231,48 @@ const BookingCard: React.FC<BookingCardProps> = ({
             <div>
               <div className="text-sm font-medium">Pickup</div>
               <div className="text-sm text-muted-foreground">
-                {pickupLocation.address}
+                {locations.pickup.address}
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <MapPinIcon className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <div className="text-sm font-medium">Dropoff</div>
-              <div className="text-sm text-muted-foreground">
-                {dropoffLocation.address}
+          {locations.dropoff && (
+            <div className="flex gap-2">
+              <MapPinIcon className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="text-sm font-medium">Dropoff</div>
+                <div className="text-sm text-muted-foreground">
+                  {locations.dropoff.address}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {additionalStops && additionalStops.length > 0 && (
+          {locations.additionalStops && locations.additionalStops.length > 0 && (
             <div className="flex gap-2">
               <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
                 <div className="text-sm font-medium">Additional Stops</div>
                 <div className="text-sm text-muted-foreground">
-                  {additionalStops.length} stop
-                  {additionalStops.length !== 1 ? "s" : ""}
+                  {locations.additionalStops.length} stop
+                  {locations.additionalStops.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {bookingType === 'return' && returnType && (
+            <div className="flex gap-2">
+              <MapPinIcon className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="text-sm font-medium">Return Type</div>
+                <div className="text-sm text-muted-foreground">
+                  {returnType === 'wait-and-return' ? 'Wait & Return' : 'Later Date'}
+                  {returnDate && returnTime && (
+                    <div className="text-xs mt-1">
+                      Return: {format(parseISO(returnDate), "MMM dd")} at {returnTime}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -192,14 +282,20 @@ const BookingCard: React.FC<BookingCardProps> = ({
             <div className="flex gap-2 items-center">
               <CarIcon className="h-4 w-4" />
               <span className="text-sm">
-                {journey.distance_miles &&
-                typeof journey.distance_miles === "number"
-                  ? `${journey.distance_miles.toFixed(1)} miles`
-                  : "-- miles"}{" "}
-                • {journey.duration_minutes} min
+                {journey ? (
+                  <>
+                    {journey.distance_miles &&
+                    typeof journey.distance_miles === "number"
+                      ? `${journey.distance_miles.toFixed(1)} miles`
+                      : "-- miles"}{" "}
+                    • {journey.duration_minutes} min
+                  </>
+                ) : (
+                  "Journey details not available"
+                )}
               </span>
             </div>
-            <div className="font-semibold">£{price.toFixed(2)}</div>
+            <div className="font-semibold">£{vehicle.price.amount.toFixed(2)}</div>
           </div>
         </div>
       </CardContent>

@@ -87,6 +87,7 @@ export interface EnhancedBookingResponse {
   success: boolean;
   data: {
     bookingId: string;
+    referenceNumber?: string;
     message: string;
     details: {
       fullName: string;
@@ -178,24 +179,88 @@ interface PersonalDetails {
 export interface ActiveBookingsResponse {
   success: boolean;
   data: {
-    id: string;
-    pickupDate: string;
-    pickupTime: string;
-    pickupLocation: {
-      address: string;
+    bookings: {
+      id: string;
+      referenceNumber?: string;
+      customer: {
+        fullName: string;
+        email: string;
+        phoneNumber: string;
+      };
+      bookingType: 'one-way' | 'hourly' | 'return';
+      status: string;
+      pickupDate: string;
+      pickupTime: string;
+      locations: {
+        pickup: {
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        };
+        dropoff?: {
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        };
+        additionalStops: Array<{
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        }>;
+      };
+      vehicle: {
+        id: string;
+        name: string;
+        price: {
+          amount: number;
+          currency: string;
+        };
+      };
+      journey?: {
+        distance_miles: number;
+        duration_minutes: number;
+      };
+      hours?: number;
+      returnType?: 'wait-and-return' | 'later-date';
+      returnDate?: string;
+      returnTime?: string;
+      passengers: {
+        count: number;
+        checkedLuggage: number;
+        handLuggage: number;
+        mediumLuggage: number;
+        babySeat: number;
+        childSeat: number;
+        boosterSeat: number;
+        wheelchair: number;
+      };
+      specialRequests?: string;
+      additionalStops: Array<{
+        address: string;
+      }>;
+      waitingTime: number;
+      travelInformation?: any;
+      createdAt: string;
+      updatedAt: string;
+    }[];
+    total: number;
+    referenceNumberGuide: {
+      display: string;
+      apiOperations: string;
+      warning: string;
     };
-    dropoffLocation: {
-      address: string;
+    bookingTypeDefinitions: {
+      hourly: string;
+      'one-way': string;
+      return: string;
     };
-    vehicleType: string;
-    price: number;
-    status: string;
-    journey: {
-      distance_miles: number;
-      duration_minutes: number;
-    };
-    createdAt: string;
-  }[];
+  };
   error?: {
     code: string;
     message: string;
@@ -206,24 +271,88 @@ export interface ActiveBookingsResponse {
 export interface BookingHistoryResponse {
   success: boolean;
   data: {
-    id: string;
-    pickupDate: string;
-    pickupTime: string;
-    pickupLocation: {
-      address: string;
+    bookings: {
+      id: string;
+      referenceNumber?: string;
+      customer: {
+        fullName: string;
+        email: string;
+        phoneNumber: string;
+      };
+      bookingType: 'one-way' | 'hourly' | 'return';
+      status: string;
+      pickupDate: string;
+      pickupTime: string;
+      locations: {
+        pickup: {
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        };
+        dropoff?: {
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        };
+        additionalStops: Array<{
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        }>;
+      };
+      vehicle: {
+        id: string;
+        name: string;
+        price: {
+          amount: number;
+          currency: string;
+        };
+      };
+      journey?: {
+        distance_miles: number;
+        duration_minutes: number;
+      };
+      hours?: number;
+      returnType?: 'wait-and-return' | 'later-date';
+      returnDate?: string;
+      returnTime?: string;
+      passengers: {
+        count: number;
+        checkedLuggage: number;
+        handLuggage: number;
+        mediumLuggage: number;
+        babySeat: number;
+        childSeat: number;
+        boosterSeat: number;
+        wheelchair: number;
+      };
+      specialRequests?: string;
+      additionalStops: Array<{
+        address: string;
+      }>;
+      waitingTime: number;
+      travelInformation?: any;
+      createdAt: string;
+      updatedAt: string;
+    }[];
+    total: number;
+    referenceNumberGuide: {
+      display: string;
+      apiOperations: string;
+      warning: string;
     };
-    dropoffLocation: {
-      address: string;
+    bookingTypeDefinitions: {
+      hourly: string;
+      'one-way': string;
+      return: string;
     };
-    vehicleType: string;
-    price: number;
-    status: string;
-    journey: {
-      distance_miles: number;
-      duration_minutes: number;
-    };
-    createdAt: string;
-  }[];
+  };
   error?: {
     code: string;
     message: string;
@@ -248,24 +377,88 @@ export interface CancelBookingResponse {
 export interface GetUserBookingsResponse {
   success: boolean;
   data: {
-    id: string;
-    pickupDate: string;
-    pickupTime: string;
-    pickupLocation: {
-      address: string;
+    bookings: {
+      id: string;
+      referenceNumber?: string;
+      customer: {
+        fullName: string;
+        email: string;
+        phoneNumber: string;
+      };
+      bookingType: 'one-way' | 'hourly' | 'return';
+      status: string;
+      pickupDate: string;
+      pickupTime: string;
+      locations: {
+        pickup: {
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        };
+        dropoff?: {
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        };
+        additionalStops: Array<{
+          address: string;
+          coordinates?: {
+            lat: number;
+            lng: number;
+          };
+        }>;
+      };
+      vehicle: {
+        id: string;
+        name: string;
+        price: {
+          amount: number;
+          currency: string;
+        };
+      };
+      journey?: {
+        distance_miles: number;
+        duration_minutes: number;
+      };
+      hours?: number;
+      returnType?: 'wait-and-return' | 'later-date';
+      returnDate?: string;
+      returnTime?: string;
+      passengers: {
+        count: number;
+        checkedLuggage: number;
+        handLuggage: number;
+        mediumLuggage: number;
+        babySeat: number;
+        childSeat: number;
+        boosterSeat: number;
+        wheelchair: number;
+      };
+      specialRequests?: string;
+      additionalStops: Array<{
+        address: string;
+      }>;
+      waitingTime: number;
+      travelInformation?: any;
+      createdAt: string;
+      updatedAt: string;
+    }[];
+    total: number;
+    referenceNumberGuide: {
+      display: string;
+      apiOperations: string;
+      warning: string;
     };
-    dropoffLocation: {
-      address: string;
+    bookingTypeDefinitions: {
+      hourly: string;
+      'one-way': string;
+      return: string;
     };
-    vehicleType: string;
-    price: number;
-    status: string;
-    journey: {
-      distance_miles: number;
-      duration_minutes: number;
-    };
-    createdAt: string;
-  }[];
+  };
   error?: {
     code: string;
     message: string;
@@ -632,18 +825,52 @@ class BookingService {
       // Use the API client for the request
       const response = await apiClient.get<GetUserBookingsResponse>(endpoint);
 
+      // Data sanitization to handle potentially undefined data from backend
+      if (response.data?.bookings) {
+        response.data.bookings = response.data.bookings.map((booking: any) => ({
+          ...booking,
+          pickupLocation: {
+            address: booking.pickupLocation?.address || "Pickup location not specified"
+          },
+          dropoffLocation: booking.dropoffLocation ? {
+            address: booking.dropoffLocation.address || "Dropoff location not specified"
+          } : undefined,
+          journey: booking.journey ? {
+            distance_miles: booking.journey.distance_miles || 0,
+            duration_minutes: booking.journey.duration_minutes || 0
+          } : undefined,
+          // Ensure new fields have default values
+          referenceNumber: booking.referenceNumber || undefined,
+          bookingType: booking.bookingType || "one-way",
+          hours: booking.hours || undefined,
+          returnType: booking.returnType || undefined,
+          returnDate: booking.returnDate || undefined,
+          returnTime: booking.returnTime || undefined
+        }));
+      }
+
       return response;
     } catch (error) {
       console.error("Error fetching user bookings:", error);
       return {
         success: false,
-        data: [],
+        data: {
+          bookings: [],
+          total: 0,
+          referenceNumberGuide: {
+            display: "Use 'referenceNumber' field for user-facing displays",
+            apiOperations: "Use 'id' field for API calls like updates and cancellations",
+            warning: "Never display Firebase IDs to users - they are internal system identifiers"
+          },
+          bookingTypeDefinitions: {
+            hourly: "Continuous service for specified hours, no dropoff required",
+            "one-way": "Single journey from pickup to dropoff location",
+            return: "Round-trip journey with 10% discount, uses smart reverse route"
+          }
+        },
         error: {
           code: "FETCH_ERROR",
-          message:
-        error instanceof Error
-          ? error.message
-              : "Failed to fetch bookings",
+          message: error instanceof Error ? error.message : "Failed to fetch bookings",
         },
       };
     }

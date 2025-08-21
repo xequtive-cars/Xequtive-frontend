@@ -65,22 +65,70 @@ interface BookingDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   booking: {
     id: string;
+    referenceNumber?: string;
+    customer: {
+      fullName: string;
+      email: string;
+      phoneNumber: string;
+    };
+    bookingType: 'one-way' | 'hourly' | 'return';
+    status: string;
     pickupDate: string;
     pickupTime: string;
-    pickupLocation: {
-      address: string;
+    locations: {
+      pickup: {
+        address: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+        };
+      };
+      dropoff?: {
+        address: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+        };
+      };
+      additionalStops: Array<{
+        address: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+        };
+      }>;
     };
-    dropoffLocation: {
-      address: string;
+    vehicle: {
+      id: string;
+      name: string;
+      price: {
+        amount: number;
+        currency: string;
+      };
     };
-    additionalStops?: Array<{
+    journey?: Journey;
+    hours?: number;
+    returnType?: 'wait-and-return' | 'later-date';
+    returnDate?: string;
+    returnTime?: string;
+    passengers: {
+      count: number;
+      checkedLuggage: number;
+      handLuggage: number;
+      mediumLuggage: number;
+      babySeat: number;
+      childSeat: number;
+      boosterSeat: number;
+      wheelchair: number;
+    };
+    specialRequests?: string;
+    additionalStops: Array<{
       address: string;
     }>;
-    vehicleType: string;
-    price: number;
-    status: string;
-    journey: Journey;
+    waitingTime: number;
+    travelInformation?: any;
     createdAt: string;
+    updatedAt: string;
   } | null;
 }
 
@@ -93,14 +141,18 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
 
   const {
     id,
+    referenceNumber,
+    customer,
+    bookingType,
+    status,
     pickupDate,
     pickupTime,
-    pickupLocation,
-    dropoffLocation,
-    additionalStops,
-    vehicleType,
-    price,
-    status,
+    locations,
+    vehicle,
+    hours,
+    returnType,
+    returnDate,
+    returnTime,
     journey,
     createdAt,
   } = booking;
@@ -120,13 +172,23 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
           <DialogTitle className="flex flex-col items-start gap-2 pr-8">
             <div className="flex justify-between items-center w-full">
             <span>Booking Details</span>
-            <Badge className={`font-normal ${getStatusColor(status)}`}>
-              {getStatusText(status)}
-            </Badge>
+            <div className="flex flex-col items-end gap-2">
+              <Badge className={`font-normal ${getStatusColor(status)}`}>
+                {getStatusText(status)}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {bookingType === 'hourly' ? 'Hourly Service' : 
+                 bookingType === 'return' ? 'Return Trip' : 'One-Way Trip'}
+              </Badge>
+            </div>
             </div>
           </DialogTitle>
           <DialogDescription>
-            Booking Reference: {id.substring(0, 8).toUpperCase()}
+            {referenceNumber ? (
+              <>Reference: <span className="font-mono">{referenceNumber}</span></>
+            ) : (
+              <>Booking ID: {id.substring(0, 8).toUpperCase()}</>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -155,52 +217,93 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                 <div>
                   <div className="text-sm font-medium">Pickup Location</div>
                   <div className="text-sm text-muted-foreground">
-                    {pickupLocation.address}
+                    {locations.pickup.address}
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <MapPinIcon className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-sm font-medium">Dropoff Location</div>
-                  <div className="text-sm text-muted-foreground">
-                    {dropoffLocation.address}
-                  </div>
-                </div>
-              </div>
-
-              {additionalStops && additionalStops.length > 0 && (
+              {locations.dropoff && (
                 <div className="flex gap-2">
-                  <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <MapPinIcon className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-sm font-medium">Additional Stops</div>
+                    <div className="text-sm font-medium">Dropoff Location</div>
                     <div className="text-sm text-muted-foreground">
-                      {additionalStops.length} stop
-                      {additionalStops.length !== 1 ? "s" : ""}
+                      {locations.dropoff.address}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <Navigation className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-sm font-medium">Journey Details</div>
-                  <div className="text-sm text-muted-foreground">
-                    <span className="flex items-center gap-2 text-sm">
-                      <CarIcon className="h-4 w-4" />
-                      {journey.distance_miles &&
-                      typeof journey.distance_miles === "number"
-                        ? `${journey.distance_miles.toFixed(1)} miles`
-                        : "-- miles"}{" "}
-                      • Approximately {journey.duration_minutes} minutes
-                    </span>
+              {locations.additionalStops && locations.additionalStops.length > 0 && (
+                <div className="flex gap-2">
+                  <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-sm font-medium">Additional Stops</div>
+                    <div className="text-sm text-muted-foreground">
+                      {locations.additionalStops.length} stop
+                      {locations.additionalStops.length !== 1 ? "s" : ""}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {journey && (
+                <div className="flex gap-2">
+                  <Navigation className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-sm font-medium">Journey Details</div>
+                    <div className="text-sm text-muted-foreground">
+                      <span className="flex items-center gap-2 text-sm">
+                        <CarIcon className="h-4 w-4" />
+                        {journey.distance_miles &&
+                        typeof journey.distance_miles === "number"
+                          ? `${journey.distance_miles.toFixed(1)} miles`
+                          : "-- miles"}{" "}
+                        • Approximately {journey.duration_minutes} minutes
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Booking Type Specific Information */}
+          {(hours || returnType) && (
+            <div className="bg-muted p-4 rounded-lg">
+              <h3 className="text-sm font-medium mb-3">Service Details</h3>
+              <div className="space-y-3">
+                {hours && (
+                  <div className="flex gap-2">
+                    <ClockIcon className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Service Duration</div>
+                      <div className="text-sm text-muted-foreground">
+                        {hours} hours
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {returnType && (
+                  <div className="flex gap-2">
+                    <MapPinIcon className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium">Return Type</div>
+                      <div className="text-sm text-muted-foreground">
+                        {returnType === 'wait-and-return' ? 'Wait & Return' : 'Later Date'}
+                        {returnDate && returnTime && (
+                          <div className="text-xs mt-1">
+                            Return: {format(parseISO(returnDate), "MMM dd, yyyy")} at {returnTime}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Vehicle Section */}
           <div className="bg-muted p-4 rounded-lg">
@@ -210,7 +313,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
               <div>
                 <div className="text-sm font-medium">Vehicle Type</div>
                 <div className="text-sm text-muted-foreground">
-                  {vehicleType}
+                  {vehicle.name}
                 </div>
               </div>
             </div>
@@ -224,7 +327,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
               <div>
                 <div className="text-sm font-medium">Price</div>
                 <div className="text-sm text-muted-foreground">
-                  £{price.toFixed(2)}
+                  £{vehicle.price.amount.toFixed(2)}
                 </div>
               </div>
             </div>
