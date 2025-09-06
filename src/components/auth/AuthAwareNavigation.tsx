@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import {
   Sheet,
   SheetContent,
@@ -47,6 +48,7 @@ function AuthNavigationSkeleton() {
         <div className="w-8 h-8 bg-muted animate-pulse rounded"></div>
       </div>
       <div className="hidden md:flex items-center gap-5">
+        <div className="h-9 w-20 bg-muted animate-pulse rounded"></div>
         <ThemeToggle />
         <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>
         <div className="w-16 h-10 bg-muted animate-pulse rounded"></div>
@@ -79,10 +81,16 @@ function MobileMenuContent({
       </SheetHeader>
       
       <div className="flex-1 p-6 space-y-6">
-        {/* Theme toggle - moved to top */}
-        <div className="flex items-center justify-between pb-4 border-b">
-          <span className="text-sm font-medium">Theme</span>
-          <ThemeToggle />
+        {/* Language and Theme toggles - moved to top */}
+        <div className="space-y-4 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Language</span>
+            <LanguageToggle />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Theme</span>
+            <ThemeToggle />
+          </div>
         </div>
         
         {isAuthenticated ? (
@@ -223,6 +231,7 @@ function UnauthenticatedNavigation() {
 
       {/* Desktop navigation */}
       <div className="hidden md:flex items-center gap-5">
+        <LanguageToggle />
         <ThemeToggle />
         <Link href="/auth/signin">
           <Button variant="ghost" size="sm">
@@ -299,6 +308,7 @@ function AuthenticatedNavigation() {
 
       {/* Desktop navigation */}
       <div className="hidden md:flex items-center gap-4">
+        <LanguageToggle />
         <ThemeToggle />
         
         {/* Profile dropdown */}
