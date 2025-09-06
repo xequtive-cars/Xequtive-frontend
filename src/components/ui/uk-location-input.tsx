@@ -679,21 +679,23 @@ export default function UKLocationInput({
           {/* Search input */}
           <div className="px-4 py-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder={`Search ${dropdownView === 'airports' ? 'airports' : 
                           dropdownView === 'trains' ? 'stations' : 
                           'cruise terminals'}...`}
                 value={categorySearchQuery}
-                onChange={(e) => setCategorySearchQuery(e.target.value)}
-                onFocus={(e) => e.stopPropagation()}
-                onBlur={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                onKeyUp={(e) => e.stopPropagation()}
-                className="w-full pl-10 pr-4 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setCategorySearchQuery(e.target.value);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                className="w-full pl-4 pr-10 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 onClick={(e) => e.stopPropagation()}
+                autoComplete="off"
               />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             </div>
           </div>
 
