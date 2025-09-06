@@ -131,7 +131,7 @@ export function DatePicker({
                 }
                 className="rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground disabled:opacity-40 touch-manipulation"
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={17} />
                 <span className="sr-only">Previous month</span>
               </Button>
               <h2 className="text-sm font-medium">
