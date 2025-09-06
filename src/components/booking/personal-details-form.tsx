@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, ChevronDown, Plane, Train } from "lucide-react";
+import { Check, ChevronDown, Plane, Train, CreditCard, Banknote } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
 import { SearchableInput } from "@/components/ui/searchable-input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 // Define types for travel information
@@ -48,6 +49,9 @@ const personalDetailsSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(1, "Phone number is required"),
+  paymentMethod: z.enum(["cash", "card"], {
+    required_error: "Please select a payment method",
+  }),
   specialRequests: z.string().optional(),
   flightInformation: z
     .object({
@@ -118,6 +122,7 @@ export function PersonalDetailsForm({
       fullName: user?.displayName || "",
       email: user?.email || "",
       phone: user?.phoneNumber || "",
+      paymentMethod: undefined,
       specialRequests: "",
       flightInformation: {
         airline: "",
@@ -306,6 +311,93 @@ export function PersonalDetailsForm({
                   </FormItem>
                 )}
               />
+
+              {/* Payment Method Selection */}
+              <div className="space-y-3">
+                <FormLabel className="text-sm font-medium">Payment Method</FormLabel>
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <div className="grid grid-cols-1 gap-3">
+                          {/* Cash on Arrival Option */}
+                          <div 
+                            className={cn(
+                              "relative flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
+                              field.value === "cash" 
+                                ? "border-green-500 bg-green-50 dark:bg-green-950/20" 
+                                : "border-border hover:border-green-300"
+                            )}
+                            onClick={() => field.onChange("cash")}
+                          >
+                            <FormControl>
+                              <div className="flex items-center justify-center w-5 h-5 mt-0.5">
+                                <div className={cn(
+                                  "w-4 h-4 rounded-full border-2 transition-all duration-200",
+                                  field.value === "cash"
+                                    ? "border-green-500 bg-green-500"
+                                    : "border-muted-foreground"
+                                )}>
+                                  {field.value === "cash" && (
+                                    <div className="w-2 h-2 bg-white rounded-full m-0.5" />
+                                  )}
+                                </div>
+                              </div>
+                            </FormControl>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <Banknote className="w-5 h-5 text-green-600" />
+                                <span className="text-sm font-medium">Cash on Arrival</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Pay with cash when the driver arrives
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Card on Arrival Option */}
+                          <div 
+                            className={cn(
+                              "relative flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
+                              field.value === "card" 
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" 
+                                : "border-border hover:border-blue-300"
+                            )}
+                            onClick={() => field.onChange("card")}
+                          >
+                            <FormControl>
+                              <div className="flex items-center justify-center w-5 h-5 mt-0.5">
+                                <div className={cn(
+                                  "w-4 h-4 rounded-full border-2 transition-all duration-200",
+                                  field.value === "card"
+                                    ? "border-blue-500 bg-blue-500"
+                                    : "border-muted-foreground"
+                                )}>
+                                  {field.value === "card" && (
+                                    <div className="w-2 h-2 bg-white rounded-full m-0.5" />
+                                  )}
+                                </div>
+                              </div>
+                            </FormControl>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <CreditCard className="w-5 h-5 text-blue-600" />
+                                <span className="text-sm font-medium">Card on Arrival</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Pay with card when the driver arrives
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Right Column - Special Requests */}

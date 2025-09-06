@@ -87,6 +87,7 @@ export interface PersonalDetails {
   fullName: string;
   email: string;
   phone: string;
+  paymentMethod: "cash" | "card";
   specialRequests: string;
 }
 
