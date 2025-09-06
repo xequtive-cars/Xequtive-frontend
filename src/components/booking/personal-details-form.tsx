@@ -435,7 +435,7 @@ export function PersonalDetailsForm({
                         name="flightInformation.scheduledDeparture"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Scheduled Departure</FormLabel>
+                            <FormLabel>Arrival/Scheduled Departure</FormLabel>
                             <FormControl>
                               <AdvancedTimePicker
                                 datetime={
@@ -564,7 +564,7 @@ export function PersonalDetailsForm({
                         name="trainInformation.scheduledDeparture"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Scheduled Departure</FormLabel>
+                            <FormLabel>Arrival/Scheduled Departure</FormLabel>
                             <FormControl>
                               <AdvancedTimePicker
                                 datetime={

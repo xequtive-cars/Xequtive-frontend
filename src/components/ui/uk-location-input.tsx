@@ -118,13 +118,28 @@ export default function UKLocationInput({
   const [popularLocations, setPopularLocations] = useState<LocationSuggestion[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   // State for dropdown view management
-  const [dropdownView, setDropdownView] = useState<'default' | 'airports' | 'trains' | 'terminals'>('default');
-  const [selectedCategory, setSelectedCategory] = useState<'airport' | 'train_station' | null>(null);
+  const [dropdownView, setDropdownView] = useState<'default' | 'airports' | 'trains' | 'cruise_terminals' | 'terminals'>('default');
+  const [selectedCategory, setSelectedCategory] = useState<'airport' | 'train_station' | 'cruise_terminal' | null>(null);
   const [categoryLocations, setCategoryLocations] = useState<LocationSuggestion[]>([]);
   const [terminalLocations, setTerminalLocations] = useState<LocationSuggestion[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationSuggestion | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [categorySearchQuery, setCategorySearchQuery] = useState<string>('');
+
+  // Filtered locations based on search query
+  const filteredCategoryLocations = useMemo(() => {
+    if (!categorySearchQuery.trim()) {
+      return categoryLocations;
+    }
+    
+    const query = categorySearchQuery.toLowerCase();
+    return categoryLocations.filter(location => 
+      location.mainText?.toLowerCase().includes(query) ||
+      location.address?.toLowerCase().includes(query) ||
+      location.secondaryText?.toLowerCase().includes(query)
+    );
+  }, [categoryLocations, categorySearchQuery]);
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -260,8 +275,8 @@ export default function UKLocationInput({
     }
   }, []);
 
-  // Fetch category-specific locations (airports or train stations)
-  const fetchCategoryLocations = useCallback(async (category: 'airport' | 'train_station') => {
+  // Fetch category-specific locations (airports, train stations, or cruise terminals)
+  const fetchCategoryLocations = useCallback(async (category: 'airport' | 'train_station' | 'cruise_terminal') => {
     try {
       setIsSearching(true);
       
@@ -513,12 +528,13 @@ export default function UKLocationInput({
           {/* Category Buttons */}
           <div className="px-4 py-2">
             <div className="text-xs font-medium text-muted-foreground mb-2">Quick Access</div>
-            <div className="grid grid-cols-2 gap-3 w-full">
+            <div className="grid grid-cols-3 gap-2 w-full">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setDropdownView('airports');
                   setSelectedCategory('airport');
+                  setCategorySearchQuery('');
                   fetchCategoryLocations('airport');
                 }}
                 className="
@@ -541,6 +557,7 @@ export default function UKLocationInput({
                   e.stopPropagation();
                   setDropdownView('trains');
                   setSelectedCategory('train_station');
+                  setCategorySearchQuery('');
                   fetchCategoryLocations('train_station');
                 }}
                 className="
@@ -557,6 +574,29 @@ export default function UKLocationInput({
               >
                 <Train className="w-5 h-5" />
                 <span>Stations</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDropdownView('cruise_terminals');
+                  setSelectedCategory('cruise_terminal');
+                  setCategorySearchQuery('');
+                  fetchCategoryLocations('cruise_terminal');
+                }}
+                className="
+                  flex items-center justify-center space-x-2 
+                  px-3 py-5 
+                  text-sm font-semibold
+                  bg-background border border-purple-200 hover:border-purple-300
+                  text-purple-600 hover:text-purple-700
+                  rounded-lg 
+                  transition-colors duration-150
+                  dark:bg-background dark:border-purple-700 dark:hover:border-purple-600
+                  dark:text-purple-400 dark:hover:text-purple-300
+                "
+              >
+                <Building className="w-5 h-5" />
+                <span>Cruise</span>
               </button>
             </div>
           </div>
@@ -601,8 +641,8 @@ export default function UKLocationInput({
         );
       }
 
-    // Show category results (airports/trains)
-    if (dropdownView === 'airports' || dropdownView === 'trains') {
+    // Show category results (airports/trains/cruise terminals)
+    if (dropdownView === 'airports' || dropdownView === 'trains' || dropdownView === 'cruise_terminals') {
       return (
         <div className="space-y-1">
           {/* Back button */}
@@ -630,7 +670,30 @@ export default function UKLocationInput({
           {/* Category title */}
           <div className="px-4 py-2">
             <div className="text-xs font-medium text-muted-foreground">
-              {dropdownView === 'airports' ? 'Airports' : 'Train Stations'}
+              {dropdownView === 'airports' ? 'Airports' : 
+               dropdownView === 'trains' ? 'Train Stations' : 
+               'Cruise Terminals'}
+            </div>
+          </div>
+
+          {/* Search input */}
+          <div className="px-4 py-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={`Search ${dropdownView === 'airports' ? 'airports' : 
+                          dropdownView === 'trains' ? 'stations' : 
+                          'cruise terminals'}...`}
+                value={categorySearchQuery}
+                onChange={(e) => setCategorySearchQuery(e.target.value)}
+                onFocus={(e) => e.stopPropagation()}
+                onBlur={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                onKeyUp={(e) => e.stopPropagation()}
+                className="w-full pl-10 pr-4 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
           </div>
 
@@ -645,9 +708,9 @@ export default function UKLocationInput({
           )}
 
           {/* Category results */}
-          {!isSearching && categoryLocations.length > 0 && (
+          {!isSearching && filteredCategoryLocations.length > 0 && (
             <div className="space-y-1">
-          {categoryLocations.map((location, index) => (
+          {filteredCategoryLocations.map((location, index) => (
             <div
               key={location.id || index}
               className="
@@ -666,8 +729,10 @@ export default function UKLocationInput({
                   <div className="flex items-start space-x-3">
                     {dropdownView === 'airports' ? (
                       <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    ) : (
+                    ) : dropdownView === 'trains' ? (
                       <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <Building className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm break-words leading-tight">
@@ -686,7 +751,15 @@ export default function UKLocationInput({
           {/* No results */}
           {!isSearching && categoryLocations.length === 0 && (
             <div className="p-4 text-center text-muted-foreground">
-              <p className="text-sm">No {dropdownView === 'airports' ? 'airports' : 'stations'} found</p>
+              <p className="text-sm">No {dropdownView === 'airports' ? 'airports' : 
+                dropdownView === 'trains' ? 'stations' : 'cruise terminals'} found</p>
+            </div>
+          )}
+
+          {/* No filtered results */}
+          {!isSearching && categoryLocations.length > 0 && filteredCategoryLocations.length === 0 && (
+            <div className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">No results found for "{categorySearchQuery}"</p>
             </div>
           )}
         </div>
@@ -716,13 +789,20 @@ export default function UKLocationInput({
               }}
             >
             <ChevronLeft className="w-4 h-4 mr-2" />
-            <span className="text-sm">Back to airports</span>
+            <span className="text-sm">Back to {selectedCategory === 'airport' ? 'airports' : 
+              selectedCategory === 'train_station' ? 'stations' : 'cruise terminals'}</span>
                 </div>
 
           {/* Selected location info */}
           <div className="px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-start space-x-3">
-              <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              {selectedCategory === 'airport' ? (
+                <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              ) : selectedCategory === 'train_station' ? (
+                <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              ) : (
+                <Building className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm break-words leading-tight">
                   {selectedLocation.mainText || selectedLocation.name || selectedLocation.address}

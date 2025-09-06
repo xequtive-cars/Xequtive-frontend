@@ -7,6 +7,7 @@
 import mapboxgl from 'mapbox-gl';
 import { ukLocationSearchService } from './uk-location-search';
 import { UK_AIRPORTS, UK_STATIONS, searchLocations, findLocationById, getTerminalsByLocationId } from './uk-airports-stations';
+import { UK_CRUISE_TERMINALS, convertCruiseTerminalToLocationSuggestion, searchCruiseTerminals } from './uk-cruise-terminals';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
@@ -460,9 +461,9 @@ class LocationSearchService {
   }
 
   /**
-   * Fetch category-specific locations (airports or train stations)
+   * Fetch category-specific locations (airports, train stations, or cruise terminals)
    */
-  async fetchCategoryLocations(category: 'airport' | 'train_station'): Promise<LocationSearchResponse> {
+  async fetchCategoryLocations(category: 'airport' | 'train_station' | 'cruise_terminal'): Promise<LocationSearchResponse> {
     try {
       // Check cache first
       const cacheKey = `category_${category}`;
@@ -475,7 +476,15 @@ class LocationSearchService {
       }
 
       // Use hardcoded data for instant loading
-      const categoryLocations = category === 'airport' ? UK_AIRPORTS : UK_STATIONS;
+      let categoryLocations;
+      if (category === 'airport') {
+        categoryLocations = UK_AIRPORTS;
+      } else if (category === 'train_station') {
+        categoryLocations = UK_STATIONS;
+      } else {
+        // Convert cruise terminals to location suggestion format
+        categoryLocations = UK_CRUISE_TERMINALS.map(convertCruiseTerminalToLocationSuggestion);
+      }
       
       // Cache the results
       this.setCachedData(cacheKey, categoryLocations);
@@ -511,7 +520,7 @@ class LocationSearchService {
   /**
    * Get fallback data for specific categories
    */
-  private getFallbackCategoryData(category: 'airport' | 'train_station'): LocationSuggestion[] {
+  private getFallbackCategoryData(category: 'airport' | 'train_station' | 'cruise_terminal'): LocationSuggestion[] {
     if (category === 'airport') {
       return [
         {
@@ -559,7 +568,7 @@ class LocationSearchService {
           metadata: { primaryType: 'airport', region: 'UK' }
         }
       ];
-    } else {
+    } else if (category === 'train_station') {
       return [
         {
           id: 'kings-cross',
@@ -606,6 +615,9 @@ class LocationSearchService {
           metadata: { primaryType: 'train_station', region: 'UK' }
         }
       ];
+    } else {
+      // Cruise terminals fallback
+      return UK_CRUISE_TERMINALS.map(convertCruiseTerminalToLocationSuggestion);
     }
   }
 
