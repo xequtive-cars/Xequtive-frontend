@@ -983,7 +983,7 @@ export default function UKLocationInput({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            "w-full px-3 py-2 border border-input rounded-md",
+            "w-full px-3 py-2 border border-input rounded-md notranslate",
             "bg-background text-foreground",
             "placeholder:text-muted-foreground",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
@@ -1033,6 +1033,7 @@ export default function UKLocationInput({
             border border-border 
             rounded-lg shadow-lg 
             overflow-hidden
+            notranslate
             w-full
             max-w-md
             mx-auto

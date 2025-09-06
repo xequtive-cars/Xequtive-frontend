@@ -284,6 +284,134 @@ select:focus {
   }
 }
 
+/* Hide Google Translate default UI */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-gadget-icon,
+.goog-te-balloon-frame,
+.goog-tooltip,
+#goog-gt-tt,
+iframe[class*="skiptranslate"],
+iframe[class*="VIpgJd"],
+iframe[class*="goog-te"],
+.goog-te-banner,
+.goog-te-banner-frame,
+iframe[id*="container"],
+iframe[class*="VIpgJd-ZVi9od-ORHb-OEVmcd"] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  opacity: 0 !important;
+}
+
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+/* Ensure notranslate elements are not translated */
+.notranslate,
+[translate="no"],
+[data-translate="no"],
+[data-notranslate="true"] {
+  -webkit-translate: no !important;
+  -moz-translate: no !important;
+  -ms-translate: no !important;
+  translate: no !important;
+}
+
+/* Specific elements that should never be translated */
+.price,
+.currency,
+.reference-number,
+.booking-reference,
+.vehicle-id,
+.passenger-count,
+.luggage-count,
+.distance,
+.duration,
+.fare-estimation,
+.total-price,
+.hourly-rate,
+.special-conditions,
+.airport-fee,
+.terminal-fee,
+.vehicle-capacity,
+.vehicle-type,
+.booking-id,
+.confirmation-number,
+.payment-method,
+.technical-data,
+.api-data,
+.coordinates,
+.postcode,
+.phone-number,
+.email-address,
+.currency-symbol,
+.decimal-separator,
+.thousands-separator,
+.percentage,
+.unit-measurement,
+.technical-specs,
+.vehicle-details,
+.booking-details,
+.confirmation-details,
+.receipt-details,
+.invoice-details,
+.payment-details,
+.billing-details,
+.shipping-details,
+.delivery-details,
+.pickup-details,
+.dropoff-details,
+.route-details,
+.journey-details,
+.trip-details,
+.fare-details,
+.pricing-details,
+.cost-breakdown,
+.fee-breakdown,
+.tax-breakdown,
+.discount-breakdown,
+.promo-code,
+.coupon-code,
+.voucher-code,
+.discount-code,
+.promotional-code,
+.offer-code,
+.deal-code,
+.special-offer,
+.limited-time-offer,
+.exclusive-offer,
+.member-offer,
+.loyalty-offer,
+.rewards-offer,
+.points-offer,
+.credit-offer,
+.gift-card,
+.voucher,
+.coupon,
+.discount,
+.promotion,
+.deal,
+.offer,
+.special,
+.exclusive,
+.limited,
+.member,
+.loyalty,
+.rewards,
+.points,
+.credit,
+.gift {
+  -webkit-translate: no !important;
+  -moz-translate: no !important;
+  -ms-translate: no !important;
+  translate: no !important;
+}
+
 /* Add React Day Picker styles */
 .rdp {
   --rdp-cell-size: 40px; /* Size of the day cells. */

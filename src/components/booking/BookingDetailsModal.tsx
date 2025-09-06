@@ -185,9 +185,9 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
           </DialogTitle>
           <DialogDescription>
             {referenceNumber ? (
-              <>Reference: <span className="font-mono">{referenceNumber}</span></>
+              <>Reference: <span className="font-mono notranslate">{referenceNumber}</span></>
             ) : (
-              <>Booking ID: {id.substring(0, 8).toUpperCase()}</>
+              <>Booking ID: <span className="notranslate">{id.substring(0, 8).toUpperCase()}</span></>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -326,7 +326,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
               <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
               <div>
                 <div className="text-sm font-medium">Price</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground notranslate">
                   £{vehicle.price.amount.toFixed(2)}
                 </div>
               </div>

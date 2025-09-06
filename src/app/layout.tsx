@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
@@ -34,25 +35,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Mapbox GL CSS is imported above */}
-        {/* Google Translate Script */}
-        <script
-          type="text/javascript"
+        {/* Google Translate Scripts */}
+        <Script
           src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-          async
+          strategy="afterInteractive"
         />
-        <script
-          type="text/javascript"
-          dangerouslySetInnerHTML={{
-            __html: `
-              function googleTranslateElementInit() {
-                new google.translate.TranslateElement({
-                  includedLanguages: 'ar,en',
-                  layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-                  autoDisplay: false,
-                }, 'google_translate_element');
-              }
-            `,
-          }}
+        <Script
+          src="/translate.js"
+          strategy="afterInteractive"
         />
       </head>
       <body
@@ -74,7 +64,7 @@ export default function RootLayout({
                 <AnalyticsProvider>
                   <CrispChatWrapper />
                   {/* Hidden Google Translate Element */}
-                  <div id="google_translate_element" className="hidden" />
+                  <div id="google_translate_element" style={{ display: "none" }} />
                   {children}
                   <Toaster />
                   <SonnerToaster />

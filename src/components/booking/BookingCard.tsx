@@ -295,7 +295,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 )}
               </span>
             </div>
-            <div className="font-semibold">£{vehicle.price.amount.toFixed(2)}</div>
+            <div className="font-semibold notranslate">£{vehicle.price.amount.toFixed(2)}</div>
           </div>
         </div>
       </CardContent>

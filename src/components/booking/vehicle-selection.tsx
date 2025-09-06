@@ -410,16 +410,16 @@ export default function VehicleSelection({
                 <div className="text-right">
                   {bookingType === 'return' ? (
                     <div className="space-y-1">
-                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono text-foreground">
+                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono text-foreground notranslate">
                         £{vehicle.price.amount}
                       </div>
                     </div>
                   ) : bookingType === 'hourly' ? (
                     <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground notranslate">
                         £{(vehicle.price.amount / hours).toFixed(0)}/hour
                       </div>
-                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono">
+                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono notranslate">
                         £{vehicle.price.amount}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -427,7 +427,7 @@ export default function VehicleSelection({
                       </div>
                     </div>
                   ) : (
-                    <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono">
+                    <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono notranslate">
                       £{vehicle.price.amount}
                     </div>
                   )}
