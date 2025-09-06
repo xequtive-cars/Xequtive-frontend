@@ -616,6 +616,7 @@ class BookingService {
       email: string;
       phone: string;
       specialRequests: string;
+      paymentMethod?: "cash" | "card";
       flightInformation?: {
         airline?: string;
         flightNumber?: string;
@@ -772,6 +773,12 @@ class BookingService {
             },
           },
           specialRequests: personalDetails.specialRequests,
+          ...(personalDetails.paymentMethod && {
+            paymentMethods: {
+              cashOnArrival: personalDetails.paymentMethod === "cash",
+              cardOnArrival: personalDetails.paymentMethod === "card",
+            }
+          }),
           ...(travelInformation && { travelInformation }),
           // Add enhanced booking type parameters
           bookingType: bookingDetails.bookingType,
