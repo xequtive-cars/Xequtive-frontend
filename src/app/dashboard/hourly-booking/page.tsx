@@ -244,7 +244,7 @@ export default function HourlyBookingPage() {
   const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
   const [returnTime, setReturnTime] = useState<string>("");
   const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
-
+  const [waitDuration, setWaitDuration] = useState<number | undefined>(undefined);
 
   // Passenger/luggage states
   const [passengers, setPassengers] = useState<number>(1);
@@ -1233,7 +1233,9 @@ export default function HourlyBookingPage() {
               lng: stop.longitude,
             })) : undefined,
             returnType: returnType || 'wait-and-return',
-
+            ...(returnType === 'wait-and-return' && {
+              waitDuration: Math.max(1, Math.min(12, Number(waitDuration) || 12)),
+            }),
             ...(returnType === 'later-date' && {
               returnPickup: {
                 lat: dropoffLocation?.latitude || 0,
@@ -1470,8 +1472,12 @@ export default function HourlyBookingPage() {
                 lng: stop.longitude
               }
             })),
-            returnType: 'later-date', // For now, we'll use later-date as default
-            returnPickup: {
+            returnType: returnType || 'wait-and-return',
+            ...(returnType === 'wait-and-return' && {
+              waitDuration: Math.max(1, Math.min(12, Number(waitDuration) || 12)),
+            }),
+            ...(returnType === 'later-date' && {
+              returnPickup: {
               address: dropoffLocation?.address || "",
               coordinates: {
                 lat: dropoffLocation?.latitude || 0,
@@ -1496,6 +1502,7 @@ export default function HourlyBookingPage() {
                 lng: stop.longitude
               }
             }))
+            })
           }
         };
       }
@@ -1787,6 +1794,8 @@ export default function HourlyBookingPage() {
                       setFormModified={setFormModified}
                       returnType={returnType}
                       setReturnType={setReturnType}
+                      waitDuration={waitDuration}
+                      setWaitDuration={setWaitDuration}
                       userLocation={userLocation}
                       showVehicleOptions={showVehicleOptions}
                     />

@@ -257,6 +257,7 @@ export default function NewBookingPage() {
   const [hours, setHours] = useState<number>(3);
   const [multipleVehicles, setMultipleVehicles] = useState<number>(1);
   const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
+  const [waitDuration, setWaitDuration] = useState<number | undefined>(undefined);
 
   // Debug logging for hours state
   useEffect(() => {
@@ -1290,6 +1291,9 @@ export default function NewBookingPage() {
         }),
         ...(bookingType === 'return' && { 
           returnType,
+          ...(returnType === 'wait-and-return' && {
+            waitDuration: Math.max(1, Math.min(12, Number(waitDuration) || 12)),
+          }),
           ...(returnType === 'later-date' && returnDate && returnTime && {
             returnDate: formatDate(returnDate),
             returnTime: validateAndFormatTime(returnTime),
@@ -1532,6 +1536,7 @@ export default function NewBookingPage() {
           bookingType,
           hours: bookingType === 'hourly' ? hours : undefined,
           returnType: bookingType === 'return' ? returnType : undefined,
+          waitDuration: bookingType === 'return' && returnType === 'wait-and-return' ? (waitDuration || 12) : undefined,
           passengers,
           checkedLuggage,
           mediumLuggage,
@@ -1888,6 +1893,8 @@ export default function NewBookingPage() {
                     setMultipleVehicles={setMultipleVehicles}
                     returnType={returnType}
                     setReturnType={setReturnType}
+                    waitDuration={waitDuration}
+                    setWaitDuration={setWaitDuration}
                   />
                 )}
               </div>

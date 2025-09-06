@@ -63,7 +63,9 @@ export const locationToLocationData = (location: Location): LocationData => {
 
 // Helper function to correct vehicle capacities according to updated API documentation
 function correctVehicleCapacities(vehicleOptions: VehicleOption[]): VehicleOption[] {
-  let correctedVehicles = vehicleOptions.map(vehicle => {
+  // Only correct capacities of existing vehicles - DO NOT add new vehicles
+  // The backend should provide all 8 vehicle types with correct pricing
+  return vehicleOptions.map(vehicle => {
     // Create a copy of the vehicle to avoid mutating the original
     const correctedVehicle = { ...vehicle };
     
@@ -88,40 +90,6 @@ function correctVehicleCapacities(vehicleOptions: VehicleOption[]): VehicleOptio
     
     return correctedVehicle;
   });
-
-  // Add missing VIP vehicles if they're not present
-  const hasVipSaloon = correctedVehicles.some(v => 
-    v.id === 'vip' || v.name.toLowerCase().includes('vip saloon')
-  );
-  const hasVipMpv = correctedVehicles.some(v => 
-    v.id === 'vip-mpv' || v.name.toLowerCase().includes('vip mpv') || v.name.toLowerCase().includes('vip suv')
-  );
-
-  if (!hasVipSaloon) {
-    correctedVehicles.push({
-      id: 'vip',
-      name: 'VIP Saloon',
-      description: 'High-end luxury saloon for up to 3 passengers, 2 luggage pieces, and 2 hand luggage items.',
-      capacity: { passengers: 3, luggage: 2 },
-      price: { amount: 0, currency: 'GBP' }, // Price will be calculated by backend
-      features: ['WiFi', 'Premium Interior', 'Professional Driver'],
-      vehicleType: 'vip' as any
-    });
-  }
-
-  if (!hasVipMpv) {
-    correctedVehicles.push({
-      id: 'vip-mpv',
-      name: 'VIP MPV/SUV',
-      description: 'Premium VIP vehicle for up to 6 passengers, 6 luggage pieces, and 6 hand luggage items.',
-      capacity: { passengers: 6, luggage: 6 },
-      price: { amount: 0, currency: 'GBP' }, // Price will be calculated by backend
-      features: ['WiFi', 'Premium Interior', 'Professional Driver', 'Spacious'],
-      vehicleType: 'vip' as any
-    });
-  }
-
-  return correctedVehicles;
 }
 
 // Main fare estimation function
@@ -322,11 +290,17 @@ export const getFareEstimate = async (
 
       // The API client returns the full backend response, so we need to extract the fare data
       if (response.success && response.data && response.data.fare) {
+        console.log('🚗 FARE API DEBUG - Original vehicle count:', response.data.fare.vehicleOptions?.length);
+        console.log('🚗 FARE API DEBUG - Original vehicles:', response.data.fare.vehicleOptions);
+        
         // Correct vehicle capacities before returning
         const correctedFare = {
           ...response.data.fare,
           vehicleOptions: correctVehicleCapacities(response.data.fare.vehicleOptions)
         };
+        
+        console.log('🚗 FARE API DEBUG - Corrected vehicle count:', correctedFare.vehicleOptions?.length);
+        console.log('🚗 FARE API DEBUG - Corrected vehicles:', correctedFare.vehicleOptions);
         
         return {
           success: true,

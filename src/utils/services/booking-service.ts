@@ -640,7 +640,7 @@ class BookingService {
       bookingType: 'one-way' | 'hourly' | 'return';
       hours?: number;
       returnType?: 'wait-and-return' | 'later-date';
-    
+      waitDuration?: number;
       passengers: number;
       checkedLuggage: number;
       mediumLuggage: number;
@@ -780,6 +780,9 @@ class BookingService {
           }),
           ...(bookingDetails.bookingType === 'return' && {
             returnType: bookingDetails.returnType || 'wait-and-return',
+            ...(bookingDetails.returnType === 'wait-and-return' && {
+              waitDuration: bookingDetails.waitDuration || 12,
+            }),
             ...(bookingDetails.returnType === 'later-date' && {
               returnDate: format(bookingDetails.returnDate!, "yyyy-MM-dd"),
               returnTime: bookingDetails.returnTime,
@@ -865,7 +868,7 @@ class BookingService {
           bookingTypeDefinitions: {
             hourly: "Continuous service for specified hours, no dropoff required",
             "one-way": "Single journey from pickup to dropoff location",
-            return: "Round-trip journey with 10% discount, uses smart reverse route"
+            return: "Round-trip journey, uses smart reverse route"
           }
         },
         error: {

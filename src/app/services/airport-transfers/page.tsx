@@ -105,7 +105,7 @@ export default function AirportTransfersPage() {
               <div>
                 <h3 className="font-semibold mb-2">Advanced Return Bookings</h3>
                 <p className="text-muted-foreground">
-                  Option available (eligible for a 10% discount)
+                  Option available for return bookings
                 </p>
               </div>
             </div>

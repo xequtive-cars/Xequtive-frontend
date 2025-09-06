@@ -129,7 +129,7 @@ export function useMapboxSearch() {
         }
 
         const data = await response.json();
-      console.log('Search API Response:', data);
+      // Process search results
 
       if (!data.suggestions || data.suggestions.length === 0) {
         console.warn('No search results, fetching popular locations');

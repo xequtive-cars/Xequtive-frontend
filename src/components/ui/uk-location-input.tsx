@@ -288,18 +288,10 @@ export default function UKLocationInput({
     }
   }, [showPopularLocations, fetchPopularLocations]);
 
-  // Enhanced handleInputChange with minimum 3 character threshold and debouncing
+  // Enhanced handleInputChange with debouncing
   const handleInputChange = useCallback(
     debounce(async (value: string) => {
       if (!value.trim()) {
-        setSuggestions([]);
-        setHasSearched(false);
-        setLoading(false);
-        return;
-      }
-
-      // Minimum 3 character threshold as per requirements
-      if (value.trim().length < 3) {
         setSuggestions([]);
         setHasSearched(false);
         setLoading(false);
@@ -324,22 +316,18 @@ export default function UKLocationInput({
     } finally {
       setLoading(false);
       }
-    }, 300, 3), // 300ms debounce, 3 character minimum
+    }, 200, 0), // 200ms debounce, no character minimum
     [sessionToken]
   );
 
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion: LocationSuggestion) => {
-    console.log('Selected suggestion:', suggestion);
-    
-    // Check if this is an airport or train station that might have terminals
-    const isAirportOrStation = suggestion.metadata?.primaryType === 'airport' || 
-                               suggestion.metadata?.primaryType === 'train_station' ||
-                               suggestion.metadata?.category === 'airport' ||
-                               suggestion.metadata?.category === 'train_station';
-
-    if (isAirportOrStation && selectedCategory) {
-      // Show terminal selection instead of immediately selecting
+    // ONLY show terminal selection for airports when we're in the airport category
+    if (selectedCategory === 'airport' && (
+        suggestion.metadata?.primaryType === 'airport' || 
+        suggestion.metadata?.category === 'airport'
+      )) {
+      // Show terminal selection for airports only
       setSelectedLocation(suggestion);
       setDropdownView('terminals');
       
@@ -367,6 +355,8 @@ export default function UKLocationInput({
       fetchTerminals();
       return;
     }
+
+    // For ALL other cases (including train stations), directly select the location
 
     // For regular locations or terminals, proceed with normal selection
     // Ensure we have valid coordinates with proper precision
@@ -726,17 +716,13 @@ export default function UKLocationInput({
               }}
             >
             <ChevronLeft className="w-4 h-4 mr-2" />
-            <span className="text-sm">Back to {selectedCategory === 'airport' ? 'airports' : 'stations'}</span>
+            <span className="text-sm">Back to airports</span>
                 </div>
 
           {/* Selected location info */}
           <div className="px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-start space-x-3">
-              {selectedCategory === 'airport' ? (
-                <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              ) : (
-                <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-              )}
+              <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm break-words leading-tight">
                   {selectedLocation.mainText || selectedLocation.name || selectedLocation.address}
@@ -751,7 +737,7 @@ export default function UKLocationInput({
           {/* Terminal title */}
           <div className="px-4 py-2">
             <div className="text-xs font-medium text-muted-foreground">
-              Select {selectedCategory === 'airport' ? 'Terminal' : 'Platform'}
+              Select Terminal
             </div>
           </div>
 
@@ -760,7 +746,7 @@ export default function UKLocationInput({
         <div className="p-4 text-center text-muted-foreground">
           <div className="flex items-center justify-center space-x-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-                <p className="text-sm">Loading {selectedCategory === 'airport' ? 'terminals' : 'platforms'}...</p>
+                <p className="text-sm">Loading terminals...</p>
           </div>
         </div>
           )}
@@ -785,11 +771,7 @@ export default function UKLocationInput({
             }}
           >
                   <div className="flex items-start space-x-3">
-                    {selectedCategory === 'airport' ? (
-                      <Building className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <Train className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                    )}
+                    <Building className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm break-words leading-tight">
                         {terminal.mainText || terminal.name || terminal.address}
@@ -807,7 +789,7 @@ export default function UKLocationInput({
           {/* No terminals found */}
           {!isSearching && terminalLocations.length === 0 && (
             <div className="p-4 text-center text-muted-foreground">
-              <p className="text-sm">No {selectedCategory === 'airport' ? 'terminals' : 'platforms'} found</p>
+              <p className="text-sm">No terminals found</p>
               <p className="text-xs mt-1">You can select the main location instead</p>
               <button
                 className="mt-2 px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
@@ -879,14 +861,7 @@ export default function UKLocationInput({
     );
     }
 
-    // Show minimum character message
-    if (input && input.trim().length > 0 && input.trim().length < 3) {
-      return (
-        <div className="p-4 text-center text-muted-foreground">
-          <p>Please enter at least 3 characters to search</p>
-        </div>
-      );
-    }
+    // No minimum character requirement - removed for better UX
 
     // Default fallback
     return (

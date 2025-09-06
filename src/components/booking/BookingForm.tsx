@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Plus, X, GripVertical, Loader2, ArrowRight } from "lucide-react";
 import UKLocationInput, { Location } from "@/components/ui/uk-location-input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -24,7 +25,6 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
-import { Slider } from "@/components/ui/slider";
 
 // Add type for location parameter
 type LocationData = {
@@ -101,6 +101,8 @@ interface BookingFormProps {
   setMultipleVehicles: (value: number) => void;
   returnType?: 'wait-and-return' | 'later-date';
   setReturnType?: (value: 'wait-and-return' | 'later-date') => void;
+  waitDuration?: number;
+  setWaitDuration?: (value: number | undefined) => void;
 
 }
 
@@ -305,6 +307,8 @@ export default function BookingForm({
   setMultipleVehicles,
   returnType,
   setReturnType,
+  waitDuration,
+  setWaitDuration,
 }: BookingFormProps) {
   // Function to reset location data when booking type changes
   const resetLocationData = () => {
@@ -508,71 +512,50 @@ export default function BookingForm({
               {/* 1. Booking Type Selection - Moved to top */}
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="relative group">
-                    <Button
-                      type="button"
-                      variant={bookingType === 'one-way' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setBookingType('one-way');
-                        resetLocationData();
-                        setFormModified(true);
-                      }}
-                      className="h-9 text-xs w-full"
-                      disabled={disabled || isFetching}
-                    >
-                      One-Way
-                    </Button>
-                    {/* Hover Tooltip - Below button */}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-red-600 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[99999]">
-                      Point-to-point journey
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-red-600"></div>
-                    </div>
-                  </div>
+                  <Button
+                    type="button"
+                    variant={bookingType === 'one-way' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setBookingType('one-way');
+                      resetLocationData();
+                      setFormModified(true);
+                    }}
+                    className="h-9 text-xs w-full"
+                    disabled={disabled || isFetching}
+                  >
+                    One-Way
+                  </Button>
                   
-                  <div className="relative group">
-                    <Button
-                      type="button"
-                      variant={bookingType === 'hourly' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setBookingType('hourly');
-                        resetLocationData();
-                        setFormModified(true);
-                      }}
-                      className="h-9 text-xs w-full"
-                      disabled={disabled || isFetching}
-                    >
-                      Hourly (3-12h)
-                    </Button>
-                    {/* Hover Tooltip - Below button */}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-red-600 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[99999]">
-                      Continuous service
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-red-600"></div>
-                    </div>
-                  </div>
+                  <Button
+                    type="button"
+                    variant={bookingType === 'hourly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setBookingType('hourly');
+                      resetLocationData();
+                      setFormModified(true);
+                    }}
+                    className="h-9 text-xs w-full"
+                    disabled={disabled || isFetching}
+                  >
+                    Hourly (3-12h)
+                  </Button>
                   
-                  <div className="relative group">
-                    <Button
-                      type="button"
-                      variant={bookingType === 'return' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setBookingType('return');
-                        resetLocationData();
-                        setFormModified(true);
-                      }}
-                      className="h-9 text-xs w-full"
-                      disabled={disabled || isFetching}
-                    >
-                      Return
-                    </Button>
-                    {/* Hover Tooltip - Below button */}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-red-600 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[99999]">
-                      Round-trip with discount
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-red-600"></div>
-                    </div>
-                  </div>
+                  <Button
+                    type="button"
+                    variant={bookingType === 'return' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setBookingType('return');
+                      resetLocationData();
+                      setFormModified(true);
+                    }}
+                    className="h-9 text-xs w-full"
+                    disabled={disabled || isFetching}
+                  >
+                    Return
+                  </Button>
                 </div>
               </div>
 
@@ -837,6 +820,28 @@ export default function BookingForm({
                     </div>
                   </div>
 
+                  {/* Wait Duration Timer - Only show for wait-and-return */}
+                  {returnType === 'wait-and-return' && (
+                    <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                      <div className="flex justify-between text-sm">
+                        <span>Wait Time: {waitDuration || 12} hours</span>
+                        <span className="text-muted-foreground">1-12 hours</span>
+                      </div>
+                      <Slider
+                        value={[waitDuration || 12]}
+                        onValueChange={(value) => {
+                          setWaitDuration && setWaitDuration(value[0]);
+                          setFormModified(true);
+                        }}
+                        min={1}
+                        max={12}
+                        step={1}
+                        className="w-full"
+                        disabled={disabled || isFetching}
+                      />
+                    </div>
+                  )}
+
                   {/* Return Date/Time - Only show for later-date returns */}
                   {returnType === 'later-date' && (
                     <div className="grid grid-cols-2 gap-3">
@@ -887,10 +892,10 @@ export default function BookingForm({
                       className="w-full"
                       disabled={disabled || isFetching}
                     />
-                    <div className="text-xs text-muted-foreground">
+                    {/* <div className="text-xs text-muted-foreground">
                       <div>• <strong>3-6 hours:</strong> Higher hourly rates</div>
                       <div>• <strong>6-12 hours:</strong> Lower hourly rates</div>
-                    </div>
+                    </div> */}
                   </div>
                 )}
 

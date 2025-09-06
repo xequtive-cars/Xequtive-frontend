@@ -205,8 +205,8 @@ class LocationSearchService {
 
       const trimmedInput = input.trim();
       
-      // Minimum 3 character threshold as per requirements
-      if (trimmedInput.length < 3) {
+      // No minimum character threshold - allow all searches
+      if (trimmedInput.length === 0) {
         return {
           success: true,
           data: []

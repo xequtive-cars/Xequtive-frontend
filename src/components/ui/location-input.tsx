@@ -130,7 +130,7 @@ export function LocationInput({
   // Fetch location suggestions from Mapbox with debouncing and minimum character threshold
   const fetchSuggestions = useCallback(
     debounce(async (query: string) => {
-      if (!query.trim() || query.trim().length < 3) {
+      if (!query.trim()) {
         setSuggestions([]);
         setHoveredIndex(null);
         return;
@@ -185,7 +185,7 @@ export function LocationInput({
       } finally {
         setIsLoading(false);
       }
-    }, 300, 3), // 300ms debounce, 3 character minimum
+    }, 200, 0), // 200ms debounce, no character minimum
     [userLocation]
   );
 
@@ -295,12 +295,10 @@ export function LocationInput({
         onFocus={() => {
           // Only show suggestions if:
           // 1. Not recently selected
-          // 2. Has at least 3 characters (minimum threshold)
-          // 3. Has suggestions available
-          // 4. Not in the cache of previously selected locations
+          // 2. Has suggestions available
+          // 3. Not in the cache of previously selected locations
           if (
             !selectionMadeRef.current &&
-            value.trim().length >= 3 &&
             suggestions.length > 0 &&
             !selectedLocationsCache.has(value)
           ) {
@@ -328,18 +326,7 @@ export function LocationInput({
         </button>
       )}
 
-      {/* Minimum character message */}
-      {value.trim().length > 0 && value.trim().length < 3 && (
-        <div className="absolute z-10 w-full min-w-[300px] mt-1">
-          <div className="rounded-lg border shadow-md bg-popover/95 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/85 overflow-hidden max-w-[calc(100vw-2rem)]">
-            <div className="p-2">
-              <div className="text-xs font-medium text-muted-foreground mb-1 px-2">
-                Please enter at least 3 characters to search
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* No minimum character requirement */}
 
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-10 w-full min-w-[300px] mt-1">

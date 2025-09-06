@@ -129,7 +129,7 @@ export function DatePicker({
                   currentMonth.getMonth() === today.getMonth() &&
                   currentMonth.getFullYear() === today.getFullYear()
                 }
-                className="h-8 w-8 rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground disabled:opacity-40 touch-manipulation"
+                className="rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground disabled:opacity-40 touch-manipulation"
               >
                 <ArrowLeft size={16} />
                 <span className="sr-only">Previous month</span>
@@ -141,7 +141,7 @@ export function DatePicker({
                 variant="ghost"
                 size="icon"
                 onClick={handleNextMonth}
-                className="h-8 w-8 rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground touch-manipulation"
+                className="rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground touch-manipulation"
               >
                 <ArrowRight size={16} />
                 <span className="sr-only">Next month</span>

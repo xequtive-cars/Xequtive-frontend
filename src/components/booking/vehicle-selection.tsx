@@ -135,6 +135,13 @@ export default function VehicleSelection({
         getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
     );
 
+    // Debug logging to check for duplicates
+    console.log('🚗 VEHICLE DEBUG - Total vehicles from fareData:', fareData.vehicleOptions?.length);
+    console.log('🚗 VEHICLE DEBUG - Sorted vehicles count:', sorted.length);
+    console.log('🚗 VEHICLE DEBUG - Vehicle IDs:', sorted.map(v => v.id));
+    console.log('🚗 VEHICLE DEBUG - Vehicle names:', sorted.map(v => v.name));
+    console.log('🚗 VEHICLE DEBUG - Vehicle prices:', sorted.map(v => v.price.amount));
+
     return sorted;
   }, [fareData]);
 
@@ -403,14 +410,8 @@ export default function VehicleSelection({
                 <div className="text-right">
                   {bookingType === 'return' ? (
                     <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground line-through">
+                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono text-foreground">
                         £{vehicle.price.amount}
-                      </div>
-                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono text-green-600">
-                        £{(vehicle.price.amount * 0.9).toFixed(0)}
-                      </div>
-                      <div className="text-xs text-green-600 font-medium">
-                        10% discount
                       </div>
                     </div>
                   ) : bookingType === 'hourly' ? (
@@ -546,27 +547,21 @@ export default function VehicleSelection({
               <div className="text-right ml-2">
                 {bookingType === 'return' ? (
                   <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground line-through">
+                    <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono text-foreground">
                       £{vehicle.price.amount}
-                    </div>
-                    <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono text-green-600">
-                      £{(vehicle.price.amount * 0.9).toFixed(0)}
-                    </div>
-                    <div className="text-xs text-green-600 font-medium">
-                      10% discount
                     </div>
                   </div>
                 ) : bookingType === 'hourly' ? (
                   <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">
+                    {/* <div className="text-xs text-muted-foreground">
                       £{(vehicle.price.amount / hours).toFixed(0)}/hour
-                    </div>
+                    </div> */}
                     <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
                       £{vehicle.price.amount}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    {/* <div className="text-xs text-muted-foreground">
                       Total for {hours}h
-                    </div>
+                    </div> */}
                   </div>
                 ) : (
                   <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">

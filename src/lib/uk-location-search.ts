@@ -1181,11 +1181,84 @@ class UKLocationSearchService {
   }
 
   /**
+   * Search using OpenStreetMap Nominatim (replaces Mapbox Places API)
+   */
+  private async searchNominatim(query: string, limit: number = 10): Promise<any[]> {
+    try {
+      // Check cache first for better performance
+      const cacheKey = `nominatim_${query.toLowerCase()}_${limit}`;
+      const cached = this.getCachedData(cacheKey);
+      if (cached) {
+        return cached;
+      }
+      
+      const params = new URLSearchParams({
+        q: query,
+        countrycodes: 'gb',
+        format: 'json',
+        limit: limit.toString(),
+        addressdetails: '1'
+      });
+
+      const url = `https://nominatim.openstreetmap.org/search?${params}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Xequtive-Booking-App/1.0' // Required by Nominatim
+        },
+        cache: 'force-cache'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Cache the results for better performance
+        this.setCachedData(cacheKey, data);
+        
+        return data;
+      }
+    } catch (error) {
+      // Search error handled silently
+    }
+    
+    return [];
+  }
+
+  /**
+   * Convert Nominatim result to our LocationSuggestion format
+   */
+  private convertNominatimFeature(feature: any): LocationSuggestion {
+    return {
+      id: `nominatim-${feature.place_id}`,
+      address: feature.display_name || 'Unknown Location',
+      mainText: feature.display_name?.split(',')[0] || 'Unknown Location',
+      secondaryText: feature.display_name || '',
+      name: feature.display_name?.split(',')[0] || 'Unknown Location',
+      latitude: parseFloat(feature.lat) || 0,
+      longitude: parseFloat(feature.lon) || 0,
+      coordinates: {
+        lat: parseFloat(feature.lat) || 0,
+        lng: parseFloat(feature.lon) || 0
+      },
+      metadata: {
+        primaryType: feature.type || 'poi',
+        postcode: feature.address?.postcode || '',
+        city: feature.address?.city || feature.address?.town || '',
+        region: 'UK',
+        category: 'nominatim',
+        placeId: feature.place_id
+      }
+    };
+  }
+
+  /**
    * Enhanced general search with multiple categories and improved location detection
    */
   async enhancedSearch(query: string): Promise<LocationSearchResponse> {
     try {
-      if (!query.trim() || query.trim().length < 2) {
+      if (!query.trim()) {
         return {
           success: true,
           data: []
@@ -1212,82 +1285,49 @@ class UKLocationSearchService {
         };
       }
 
-      // Enhanced search strategy with better type coverage
+      // Optimized search strategies - reduced for better performance
       const searchStrategies = [
         {
           name: 'comprehensive',
-          params: new URLSearchParams({
-            access_token: token,
-            country: 'gb',
-            autocomplete: 'true',
-            limit: '20',
-            language: 'en',
-            bbox: '-8.2,49.9,1.8,60.9'
-            // No types restriction - search everything
-          })
+          limit: 25
         },
         {
-          name: 'poi_only',
-          params: new URLSearchParams({
-            access_token: token,
-            country: 'gb',
-            autocomplete: 'true',
-            limit: '15',
-            types: 'poi',
-            language: 'en',
-            bbox: '-8.2,49.9,1.8,60.9'
-          })
-        },
-        {
-          name: 'address_only',
-          params: new URLSearchParams({
-            access_token: token,
-            country: 'gb',
-            autocomplete: 'true',
-            limit: '10',
-            types: 'address',
-            language: 'en',
-            bbox: '-8.2,49.9,1.8,60.9'
-          })
-        },
-        {
-          name: 'place_only',
-          params: new URLSearchParams({
-            access_token: token,
-            country: 'gb',
-            autocomplete: 'true',
-            limit: '10',
-            types: 'place',
-            language: 'en',
-            bbox: '-8.2,49.9,1.8,60.9'
-          })
+          name: 'hotel_enhanced',
+          limit: 15
         }
       ];
 
       const allFeatures: any[] = [];
 
-      // Try each search strategy
+      // Optimized search using Nominatim
       for (const strategy of searchStrategies) {
         try {
-          const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${strategy.params}`;
+          let searchQuery = query;
           
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            cache: 'force-cache'
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.features && Array.isArray(data.features)) {
-              console.log(`📊 ${strategy.name} search found ${data.features.length} results for "${query}"`);
-              allFeatures.push(...data.features);
+          // Enhanced hotel search for better results
+          if (strategy.name === 'hotel_enhanced') {
+            if (!query.toLowerCase().includes('hotel') && !query.toLowerCase().includes('inn') && !query.toLowerCase().includes('lodge')) {
+              searchQuery = `${query} hotel`;
             }
           }
+          
+          // Use Nominatim with optimized parameters
+          const nominatimResults = await this.searchNominatim(searchQuery, strategy.limit);
+          
+          if (nominatimResults.length > 0) {
+            // Convert Nominatim results to Mapbox-like format for consistency
+            const convertedFeatures = nominatimResults.map((result: any) => ({
+              id: `nominatim-${result.place_id}`,
+              text: result.display_name?.split(',')[0] || 'Unknown',
+              place_name: result.display_name || 'Unknown Location',
+              center: [parseFloat(result.lon), parseFloat(result.lat)],
+              place_type: [result.type || 'poi'],
+              properties: result.address || {}
+            }));
+            allFeatures.push(...convertedFeatures);
+          }
         } catch (error) {
-          console.error(`Error in ${strategy.name} search:`, error);
+          // Search error handled silently
         }
       }
 
@@ -1314,13 +1354,31 @@ class UKLocationSearchService {
       });
 
       const results: LocationSuggestion[] = sortedFeatures
-        .slice(0, 20) // Increased limit for better coverage
-        .map(feature => this.convertMapboxFeature(feature, 'general'));
+        .slice(0, 30) // Increased limit for better coverage with more search strategies
+        .map(feature => {
+          // All results are now from Nominatim, so use Nominatim conversion
+          if (feature.id?.startsWith('nominatim-')) {
+            // Extract place_id from the id
+            const placeId = feature.id.replace('nominatim-', '');
+            // Create a mock result object for conversion
+            const mockResult = {
+              place_id: placeId,
+              display_name: feature.place_name,
+              lat: feature.center[1].toString(),
+              lon: feature.center[0].toString(),
+              type: feature.place_type[0],
+              address: feature.properties
+            };
+            return this.convertNominatimFeature(mockResult);
+          }
+          // Fallback to Mapbox conversion (shouldn't happen now)
+          return this.convertMapboxFeature(feature, 'general');
+        });
 
       // Cache the results
       this.setCachedData(cacheKey, results);
 
-      console.log(`✅ Enhanced search found ${results.length} results for "${query}"`);
+      // Search completed successfully
 
       return {
         success: true,
