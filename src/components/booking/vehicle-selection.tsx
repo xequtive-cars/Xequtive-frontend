@@ -95,7 +95,6 @@ interface VehicleSelectionProps {
   onSelectVehicle: (vehicle: VehicleOption) => void;
   layout?: "grid" | "vertical"; // Optional layout prop, defaults to grid
   bookingType?: 'one-way' | 'hourly' | 'return';
-  returnType?: 'wait-and-return' | 'later-date';
   hours?: number;
 }
 
@@ -118,7 +117,6 @@ export default function VehicleSelection({
   onSelectVehicle,
   layout = "grid", // Default to grid layout
   bookingType = 'one-way',
-  returnType = 'wait-and-return',
   hours = 1,
 }: VehicleSelectionProps) {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
@@ -376,6 +374,7 @@ export default function VehicleSelection({
   // Helper function to render a vehicle card (extracted for reuse)
   const renderVehicleCard = (vehicle: VehicleOption) => {
     const capacity = checkVehicleCapacity(vehicle);
+    
     const vehicleImagePath = getVehicleImagePath(vehicle.id);
 
     return (
@@ -403,31 +402,37 @@ export default function VehicleSelection({
                 />
               </div>
 
-              <div className="flex-1 flex justify-between items-center">
-                <h3 className="font-bold text-lg sm:text-xl md:text-xl">
+              <div className="flex-1 flex justify-between items-center gap-2 min-w-0">
+                <h3 className="font-bold text-lg sm:text-xl md:text-xl truncate min-w-0 flex-1">
                   {vehicle.name}
                 </h3>
-                <div className="text-right">
+                <div className="text-right min-w-0 flex-shrink-0">
                   {bookingType === 'return' ? (
                     <div className="space-y-1">
-                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono text-foreground notranslate">
+                      <div className="font-bold text-sm sm:text-lg md:text-xl tracking-tight font-mono text-foreground notranslate whitespace-nowrap">
                         £{vehicle.price.amount}
                       </div>
                     </div>
                   ) : bookingType === 'hourly' ? (
                     <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground notranslate">
-                        £{(vehicle.price.amount / hours).toFixed(0)}/hour
-                      </div>
-                      <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono notranslate">
+                      <div className="font-bold text-sm sm:text-lg md:text-xl tracking-tight font-mono notranslate whitespace-nowrap">
                         £{vehicle.price.amount}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">
                         Total for {hours}h
                       </div>
+                      {vehicle.hourlyRate ? (
+                        <div className="text-xs text-foreground font-medium notranslate">
+                          £{vehicle.hourlyRate}/hour
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground notranslate">
+                          £{(vehicle.price.amount / hours).toFixed(0)}/hour
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-mono notranslate">
+                    <div className="font-bold text-sm sm:text-lg md:text-xl tracking-tight font-mono notranslate whitespace-nowrap">
                       £{vehicle.price.amount}
                     </div>
                   )}
@@ -517,15 +522,15 @@ export default function VehicleSelection({
 
               {/* Middle: Vehicle Details - responsive text sizes */}
               <div className="flex-1 ml-3 sm:ml-4">
-                <h3 className="font-bold text-[17px] sm:text-2xl md:text-xl mb-1 sm:mb-2">
+                <h3 className="font-bold text-sm xs:text-[17px] sm:text-2xl md:text-xl mb-1 sm:mb-2">
                   {vehicle.name}
                 </h3>
 
-                <div className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs xs:text-sm sm:text-base text-muted-foreground">
                   <span className="flex items-center">
                     <Badge
                       variant="secondary"
-                      className="h-5 sm:h-6 mr-1 text-xs sm:text-sm"
+                      className="h-4 xs:h-5 sm:h-6 mr-1 text-xs"
                     >
                       {vehicle.capacity.passengers}
                     </Badge>
@@ -534,7 +539,7 @@ export default function VehicleSelection({
                   <span className="flex items-center">
                     <Badge
                       variant="secondary"
-                      className="h-5 sm:h-6 mr-1 text-xs sm:text-sm"
+                      className="h-4 xs:h-5 sm:h-6 mr-1 text-xs"
                     >
                       {vehicle.capacity.luggage}
                     </Badge>
@@ -547,24 +552,27 @@ export default function VehicleSelection({
               <div className="text-right ml-2">
                 {bookingType === 'return' ? (
                   <div className="space-y-1">
-                    <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono text-foreground">
+                    <div className="font-bold text-lg xs:text-xl sm:text-2xl md:text-2xl tracking-tight font-mono text-foreground">
                       £{vehicle.price.amount}
                     </div>
                   </div>
                 ) : bookingType === 'hourly' ? (
                   <div className="space-y-1">
-                    {/* <div className="text-xs text-muted-foreground">
-                      £{(vehicle.price.amount / hours).toFixed(0)}/hour
-                    </div> */}
-                    <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
+                    <div className="font-bold text-lg xs:text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
                       £{vehicle.price.amount}
                     </div>
-                    {/* <div className="text-xs text-muted-foreground">
-                      Total for {hours}h
-                    </div> */}
+                    {vehicle.hourlyRate ? (
+                      <div className="text-xs text-foreground font-medium notranslate">
+                        £{vehicle.hourlyRate}/hour
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground notranslate">
+                        £{(vehicle.price.amount / hours).toFixed(0)}/hour
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="font-bold text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
+                  <div className="font-bold text-lg xs:text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
                     £{vehicle.price.amount}
                   </div>
                 )}

@@ -37,6 +37,7 @@ export interface VehicleOption {
       waitingCharge: number;
     };
   };
+  hourlyRate?: number; // Hourly rate for hourly bookings
   eta?: number;
   imageUrl?: string;
   features?: string[];

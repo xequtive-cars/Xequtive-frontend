@@ -125,13 +125,12 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
     const breakdown = vehicle.price.breakdown;
 
     // Only show breakdown items with non-zero values
+    // Updated to reflect simplified pricing (only base fare and airport fees remain)
     const items = [
       { label: "Base Fare", value: breakdown.baseFare },
       { label: "Distance Charge", value: breakdown.distanceCharge },
       { label: "Additional Stop Fee", value: breakdown.additionalStopFee },
-      { label: "Time Surcharge", value: breakdown.timeMultiplier },
-      { label: "Special Location Fees", value: breakdown.specialLocationFees },
-      { label: "Waiting Charge", value: breakdown.waitingCharge },
+      // Removed: Time Surcharge, Special Location Fees, Waiting Charge (no longer used)
     ].filter((item) => item.value > 0);
 
     if (items.length === 0) return null;

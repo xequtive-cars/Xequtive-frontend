@@ -256,8 +256,6 @@ export default function NewBookingPage() {
   const [bookingType, setBookingType] = useState<'one-way' | 'hourly' | 'return'>('one-way');
   const [hours, setHours] = useState<number>(3);
   const [multipleVehicles, setMultipleVehicles] = useState<number>(1);
-  const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
-  const [waitDuration, setWaitDuration] = useState<number | undefined>(undefined);
 
   // Debug logging for hours state
   useEffect(() => {
@@ -1166,25 +1164,23 @@ export default function NewBookingPage() {
 
       // Additional validation for return bookings
       if (bookingType === 'return') {
-        if (returnType === 'later-date') {
-          if (!returnDate) {
-            toast({
-              title: "Missing return date",
-              description: "Please select a return date for later-date returns.",
-              variant: "destructive",
-            });
-            setIsFetching(false);
-            return;
-          }
-          if (!returnTime) {
-            toast({
-              title: "Missing return time",
-              description: "Please select a return time for later-date returns.",
-              variant: "destructive",
-            });
-            setIsFetching(false);
-            return;
-          }
+        if (!returnDate) {
+          toast({
+            title: "Missing return date",
+            description: "Please select a return date for your booking.",
+            variant: "destructive",
+          });
+          setIsFetching(false);
+          return;
+        }
+        if (!returnTime) {
+          toast({
+            title: "Missing return time",
+            description: "Please select a return time for your booking.",
+            variant: "destructive",
+          });
+          setIsFetching(false);
+          return;
         }
       }
 
@@ -1289,16 +1285,9 @@ export default function NewBookingPage() {
             })),
           }
         }),
-        ...(bookingType === 'return' && { 
-          returnType,
-          ...(returnType === 'wait-and-return' && {
-            waitDuration: Math.max(1, Math.min(12, Number(waitDuration) || 12)),
-          }),
-          ...(returnType === 'later-date' && returnDate && returnTime && {
-            returnDate: formatDate(returnDate),
-            returnTime: validateAndFormatTime(returnTime),
-          }),
-          
+        ...(bookingType === 'return' && returnDate && returnTime && {
+          returnDate: formatDate(returnDate),
+          returnTime: validateAndFormatTime(returnTime),
         }),
       };
 
@@ -1318,11 +1307,8 @@ export default function NewBookingPage() {
         }
       }
       if (baseRequest.bookingType === 'return') {
-        console.log("🔄 Return type:", baseRequest.returnType);
-        if (baseRequest.returnType === 'later-date') {
-          console.log("📅 Return date:", baseRequest.returnDate);
-          console.log("🕐 Return time:", baseRequest.returnTime);
-        }
+        console.log("📅 Return date:", baseRequest.returnDate);
+        console.log("🕐 Return time:", baseRequest.returnTime);
       }
 
       console.log("📡 Calling fare API with endpoint: /api/fare-estimate/enhanced");
@@ -1373,12 +1359,10 @@ export default function NewBookingPage() {
       }
 
       if (response.success && response.data?.fare) {
-        console.log("✅ Fare calculation successful:", response.data.fare);
         setFareData(response.data.fare);
         setShowVehicleOptions(true);
         setFetchError(null);
       } else {
-        console.log("❌ Fare calculation failed - no fare data:", response);
         setFetchError(response.error?.message || "Failed to calculate fare");
         toast({
           title: "Fare calculation failed",
@@ -1476,12 +1460,8 @@ export default function NewBookingPage() {
           return;
         }
       } else if (bookingType === 'return') {
-        if (!returnType) {
-          setBookingError("Return type is required for return bookings");
-          return;
-        }
-        if (returnType === 'later-date' && (!returnDate || !returnTime)) {
-          setBookingError("Return date and time are required for later-date return bookings");
+        if (!returnDate || !returnTime) {
+          setBookingError("Return date and time are required for return bookings");
           return;
         }
       } else if (bookingType === 'one-way') {
@@ -1510,7 +1490,6 @@ export default function NewBookingPage() {
           returnTime: formattedReturnTime,
           bookingType,
           hours: bookingType === 'hourly' ? hours : undefined,
-          returnType: bookingType === 'return' ? returnType : undefined,
           passengers,
           checkedLuggage,
           mediumLuggage,
@@ -1535,8 +1514,6 @@ export default function NewBookingPage() {
           returnTime: formattedReturnTime,
           bookingType,
           hours: bookingType === 'hourly' ? hours : undefined,
-          returnType: bookingType === 'return' ? returnType : undefined,
-          waitDuration: bookingType === 'return' && returnType === 'wait-and-return' ? (waitDuration || 12) : undefined,
           passengers,
           checkedLuggage,
           mediumLuggage,
@@ -1576,7 +1553,6 @@ export default function NewBookingPage() {
       setBookingType('one-way');
       setHours(3);
       setMultipleVehicles(1);
-      setReturnType('wait-and-return');
       setPassengers(1);
       setCheckedLuggage(0);
       setMediumLuggage(0);
@@ -1891,10 +1867,6 @@ export default function NewBookingPage() {
                     setHours={setHours}
                     multipleVehicles={multipleVehicles}
                     setMultipleVehicles={setMultipleVehicles}
-                    returnType={returnType}
-                    setReturnType={setReturnType}
-                    waitDuration={waitDuration}
-                    setWaitDuration={setWaitDuration}
                   />
                 )}
               </div>
@@ -2066,7 +2038,6 @@ export default function NewBookingPage() {
                             onSelectVehicle={handleVehicleSelect}
                             layout="vertical"
                             bookingType={bookingType}
-                            returnType={returnType}
                             hours={hours}
                           />
                         )}
@@ -2177,27 +2148,10 @@ export default function NewBookingPage() {
                                 Return Journey
                               </label>
                               <div className="p-2 bg-muted/40 rounded-md text-sm">
-                                {returnType === 'wait-and-return' ? (
+                                {returnDate && returnTime ? (
                                   <div>
                                     <div className="flex justify-between mb-1">
-                                      <span className="text-muted-foreground">Type:</span>
-                                      <span className="font-medium">Wait & Return</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Route:</span>
-                                      <span className="font-medium">
-                                        {dropoffLocation?.address || "Not specified"} → {pickupLocation?.address || "Not specified"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ) : returnType === 'later-date' && returnDate && returnTime ? (
-                                  <div>
-                                    <div className="flex justify-between mb-1">
-                                      <span className="text-muted-foreground">Type:</span>
-                                      <span className="font-medium">Later Date</span>
-                                    </div>
-                                    <div className="flex justify-between mb-1">
-                                      <span className="text-muted-foreground">Return Date:</span>
+                                      <span className="text-muted-foreground">Date:</span>
                                       <span className="font-medium">
                                         {returnDate.toLocaleDateString("en-GB", {
                                           day: "numeric",
@@ -2394,27 +2348,10 @@ export default function NewBookingPage() {
                               Return Journey
                             </label>
                             <div className="p-2 bg-muted/40 rounded-md text-sm">
-                              {returnType === 'wait-and-return' ? (
+                              {returnDate && returnTime ? (
                                 <div>
                                   <div className="flex justify-between mb-1">
-                                    <span className="text-muted-foreground">Type:</span>
-                                    <span className="font-medium">Wait & Return</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Route:</span>
-                                    <span className="font-medium">
-                                      {dropoffLocation?.address || "Not specified"} → {pickupLocation?.address || "Not specified"}
-                                    </span>
-                                  </div>
-                                </div>
-                              ) : returnType === 'later-date' && returnDate && returnTime ? (
-                                <div>
-                                  <div className="flex justify-between mb-1">
-                                    <span className="text-muted-foreground">Type:</span>
-                                    <span className="font-medium">Later Date</span>
-                                  </div>
-                                  <div className="flex justify-between mb-1">
-                                    <span className="text-muted-foreground">Return Date:</span>
+                                    <span className="text-muted-foreground">Date:</span>
                                     <span className="font-medium">
                                       {returnDate.toLocaleDateString("en-GB", {
                                         day: "numeric",
@@ -2424,7 +2361,7 @@ export default function NewBookingPage() {
                                     </span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Return Time:</span>
+                                    <span className="text-muted-foreground">Time:</span>
                                     <span className="font-medium">{returnTime}</span>
                                   </div>
                                 </div>
@@ -2511,7 +2448,7 @@ export default function NewBookingPage() {
                           )}
 
                         {/* Return Journey Details - Only show for return bookings */}
-                        {bookingType === 'return' && returnType === 'later-date' && returnDate && returnTime && (
+                        {bookingType === 'return' && returnDate && returnTime && (
                           <div className="mt-3 border-t pt-3 border-border/40">
                             <div className="text-muted-foreground mb-2 text-xs font-medium">
                               Return Journey:
@@ -2567,7 +2504,6 @@ export default function NewBookingPage() {
                           onSelectVehicle={handleVehicleSelect}
                           layout="vertical"
                           bookingType={bookingType}
-                          returnType={returnType}
                           hours={hours}
                         />
                       )}
@@ -2730,9 +2666,14 @@ export default function NewBookingPage() {
                                 <label className="text-sm font-medium text-muted-foreground">
                                   Total Price
                                 </label>
-                                <p className="text-2xl font-bold font-mono mt-1">
+                                <p className="text-2xl font-bold font-mono mt-1 notranslate">
                                   £{selectedVehicle.price.amount.toFixed(2)}
                                 </p>
+                                {bookingType === 'hourly' && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Total for {hours}h
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>

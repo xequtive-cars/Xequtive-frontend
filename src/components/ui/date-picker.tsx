@@ -114,8 +114,8 @@ export function DatePicker({
             )}
             disabled={disabled}
           >
-            <span>{date ? format(date, "PPP") : placeholder}</span>
-            <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
+            <span className="flex-1">{date ? format(date, "MMM d, yyyy") : placeholder}</span>
+            <CalendarIcon className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
@@ -135,7 +135,7 @@ export function DatePicker({
                 <span className="sr-only">Previous month</span>
               </Button>
               <h2 className="text-sm font-medium">
-                {format(currentMonth, "MMMM yyyy")}
+                {format(currentMonth, "MMM yyyy")}
               </h2>
               <Button
                 variant="ghost"

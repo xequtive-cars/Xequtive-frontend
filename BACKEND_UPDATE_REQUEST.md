@@ -1,146 +1,88 @@
-# Backend Update Request: Enhanced Return Booking System
+# Backend Update Request: Return Type Simplification
 
 ## Overview
-We have implemented a new enhanced return booking system in both the **Enhanced Booking (Taxi Booking)** and **Hourly Booking** systems that requires backend updates to support the new structure.
+We have simplified the return booking system by removing the return type selection (wait-and-return vs later-date) and now only accept return date and time directly.
 
-## New Feature: Return Type Selection
+## Changes Made
 
-### What We Added
-We've added a new UI component that allows users to choose between two return types:
+### Frontend Changes
+1. **Removed Return Type Selection**: Eliminated the "Wait & Return" and "Later Date" buttons
+2. **Simplified UI**: Now shows only "Return Date" title with date and time pickers
+3. **Updated Validation**: Return bookings now only require return date and time (no return type)
+4. **Cleaned Up Code**: Removed all `returnType` and `waitDuration` related code
 
-1. **Wait and Return** - Driver waits at destination and returns to pickup location
-2. **Later Date** - Driver returns on a different date/time
+### API Changes Required
 
-### Current Frontend Implementation
-- New `returnType` state: `'wait-and-return' | 'later-date'`
-- UI toggle/radio buttons for users to select return type
-- Conditional fields based on selection:
-  - **Wait and Return**: No additional date/time fields needed
-  - **Later Date**: Shows return date and time picker fields
-
-## Required Backend Changes
-
-### 1. Enhanced Booking API (Taxi Booking)
-
-#### Current Structure (needs update):
+#### Before (Old Structure)
 ```json
 {
-  "returnDate": "2025-08-21",
-  "returnTime": "18:00"
-}
-```
-
-#### New Required Structure:
-```json
-{
+  "bookingType": "return",
   "returnType": "wait-and-return" | "later-date",
-  "returnDetails": {
-    "waitAndReturn": {
-      "driverWaitTime": "unlimited" // or specific duration if needed
-    }
-    // OR
-    "laterDate": {
-      "returnDate": "2025-08-21",
-      "returnTime": "18:00"
-    }
-  }
+  "waitDuration": 12,  // Only for wait-and-return
+  "returnDate": "2024-01-15",  // Only for later-date
+  "returnTime": "14:30"  // Only for later-date
 }
 ```
 
-### 2. Hourly Booking API
-
-#### Current Structure (needs update):
+#### After (New Structure)
 ```json
 {
-  "returnDate": "2025-08-21",
-  "returnTime": "18:00"
+  "bookingType": "return",
+  "returnDate": "2024-01-15",  // Always required for return bookings
+  "returnTime": "14:30"  // Always required for return bookings
 }
 ```
 
-#### New Required Structure:
-```json
-{
-  "returnType": "wait-and-return" | "later-date",
-  "returnDetails": {
-    "waitAndReturn": {
-      "driverWaitTime": "unlimited" // or specific duration if needed
-    }
-    // OR
-    "laterDate": {
-      "returnDate": "2025-08-21",
-      "returnTime": "18:00"
-    }
-  }
-}
-```
+## Backend Updates Needed
 
-## API Endpoints That Need Updates
+### 1. Remove Return Type Field
+- Remove `returnType` field from booking models/schemas
+- Remove `waitDuration` field from booking models/schemas
+- Update database migrations if needed
 
-### Enhanced Booking (Taxi Booking):
-- `POST /api/bookings` - Create booking
-- `PUT /api/bookings/{id}` - Update booking
-- `POST /api/fare-estimate` - Calculate fare
+### 2. Update Validation
+- Return bookings now only require `returnDate` and `returnTime`
+- Remove validation for `returnType` and `waitDuration`
+- Ensure `returnDate` and `returnTime` are always required for return bookings
 
-### Hourly Booking:
-- `POST /api/hourly-bookings` - Create hourly booking
-- `PUT /api/hourly-bookings/{id}` - Update hourly booking
-- `POST /api/hourly-fare-estimate` - Calculate hourly fare
+### 3. Update Business Logic
+- Remove any logic that differentiates between "wait-and-return" and "later-date"
+- All return bookings should be treated the same way
+- Remove any wait duration calculations or logic
 
-## Business Logic Requirements
+### 4. Update API Endpoints
+- Update booking creation endpoints to only accept `returnDate` and `returnTime`
+- Update booking update endpoints accordingly
+- Update any booking retrieval endpoints to not include `returnType` or `waitDuration`
 
-### Wait and Return:
-- Driver waits at destination location
-- No additional return date/time needed
-- Pricing should reflect the waiting time and return journey
-- May need to specify maximum wait time or make it unlimited
+### 5. Update Documentation
+- Update API documentation to reflect the simplified structure
+- Update any internal documentation about return booking types
 
-### Later Date:
-- Driver returns on specified date/time
-- Requires return date and time validation
-- Pricing should reflect the separate outbound and return journeys
-- May need to handle cases where return is days/weeks later
+## Migration Strategy
 
-## Validation Rules
+### Database Migration
+If you have existing bookings with `returnType` and `waitDuration` fields:
+1. Create a migration to remove these columns
+2. Ensure existing return bookings still work with just `returnDate` and `returnTime`
 
-### Wait and Return:
-- `returnType` must be "wait-and-return"
-- No `returnDate` or `returnTime` required
-- `returnDetails.waitAndReturn` object required
+### API Versioning
+Consider if you need to maintain backward compatibility:
+- If yes: Keep old fields as optional for a transition period
+- If no: Remove fields immediately and update frontend accordingly
 
-### Later Date:
-- `returnType` must be "later-date"
-- `returnDate` and `returnTime` are required
-- `returnDetails.laterDate` object required
-- Return date must be after pickup date
-- Return time validation (24-hour format)
+## Testing Checklist
 
-## Frontend State Management
-
-We're currently managing this with:
-```typescript
-const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
-const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
-const [returnTime, setReturnTime] = useState<string>("");
-```
-
-## Testing Scenarios
-
-1. **Wait and Return**: User selects wait-and-return, no return date/time needed
-2. **Later Date**: User selects later-date, return date/time required
-3. **Validation**: Ensure proper error messages for missing required fields
-4. **Pricing**: Verify fare calculations work for both return types
-
-## Timeline
-- **Frontend**: ✅ Already implemented and ready
-- **Backend**: Needs implementation to support new structure
-- **Testing**: Can begin once backend is updated
-
-## Questions for Backend Team
-
-1. Should we add a `driverWaitTime` field for wait-and-return bookings?
-2. How should pricing be calculated for wait-and-return vs later-date?
-3. Are there any business rules around maximum wait times?
-4. Should we add any additional fields for return journey planning?
+- [ ] Return bookings can be created with only `returnDate` and `returnTime`
+- [ ] Return bookings validation works correctly
+- [ ] Existing return bookings still function properly
+- [ ] API documentation is updated
+- [ ] Database migrations run successfully
 
 ## Contact
-Please let us know when these backend changes are implemented so we can test the complete flow and ensure both return booking types work correctly.
+If you have any questions about these changes, please contact the frontend team.
+
+---
+**Date**: January 2024  
+**Version**: 1.0  
+**Status**: Ready for Implementation

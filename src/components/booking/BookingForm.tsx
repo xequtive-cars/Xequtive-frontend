@@ -99,10 +99,6 @@ interface BookingFormProps {
   setHours: (value: number) => void;
   multipleVehicles: number;
   setMultipleVehicles: (value: number) => void;
-  returnType?: 'wait-and-return' | 'later-date';
-  setReturnType?: (value: 'wait-and-return' | 'later-date') => void;
-  waitDuration?: number;
-  setWaitDuration?: (value: number | undefined) => void;
 
 }
 
@@ -305,10 +301,6 @@ export default function BookingForm({
   setHours,
   multipleVehicles,
   setMultipleVehicles,
-  returnType,
-  setReturnType,
-  waitDuration,
-  setWaitDuration,
 }: BookingFormProps) {
   // Function to reset location data when booking type changes
   const resetLocationData = () => {
@@ -787,63 +779,9 @@ export default function BookingForm({
               {/* Return leg for return bookings */}
               {bookingType === 'return' && (
                 <div className="space-y-3">
-                  {/* Return Type Selection */}
+                  {/* Return Date/Time */}
                   <div className="space-y-2">
-                    <div className="text-xs font-medium text-muted-foreground">Return Type</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant={returnType === 'wait-and-return' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => {
-                          setReturnType && setReturnType('wait-and-return');
-                          setFormModified(true);
-                        }}
-                        className="h-9 text-xs"
-                        disabled={disabled || isFetching}
-                      >
-                        Wait & Return
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={returnType === 'later-date' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => {
-                          setReturnType && setReturnType('later-date');
-                          setFormModified(true);
-                        }}
-                        className="h-9 text-xs"
-                        disabled={disabled || isFetching}
-                      >
-                        Later Date
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Wait Duration Timer - Only show for wait-and-return */}
-                  {returnType === 'wait-and-return' && (
-                    <div className="space-y-2 p-3 border rounded-md bg-muted/20">
-                      <div className="flex justify-between text-sm">
-                        <span>Wait Time: {waitDuration || 12} hours</span>
-                        <span className="text-muted-foreground">1-12 hours</span>
-                      </div>
-                      <Slider
-                        value={[waitDuration || 12]}
-                        onValueChange={(value) => {
-                          setWaitDuration && setWaitDuration(value[0]);
-                          setFormModified(true);
-                        }}
-                        min={1}
-                        max={12}
-                        step={1}
-                        className="w-full"
-                        disabled={disabled || isFetching}
-                      />
-                    </div>
-                  )}
-
-                  {/* Return Date/Time - Only show for later-date returns */}
-                  {returnType === 'later-date' && (
+                    <div className="text-xs font-medium text-muted-foreground">Return Date</div>
                     <div className="grid grid-cols-2 gap-3">
                       <DatePicker
                         date={returnDate}
@@ -865,9 +803,7 @@ export default function BookingForm({
                         selectedDate={returnDate}
                       />
                     </div>
-                  )}
-
-
+                  </div>
                 </div>
               )}
 

@@ -148,7 +148,6 @@ export function HourlyBookingForm({ className }: HourlyBookingFormProps) {
               date: format(selectedDate, 'yyyy-MM-dd'),
               time: selectedTime
             },
-            returnType: 'later-date',
             returnPickup: {
               lat: dropoffLocation?.coordinates.lat || 0,
               lng: dropoffLocation?.coordinates.lng || 0,
@@ -300,7 +299,6 @@ export function HourlyBookingForm({ className }: HourlyBookingFormProps) {
               date: format(selectedDate, 'yyyy-MM-dd'),
               time: selectedTime
             },
-            returnType: 'later-date',
             returnPickup: dropoffLocation!,
             returnDropoff: pickupLocation,
             returnDateTime: {

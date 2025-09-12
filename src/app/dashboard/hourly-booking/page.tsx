@@ -243,8 +243,6 @@ export default function HourlyBookingPage() {
   // Return leg date/time for 'return' bookings
   const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
   const [returnTime, setReturnTime] = useState<string>("");
-  const [returnType, setReturnType] = useState<'wait-and-return' | 'later-date'>('wait-and-return');
-  const [waitDuration, setWaitDuration] = useState<number | undefined>(undefined);
 
   // Passenger/luggage states
   const [passengers, setPassengers] = useState<number>(1);
@@ -1232,11 +1230,7 @@ export default function HourlyBookingPage() {
               lat: stop.latitude,
               lng: stop.longitude,
             })) : undefined,
-            returnType: returnType || 'wait-and-return',
-            ...(returnType === 'wait-and-return' && {
-              waitDuration: Math.max(1, Math.min(12, Number(waitDuration) || 12)),
-            }),
-            ...(returnType === 'later-date' && {
+            ...(returnDate && returnTime && {
               returnPickup: {
                 lat: dropoffLocation?.latitude || 0,
                 lng: dropoffLocation?.longitude || 0,
@@ -1472,11 +1466,7 @@ export default function HourlyBookingPage() {
                 lng: stop.longitude
               }
             })),
-            returnType: returnType || 'wait-and-return',
-            ...(returnType === 'wait-and-return' && {
-              waitDuration: Math.max(1, Math.min(12, Number(waitDuration) || 12)),
-            }),
-            ...(returnType === 'later-date' && {
+            ...(returnDate && returnTime && {
               returnPickup: {
               address: dropoffLocation?.address || "",
               coordinates: {
@@ -1792,10 +1782,6 @@ export default function HourlyBookingPage() {
                       fetchError={fetchError}
                       disabled={locationPermission.denied}
                       setFormModified={setFormModified}
-                      returnType={returnType}
-                      setReturnType={setReturnType}
-                      waitDuration={waitDuration}
-                      setWaitDuration={setWaitDuration}
                       userLocation={userLocation}
                       showVehicleOptions={showVehicleOptions}
                     />
@@ -2213,7 +2199,7 @@ export default function HourlyBookingPage() {
                         </div>
 
                         {/* Return date and time for later-date return bookings */}
-                        {bookingType === 'return' && returnType === 'later-date' && returnDate && returnTime && (
+                        {bookingType === 'return' && returnDate && returnTime && (
                           <div className="grid grid-cols-2 gap-3 mb-3">
                             <div>
                               <label className="text-xs font-medium mb-1 block text-muted-foreground">
@@ -2487,7 +2473,7 @@ export default function HourlyBookingPage() {
                         </div>
 
                         {/* Return date and time for later-date return bookings */}
-                        {bookingType === 'return' && returnType === 'later-date' && returnDate && returnTime && (
+                        {bookingType === 'return' && returnDate && returnTime && (
                           <div>
                             <label className="text-sm font-medium mb-1 block text-muted-foreground">
                               Return Date & Time

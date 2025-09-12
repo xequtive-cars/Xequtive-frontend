@@ -42,7 +42,6 @@ interface FareRequest {
   // Enhanced booking type parameters
   bookingType?: 'one-way' | 'hourly' | 'return';
   hours?: number; // Required for hourly bookings (3-12)
-  returnType?: 'wait-and-return' | 'later-date'; // Required for return bookings
   returnDate?: string; // Required for later-date returns (YYYY-MM-DD)
   returnTime?: string; // Required for later-date returns (HH:mm)
 
@@ -232,7 +231,6 @@ export const getFareEstimate = async (
       // Add enhanced booking parameters if provided
       ...(request.bookingType && { bookingType: request.bookingType }),
       ...(request.hours && { hours: request.hours }),
-      ...(request.returnType && { returnType: request.returnType }),
       ...(request.returnDate && { returnDate: request.returnDate }),
       ...(request.returnTime && { returnTime: request.returnTime }),
       
@@ -272,13 +270,9 @@ export const getFareEstimate = async (
     }
 
     if (request.bookingType === 'return') {
-      if (!request.returnType) {
-        throw new Error("Return type is required for return bookings");
+      if (!request.returnDate || !request.returnTime) {
+        throw new Error("Return date and time are required for return bookings");
       }
-      if (request.returnType === 'later-date' && (!request.returnDate || !request.returnTime)) {
-        throw new Error("Return date and time are required for later-date returns");
-      }
-
     }
 
     // Use the API client for the request
@@ -290,17 +284,11 @@ export const getFareEstimate = async (
 
       // The API client returns the full backend response, so we need to extract the fare data
       if (response.success && response.data && response.data.fare) {
-        console.log('🚗 FARE API DEBUG - Original vehicle count:', response.data.fare.vehicleOptions?.length);
-        console.log('🚗 FARE API DEBUG - Original vehicles:', response.data.fare.vehicleOptions);
-        
         // Correct vehicle capacities before returning
         const correctedFare = {
           ...response.data.fare,
           vehicleOptions: correctVehicleCapacities(response.data.fare.vehicleOptions)
         };
-        
-        console.log('🚗 FARE API DEBUG - Corrected vehicle count:', correctedFare.vehicleOptions?.length);
-        console.log('🚗 FARE API DEBUG - Corrected vehicles:', correctedFare.vehicleOptions);
         
         return {
           success: true,

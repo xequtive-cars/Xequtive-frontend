@@ -227,7 +227,6 @@ export interface ActiveBookingsResponse {
         duration_minutes: number;
       };
       hours?: number;
-      returnType?: 'wait-and-return' | 'later-date';
       returnDate?: string;
       returnTime?: string;
       passengers: {
@@ -319,7 +318,6 @@ export interface BookingHistoryResponse {
         duration_minutes: number;
       };
       hours?: number;
-      returnType?: 'wait-and-return' | 'later-date';
       returnDate?: string;
       returnTime?: string;
       passengers: {
@@ -425,7 +423,6 @@ export interface GetUserBookingsResponse {
         duration_minutes: number;
       };
       hours?: number;
-      returnType?: 'wait-and-return' | 'later-date';
       returnDate?: string;
       returnTime?: string;
       passengers: {
@@ -640,8 +637,6 @@ class BookingService {
       returnTime?: string;
       bookingType: 'one-way' | 'hourly' | 'return';
       hours?: number;
-      returnType?: 'wait-and-return' | 'later-date';
-      waitDuration?: number;
       passengers: number;
       checkedLuggage: number;
       mediumLuggage: number;
@@ -660,11 +655,8 @@ class BookingService {
           throw new Error("Hours must be between 3 and 12 for hourly bookings");
         }
       } else if (bookingDetails.bookingType === 'return') {
-        if (!bookingDetails.returnType) {
-          throw new Error("Return type is required for return bookings");
-        }
-        if (bookingDetails.returnType === 'later-date' && (!bookingDetails.returnDate || !bookingDetails.returnTime)) {
-          throw new Error("Return date and time are required for later-date return bookings");
+        if (!bookingDetails.returnDate || !bookingDetails.returnTime) {
+          throw new Error("Return date and time are required for return bookings");
         }
       } else if (bookingDetails.bookingType === 'one-way') {
         if (!bookingDetails.dropoffLocation) {
@@ -786,15 +778,8 @@ class BookingService {
             hours: bookingDetails.hours,
           }),
           ...(bookingDetails.bookingType === 'return' && {
-            returnType: bookingDetails.returnType || 'wait-and-return',
-            ...(bookingDetails.returnType === 'wait-and-return' && {
-              waitDuration: bookingDetails.waitDuration || 12,
-            }),
-            ...(bookingDetails.returnType === 'later-date' && {
-              returnDate: format(bookingDetails.returnDate!, "yyyy-MM-dd"),
-              returnTime: bookingDetails.returnTime,
-            }),
-
+            returnDate: format(bookingDetails.returnDate!, "yyyy-MM-dd"),
+            returnTime: bookingDetails.returnTime,
           }),
         },
       };
@@ -853,7 +838,6 @@ class BookingService {
           referenceNumber: booking.referenceNumber || undefined,
           bookingType: booking.bookingType || "one-way",
           hours: booking.hours || undefined,
-          returnType: booking.returnType || undefined,
           returnDate: booking.returnDate || undefined,
           returnTime: booking.returnTime || undefined
         }));

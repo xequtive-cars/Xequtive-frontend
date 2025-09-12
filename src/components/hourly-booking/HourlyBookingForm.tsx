@@ -47,10 +47,6 @@ interface BookingFormProps {
   fetchError: string | null;
   disabled?: boolean;
   setFormModified: (value: boolean) => void;
-  returnType?: 'wait-and-return' | 'later-date';
-  setReturnType?: (value: 'wait-and-return' | 'later-date') => void;
-  waitDuration?: number;
-  setWaitDuration?: (value: number | undefined) => void;
   userLocation: { latitude: number; longitude: number } | null;
   showVehicleOptions?: boolean;
 }
@@ -93,10 +89,6 @@ export default function HourlyBookingForm({
   fetchError,
   disabled = false,
   setFormModified,
-  returnType,
-  setReturnType,
-  waitDuration,
-  setWaitDuration,
   userLocation,
   showVehicleOptions = false,
 }: BookingFormProps) {
@@ -260,63 +252,9 @@ export default function HourlyBookingForm({
                   <div>
                     <div className="text-xs font-medium text-muted-foreground mb-1">Return</div>
                     
-                    {/* Return Type Selection */}
+                    {/* Return Date/Time */}
                     <div className="space-y-2 mb-3">
-                      <div className="text-xs font-medium text-muted-foreground">Return Type</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          type="button"
-                          variant={returnType === 'wait-and-return' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            setReturnType && setReturnType('wait-and-return');
-                            setFormModified(true);
-                          }}
-                          className="h-9 text-xs"
-                          disabled={disabled || isFetching}
-                        >
-                          Wait & Return
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={returnType === 'later-date' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            setReturnType && setReturnType('later-date');
-                            setFormModified(true);
-                          }}
-                          className="h-9 text-xs"
-                          disabled={disabled || isFetching}
-                        >
-                          Later Date
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Wait Duration Timer - Only show for wait-and-return */}
-                    {returnType === 'wait-and-return' && (
-                      <div className="space-y-2 p-3 border rounded-md bg-muted/20">
-                        <div className="flex justify-between text-sm">
-                          <span>Wait Time: {waitDuration || 12} hours</span>
-                          <span className="text-muted-foreground">1-12 hours</span>
-                        </div>
-                        <Slider
-                          value={[waitDuration || 12]}
-                          onValueChange={(value) => {
-                            setWaitDuration && setWaitDuration(value[0]);
-                            setFormModified(true);
-                          }}
-                          min={1}
-                          max={12}
-                          step={1}
-                          className="w-full"
-                          disabled={disabled || isFetching}
-                        />
-                      </div>
-                    )}
-
-                    {/* Return Date/Time - Only show for later-date returns */}
-                    {returnType === 'later-date' && returnDate && (
+                      <div className="text-xs font-medium text-muted-foreground">Return Date</div>
                       <div className="grid grid-cols-2 gap-3">
                         <DatePicker
                           date={returnDate}
@@ -338,7 +276,7 @@ export default function HourlyBookingForm({
                           selectedDate={returnDate}
                         />
                       </div>
-                    )}
+                    </div>
 
 
                   </div>
@@ -499,7 +437,7 @@ export default function HourlyBookingForm({
                     (bookingType !== 'hourly' && !dropoffLocation) ||
                     !selectedDate ||
                     !selectedTime ||
-                    (bookingType === 'return' && returnType === 'later-date' && (!returnDate || !returnTime)) ||
+                    (bookingType === 'return' && (!returnDate || !returnTime)) ||
                     isFetching ||
                     disabled
                   }

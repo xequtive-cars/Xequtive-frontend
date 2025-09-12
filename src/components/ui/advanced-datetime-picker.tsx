@@ -126,7 +126,7 @@ export function AdvancedTimePicker({
       <PopoverContent className="w-[250px] p-4 space-y-4">
         <div>
           <h4 className="text-sm font-medium mb-2">
-            Select Time for {format(validLockedDate, "EEEE, MMMM d, yyyy")}
+            Select Time for {format(validLockedDate, "EEEE, MMM d, yyyy")}
           </h4>
           <TimePicker
             time={time}
