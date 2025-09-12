@@ -786,19 +786,12 @@ class BookingService {
 
 
 
-      console.log("🚀 Enhanced booking request:", JSON.stringify(enhancedBookingRequest, null, 2));
-      console.log("📋 Booking type:", bookingDetails.bookingType);
-      if (bookingDetails.bookingType === 'hourly') {
-        console.log("⏱️ Hours:", bookingDetails.hours);
-        console.log("🚗 Vehicle:", enhancedBookingRequest.booking.vehicle.name);
-      }
 
       const response = await apiClient.post<EnhancedBookingResponse>(
         "/api/bookings/create-enhanced",
         enhancedBookingRequest
       );
 
-      console.log("✅ Booking creation response:", response);
       
       // The API response is already the EnhancedBookingResponse, no need to check success property
       return response;

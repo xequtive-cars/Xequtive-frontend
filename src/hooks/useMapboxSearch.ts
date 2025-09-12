@@ -49,8 +49,6 @@ export function useMapboxSearch() {
   // Fetch popular locations with extensive error handling
   const fetchPopularLocations = useCallback(async (): Promise<SearchResult[]> => {
     try {
-      console.group('🌍 Fetching Popular Locations');
-      console.log('Attempting to fetch from /api/places?popular=true');
 
       const response = await fetch('/api/places?popular=true', {
         method: 'GET',
@@ -60,7 +58,6 @@ export function useMapboxSearch() {
         cache: 'no-store'  // Disable caching to ensure fresh data
       });
 
-      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -69,7 +66,6 @@ export function useMapboxSearch() {
       }
 
       const data = await response.json();
-      console.log('Raw API Response:', data);
 
       if (!data.suggestions || data.suggestions.length === 0) {
         console.warn('No suggestions returned, using default');
@@ -84,27 +80,20 @@ export function useMapboxSearch() {
         type: suggestion.metadata?.primaryType || 'location'
       }));
 
-      console.log('Formatted Popular Locations:', formattedResults);
-      console.groupEnd();
 
       return formattedResults.length > 0 ? formattedResults : defaultSuggestions;
     } catch (err) {
       console.error('❌ Popular Locations Fetch Error:', err);
-      console.groupEnd();
       return defaultSuggestions;
     }
   }, []);
 
   const searchLocations = useCallback(async (query: string) => {
-    console.group('🔍 Location Search');
-    console.log('Search Query:', query);
 
     // If query is empty, fetch popular locations
     if (!query || query.trim().length === 0) {
       const popularLocations = await fetchPopularLocations();
-      console.log('Empty query - setting popular locations');
       setSearchResults(popularLocations);
-      console.groupEnd();
         return;
       }
 
@@ -120,7 +109,6 @@ export function useMapboxSearch() {
         cache: 'no-store'
       });
 
-      console.log('Search Response Status:', response.status);
 
         if (!response.ok) {
         const errorText = await response.text();
@@ -135,7 +123,6 @@ export function useMapboxSearch() {
         console.warn('No search results, fetching popular locations');
         const popularLocations = await fetchPopularLocations();
         setSearchResults(popularLocations);
-        console.groupEnd();
         return;
       }
 
@@ -153,7 +140,6 @@ export function useMapboxSearch() {
         ...formattedResults
       ];
 
-      console.log('Combined Search Results:', combinedResults);
       setSearchResults(combinedResults);
       } catch (err) {
       console.error('❌ Search Error:', err);
@@ -164,7 +150,6 @@ export function useMapboxSearch() {
       setSearchResults(popularLocations);
       } finally {
         setIsLoading(false);
-      console.groupEnd();
       }
   }, [fetchPopularLocations]);
 

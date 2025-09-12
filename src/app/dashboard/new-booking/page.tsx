@@ -259,13 +259,12 @@ export default function NewBookingPage() {
 
   // Debug logging for hours state
   useEffect(() => {
-    console.log("🔍 Hours state changed:", { hours, type: typeof hours, bookingType });
+    // Hours state changed
   }, [hours, bookingType]);
 
                 // Ensure hours are properly set when booking type changes to hourly
   useEffect(() => {
     if (bookingType === 'hourly' && (hours < 3 || hours > 12)) {
-      console.log("🔄 Resetting hours to valid range for hourly booking");
       setHours(3);
     }
   }, [bookingType, hours]);
@@ -273,12 +272,7 @@ export default function NewBookingPage() {
   // Debug logging for fare calculation
   useEffect(() => {
     if (bookingType === 'hourly') {
-      console.log("🔍 Hourly booking state:", { 
-        hours, 
-        type: typeof hours, 
-        isValid: hours >= 3 && hours <= 12,
-        bookingType 
-      });
+      // Hourly booking state
     }
   }, [hours, bookingType]);
 
@@ -1291,38 +1285,17 @@ export default function NewBookingPage() {
         }),
       };
 
-      console.log("🚀 Sending enhanced fare request data:", JSON.stringify(baseRequest, null, 2));
-      console.log("📍 Pickup coordinates:", baseRequest.locations.pickup.coordinates);
       if (baseRequest.locations.dropoff) {
-        console.log("📍 Dropoff coordinates:", baseRequest.locations.dropoff.coordinates);
       }
-      console.log("⏰ Formatted time:", baseRequest.datetime.time);
-      console.log("📋 Booking type:", baseRequest.bookingType);
       if (baseRequest.bookingType === 'hourly') {
-        console.log("⏱️ Hours:", baseRequest.hourlyDetails?.hours);
-        console.log("⏱️ Hours (direct):", baseRequest.hours);
-        console.log("⏱️ Hours type:", typeof baseRequest.hours);
-        if (baseRequest.hours !== undefined) {
-          console.log("⏱️ Hours validation:", baseRequest.hours >= 3 && baseRequest.hours <= 12);
-        }
       }
       if (baseRequest.bookingType === 'return') {
-        console.log("📅 Return date:", baseRequest.returnDate);
-        console.log("🕐 Return time:", baseRequest.returnTime);
       }
 
-      console.log("📡 Calling fare API with endpoint: /api/fare-estimate/enhanced");
-      console.log("📡 Request payload:", {
-        bookingType: baseRequest.bookingType,
-        hours: baseRequest.hours,
-        hasHourlyDetails: !!baseRequest.hourlyDetails,
-        hourlyDetailsHours: baseRequest.hourlyDetails?.hours
-      });
       
       const response = await getFareEstimate(baseRequest);
 
       if (!response.success) {
-        console.log("❌ Fare calculation failed:", response.error);
         
         // Handle authentication errors specifically
         if (response.error?.message?.includes("Authentication required")) {

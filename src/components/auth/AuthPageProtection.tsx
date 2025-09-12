@@ -22,7 +22,6 @@ export function AuthPageProtection({ children, fallback }: AuthPageProtectionPro
   useEffect(() => {
     // Only redirect if auth is fully initialized and user is authenticated
     if (isInitialized && !isLoading && isAuthenticated) {
-      console.log("[AuthPageProtection] User is authenticated, redirecting to dashboard");
       
       // Check if there's a returnUrl parameter, otherwise go to dashboard
       const returnUrl = searchParams.get("returnUrl");

@@ -178,11 +178,6 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
   );
   
   // Debug logging to check for duplicates
-  console.log('🚗 VEHICLE DEBUG - Total vehicles from fareData:', fareData.vehicleOptions?.length);
-  console.log('🚗 VEHICLE DEBUG - Sorted vehicles count:', sortedVehicles.length);
-  console.log('🚗 VEHICLE DEBUG - Vehicle IDs:', sortedVehicles.map(v => v.id));
-  console.log('🚗 VEHICLE DEBUG - Vehicle names:', sortedVehicles.map(v => v.name));
-  console.log('🚗 VEHICLE DEBUG - Vehicle prices:', sortedVehicles.map(v => v.price.amount));
 
   return (
     <div className="space-y-6">

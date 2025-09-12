@@ -134,11 +134,6 @@ export default function VehicleSelection({
     );
 
     // Debug logging to check for duplicates
-    console.log('🚗 VEHICLE DEBUG - Total vehicles from fareData:', fareData.vehicleOptions?.length);
-    console.log('🚗 VEHICLE DEBUG - Sorted vehicles count:', sorted.length);
-    console.log('🚗 VEHICLE DEBUG - Vehicle IDs:', sorted.map(v => v.id));
-    console.log('🚗 VEHICLE DEBUG - Vehicle names:', sorted.map(v => v.name));
-    console.log('🚗 VEHICLE DEBUG - Vehicle prices:', sorted.map(v => v.price.amount));
 
     return sorted;
   }, [fareData]);

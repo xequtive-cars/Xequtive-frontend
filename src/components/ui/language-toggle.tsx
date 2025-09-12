@@ -35,7 +35,6 @@ export function LanguageToggle({ className }: LanguageToggleProps) {
     const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement;
     
     if (selectEl) {
-      console.log(`Attempting to switch to ${lang}, attempt ${retryCount + 1}`);
       
       // Set the value
       selectEl.value = lang;
@@ -51,7 +50,6 @@ export function LanguageToggle({ className }: LanguageToggleProps) {
       
       // Verify the change was applied
       if (selectEl.value === lang) {
-        console.log(`Successfully switched to ${lang}`);
         return true;
       }
     }

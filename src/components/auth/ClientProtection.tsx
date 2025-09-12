@@ -23,7 +23,6 @@ export function ClientProtection({ children, fallback }: ClientProtectionProps) 
   useEffect(() => {
     // Only redirect if auth is fully initialized and user is not authenticated
     if (isInitialized && !isLoading && !isAuthenticated) {
-      console.log("[ClientProtection] User not authenticated, redirecting to signin");
       
       // Redirect to signin with return URL
       const returnUrl = encodeURIComponent(pathname);

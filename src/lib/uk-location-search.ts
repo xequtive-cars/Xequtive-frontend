@@ -737,7 +737,6 @@ class UKLocationSearchService {
             if (response.ok) {
               const data = await response.json();
               if (data.features && Array.isArray(data.features)) {
-                console.log(`📊 Mapbox response for "${query}" (${strategy.name}):`, data.features);
                 allFeatures.push(...data.features);
                 
                 // If we found good results, break out of strategy loop
@@ -764,7 +763,6 @@ class UKLocationSearchService {
       // Cache the results
       this.setCachedData(cacheKey, results);
 
-      console.log(`✅ Found ${results.length} ${category.name}`);
 
       return {
         success: true,
@@ -915,7 +913,6 @@ class UKLocationSearchService {
       // Cache the results
       this.setCachedData(cacheKey, results);
 
-      console.log(`✅ Found ${results.length} famous places for "${query}"`);
 
       return {
         success: true,
@@ -995,7 +992,6 @@ class UKLocationSearchService {
       // Cache the results
       this.setCachedData(cacheKey, results);
 
-      console.log(`✅ Found ${results.length} terminals for ${location.name}`);
 
       return {
         success: true,
@@ -1128,7 +1124,6 @@ class UKLocationSearchService {
         const locationName = locationId.toLowerCase();
         
         // Log what we're finding for debugging
-        console.log(`📍 Found terminal candidate: "${terminal.text}" - "${terminal.place_name}"`);
         
         if (category === 'airport') {
           const isTerminal = (text.includes('terminal') || 
@@ -1140,7 +1135,6 @@ class UKLocationSearchService {
                              (placeName.includes(locationName) || text.includes(locationName));
           
           if (isTerminal) {
-            console.log(`✅ Confirmed airport terminal: "${terminal.text}"`);
           }
           
           return isTerminal;
@@ -1152,7 +1146,6 @@ class UKLocationSearchService {
                              (placeName.includes(locationName) || text.includes(locationName));
           
           if (isPlatform) {
-            console.log(`✅ Confirmed station platform: "${terminal.text}"`);
           }
           
           return isPlatform;

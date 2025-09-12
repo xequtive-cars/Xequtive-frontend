@@ -114,7 +114,6 @@ const MapComponent = ({
 
     // Ensure container has dimensions
     if (mapContainer.current.offsetWidth === 0 || mapContainer.current.offsetHeight === 0) {
-      console.log('Container has no dimensions, retrying in 100ms...');
       const timer = setTimeout(() => {
         // Force a re-render to retry
         setMapLoaded(false);
@@ -131,10 +130,6 @@ const MapComponent = ({
     // Set the access token
     mapboxgl.accessToken = accessToken;
 
-    console.log('Creating map with container dimensions:', {
-      width: mapContainer.current.offsetWidth,
-      height: mapContainer.current.offsetHeight
-    });
 
     try {
       // Create the map with minimal configuration
@@ -155,18 +150,11 @@ const MapComponent = ({
         trackResize: true,
       });
 
-      console.log('Map created successfully');
 
       // Check if canvas is properly initialized
       setTimeout(() => {
         if (map.current) {
           const canvas = map.current.getCanvas();
-          console.log('Canvas check:', {
-            canvas: !!canvas,
-            width: canvas?.width,
-            height: canvas?.height,
-            style: canvas?.style?.display
-          });
           
           if (!canvas || canvas.width === 0 || canvas.height === 0) {
             console.error('Canvas not properly initialized, recreating map...');
@@ -179,7 +167,6 @@ const MapComponent = ({
 
       // Simple load event handler
       map.current.on('load', () => {
-        console.log('Map loaded successfully');
         setMapLoaded(true);
         
         // Add navigation control
@@ -358,11 +345,6 @@ const MapComponent = ({
   // Calculate and display route using Mapbox Directions API
   useEffect(() => {
     if (!map.current || !hasValidPickup || !hasValidDropoff) {
-      console.log('Route calculation skipped:', {
-        hasMap: !!map.current,
-        hasValidPickup,
-        hasValidDropoff
-      });
 
       // Remove existing route if we don't have both pickup and dropoff
       if (map.current && (!hasValidPickup || !hasValidDropoff)) {
@@ -373,9 +355,7 @@ const MapComponent = ({
           if (map.current.getSource('route')) {
             map.current.removeSource('route');
           }
-          console.log('Route removed - missing pickup or dropoff');
         } catch (error) {
-          console.log('Error removing route:', error);
         }
       }
       
@@ -387,14 +367,12 @@ const MapComponent = ({
 
     const fetchAndDisplayRoute = async () => {
       if (isCalculating) {
-        console.log('Route calculation already in progress, skipping...');
         return;
       }
 
       isCalculating = true;
 
       try {
-        console.log('Starting route calculation...');
 
         const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
         if (!accessToken) {
@@ -409,7 +387,6 @@ const MapComponent = ({
           [dropoffLocation.longitude, dropoffLocation.latitude]
         ];
 
-        console.log('Calculating route for coordinates:', coordinates);
 
         // Create the URL for Mapbox Directions API
         const coordinatesString = coordinates
@@ -418,7 +395,6 @@ const MapComponent = ({
         
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesString}?access_token=${accessToken}&geometries=geojson&overview=full&steps=true&continue_straight=true`;
 
-        console.log('Directions API URL:', url);
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -432,7 +408,6 @@ const MapComponent = ({
         }
 
         const data = await response.json();
-        console.log('Directions API response:', data);
         
         if (data.routes && data.routes.length > 0) {
           const route = data.routes[0];
@@ -447,7 +422,6 @@ const MapComponent = ({
                 map.current.removeSource('route');
               }
             } catch (error) {
-              console.log('Error removing existing route:', error);
             }
           }
 
@@ -457,17 +431,14 @@ const MapComponent = ({
                 
             // Check if map style is loaded before adding sources/layers
             if (!map.current.isStyleLoaded()) {
-              console.log('Map style not loaded yet, retrying in 100ms...');
               setTimeout(addRouteToMap, 100);
               return;
             }
             
             try {
-              console.log('Adding route to map...');
               
               // Double-check that source doesn't exist before adding
               if (map.current.getSource('route')) {
-                console.log('Route source already exists, removing first...');
                 map.current.removeLayer('route');
                 map.current.removeSource('route');
               }
@@ -505,12 +476,6 @@ const MapComponent = ({
               map.current.fitBounds(bounds, {
                 padding: 50,
                 maxZoom: 15
-              });
-
-              console.log('Route calculated successfully:', {
-                distance: route.distance,
-                duration: route.duration,
-                coordinates: coordinates.length
               });
             } catch (error) {
               console.error('Error adding route to map:', error);

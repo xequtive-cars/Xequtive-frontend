@@ -226,7 +226,6 @@ class LocationSearchService {
 
       // Only log search queries longer than 2 characters to reduce noise
       if (trimmedInput.length > 2) {
-        console.log(`🔍 Mapbox Location Search: "${trimmedInput}"`);
       }
 
       // Use enhanced search from UK location search service for better results
@@ -276,11 +275,9 @@ class LocationSearchService {
         
         // Try enhanced search as fallback
         try {
-          console.log('Trying enhanced search as fallback...');
           const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
           
           if (enhancedResponse.success && enhancedResponse.data && enhancedResponse.data.length > 0) {
-            console.log(`Enhanced search found ${enhancedResponse.data.length} results`);
             return enhancedResponse;
           }
         } catch (fallbackError) {
@@ -301,11 +298,9 @@ class LocationSearchService {
       if (!data.features || !Array.isArray(data.features)) {
         // Try enhanced search as fallback
         try {
-          console.log('No results from Mapbox, trying enhanced search...');
           const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
           
           if (enhancedResponse.success && enhancedResponse.data && enhancedResponse.data.length > 0) {
-            console.log(`Enhanced search found ${enhancedResponse.data.length} results`);
             return enhancedResponse;
           }
         } catch (fallbackError) {
@@ -371,13 +366,11 @@ class LocationSearchService {
 
       // If we don't have enough results, try enhanced search
       if (allSuggestions.length < 3) {
-        console.log(`Not enough results (${allSuggestions.length}), trying enhanced search...`);
         
         try {
           const enhancedResponse = await ukLocationSearchService.enhancedSearch(trimmedInput);
           
           if (enhancedResponse.success && enhancedResponse.data && enhancedResponse.data.length > allSuggestions.length) {
-            console.log(`Enhanced search found ${enhancedResponse.data.length} results`);
             return enhancedResponse;
           }
         } catch (error) {
@@ -498,7 +491,6 @@ class LocationSearchService {
       
       // Try enhanced search as fallback
       try {
-        console.log(`Trying enhanced search as fallback for ${category}...`);
         const enhancedResponse = await ukLocationSearchService.searchByCategory(category === 'airport' ? 'airports' : 'train_stations');
         
         if (enhancedResponse.success && enhancedResponse.data) {

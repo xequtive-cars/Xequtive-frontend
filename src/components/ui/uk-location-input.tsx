@@ -207,10 +207,8 @@ export default function UKLocationInput({
   // Initialize input value on mount
   useEffect(() => {
     if (value && value.trim()) {
-      console.log('UKLocationInput: Initializing input with value:', value);
       setInput(value);
     } else if (initialLocation?.address) {
-      console.log('UKLocationInput: Initializing input with initialLocation:', initialLocation.address);
       setInput(initialLocation.address);
     }
   }, []); // Only run on mount
@@ -218,7 +216,6 @@ export default function UKLocationInput({
   // Update input when value prop changes (for URL parameter restoration)
   useEffect(() => {
     if (value !== undefined && value !== input) {
-      console.log('UKLocationInput: Updating input from value prop:', value);
       setInput(value);
     }
   }, [value]);
@@ -226,7 +223,6 @@ export default function UKLocationInput({
   // Also handle initialLocation prop
   useEffect(() => {
     if (initialLocation?.address && !input) {
-      console.log('UKLocationInput: Setting input from initialLocation:', initialLocation.address);
       setInput(initialLocation.address);
     }
   }, [initialLocation, input]);
