@@ -651,8 +651,8 @@ class BookingService {
     try {
       // Validate booking details based on booking type
       if (bookingDetails.bookingType === 'hourly') {
-        if (!bookingDetails.hours || bookingDetails.hours < 3 || bookingDetails.hours > 12) {
-          throw new Error("Hours must be between 3 and 12 for hourly bookings");
+        if (!bookingDetails.hours || bookingDetails.hours < 3 || bookingDetails.hours > 24) {
+          throw new Error("Hours must be between 3 and 24 for hourly bookings");
         }
       } else if (bookingDetails.bookingType === 'return') {
         if (!bookingDetails.returnDate || !bookingDetails.returnTime) {

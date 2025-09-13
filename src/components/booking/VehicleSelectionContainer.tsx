@@ -171,8 +171,16 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
     );
   }
 
+  // Filter out Estate class vehicles (commented out for future use)
+  const filteredVehicles = fareData.vehicleOptions.filter(vehicle => {
+    const id = vehicle.id.toLowerCase();
+    const name = vehicle.name.toLowerCase();
+    // Comment out Estate class - don't delete from backend, just remove from frontend
+    return !id.includes("estate") && !name.includes("estate");
+  });
+
   // Sort vehicles by custom order instead of price
-  const sortedVehicles = [...fareData.vehicleOptions].sort(
+  const sortedVehicles = [...filteredVehicles].sort(
     (a, b) =>
       getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
   );

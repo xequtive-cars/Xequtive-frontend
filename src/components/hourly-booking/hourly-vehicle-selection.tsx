@@ -121,12 +121,20 @@ export default function HourlyVehicleSelection({
 }: VehicleSelectionProps) {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
 
-  // Sort vehicles by type order
-  const sortedVehicles = fareData.fare?.vehicleOptions 
-    ? [...fareData.fare.vehicleOptions].sort(
-        (a, b) => getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
-      )
+  // Filter out Estate class vehicles (commented out for future use)
+  const filteredVehicles = fareData.fare?.vehicleOptions 
+    ? fareData.fare.vehicleOptions.filter(vehicle => {
+        const id = vehicle.id.toLowerCase();
+        const name = vehicle.name.toLowerCase();
+        // Comment out Estate class - don't delete from backend, just remove from frontend
+        return !id.includes("estate") && !name.includes("estate");
+      })
     : [];
+
+  // Sort vehicles by type order
+  const sortedVehicles = [...filteredVehicles].sort(
+    (a, b) => getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
+  );
 
   const checkVehicleCapacity = (vehicle: HourlyVehicleOption) => {
     const totalLuggage = checkedLuggage + mediumLuggage + handLuggage;

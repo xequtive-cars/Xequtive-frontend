@@ -264,7 +264,7 @@ export default function NewBookingPage() {
 
                 // Ensure hours are properly set when booking type changes to hourly
   useEffect(() => {
-    if (bookingType === 'hourly' && (hours < 3 || hours > 12)) {
+    if (bookingType === 'hourly' && (hours < 3 || hours > 24)) {
       setHours(3);
     }
   }, [bookingType, hours]);
@@ -1251,9 +1251,9 @@ export default function NewBookingPage() {
         // Add enhanced booking type parameters
         bookingType,
         ...(bookingType === 'hourly' && { 
-          hours: Math.max(3, Math.min(12, Number(hours) || 3)), // Ensure hours is a valid number between 3-12
+          hours: Math.max(3, Math.min(24, Number(hours) || 3)), // Ensure hours is a valid number between 3-24
           hourlyDetails: {
-            hours: Math.max(3, Math.min(12, Number(hours) || 3)), // Ensure hours is a valid number between 3-12
+            hours: Math.max(3, Math.min(24, Number(hours) || 3)), // Ensure hours is a valid number between 3-24
             pickupLocation: {
               address: pickupLocation.address || "",
               coordinates: {
@@ -1314,10 +1314,10 @@ export default function NewBookingPage() {
         }
 
         // Handle hours validation errors specifically
-        if (response.error?.message?.includes("Hours must be between 3 and 12")) {
+        if (response.error?.message?.includes("Hours must be between 3 and 24")) {
           toast({
             title: "Validation Error",
-            description: "Hours must be between 3 and 12 for hourly bookings. Please adjust your selection.",
+            description: "Hours must be between 3 and 24 for hourly bookings. Please adjust your selection.",
             variant: "destructive",
           });
           return;
@@ -1347,11 +1347,11 @@ export default function NewBookingPage() {
       console.error("Error calculating fare:", error);
       
       // Check if it's a validation error
-      if (error instanceof Error && error.message.includes("Hours must be between 3 and 12")) {
-        setFetchError("Invalid hours selection. Hours must be between 3 and 12 for hourly bookings.");
+      if (error instanceof Error && error.message.includes("Hours must be between 3 and 24")) {
+        setFetchError("Invalid hours selection. Hours must be between 3 and 24 for hourly bookings.");
         toast({
           title: "Validation Error",
-          description: "Hours must be between 3 and 12 for hourly bookings.",
+          description: "Hours must be between 3 and 24 for hourly bookings.",
           variant: "destructive",
         });
       } else {
@@ -1428,8 +1428,8 @@ export default function NewBookingPage() {
 
           // Additional validation for different booking types
       if (bookingType === 'hourly') {
-        if (!hours || hours < 3 || hours > 12) {
-          setBookingError("Hourly bookings must be between 3 and 12 hours");
+        if (!hours || hours < 3 || hours > 24) {
+          setBookingError("Hourly bookings must be between 3 and 24 hours");
           return;
         }
       } else if (bookingType === 'return') {

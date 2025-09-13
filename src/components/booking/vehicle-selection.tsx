@@ -128,7 +128,15 @@ export default function VehicleSelection({
   const sortedVehicles = React.useMemo(() => {
     if (!fareData || !fareData.vehicleOptions) return [];
 
-    const sorted = [...fareData.vehicleOptions].sort(
+    // Filter out Estate class vehicles (commented out for future use)
+    const filtered = fareData.vehicleOptions.filter(vehicle => {
+      const id = vehicle.id.toLowerCase();
+      const name = vehicle.name.toLowerCase();
+      // Comment out Estate class - don't delete from backend, just remove from frontend
+      return !id.includes("estate") && !name.includes("estate");
+    });
+
+    const sorted = [...filtered].sort(
       (a, b) =>
         getVehicleTypeOrder(a.id, a.name) - getVehicleTypeOrder(b.id, b.name)
     );

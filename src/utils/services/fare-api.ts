@@ -41,7 +41,7 @@ interface FareRequest {
   };
   // Enhanced booking type parameters
   bookingType?: 'one-way' | 'hourly' | 'return';
-  hours?: number; // Required for hourly bookings (3-12)
+  hours?: number; // Required for hourly bookings (3-24)
   returnDate?: string; // Required for later-date returns (YYYY-MM-DD)
   returnTime?: string; // Required for later-date returns (HH:mm)
 
@@ -264,8 +264,8 @@ export const getFareEstimate = async (
     // Validate enhanced parameters
     if (request.bookingType === 'hourly') {
       const hoursValue = request.hours;
-      if (!hoursValue || hoursValue < 3 || hoursValue > 12) {
-        throw new Error("Hours must be between 3 and 12 for hourly bookings");
+      if (!hoursValue || hoursValue < 3 || hoursValue > 24) {
+        throw new Error("Hours must be between 3 and 24 for hourly bookings");
       }
     }
 

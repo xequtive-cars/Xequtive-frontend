@@ -531,7 +531,7 @@ export default function BookingForm({
                     className="h-9 text-xs w-full"
                     disabled={disabled || isFetching}
                   >
-                    Hourly (3-12h)
+                    Hourly (3-24h)
                   </Button>
                   
                   <Button
@@ -814,7 +814,7 @@ export default function BookingForm({
                   <div className="space-y-2 p-3 border rounded-md bg-muted/20">
                     <div className="flex justify-between text-sm">
                       <span>Hours: {hours}</span>
-                      <span className="text-muted-foreground">3-12 hours</span>
+                      <span className="text-muted-foreground">3-24 hours</span>
                     </div>
                     <Slider
                       value={[hours]}
@@ -823,14 +823,14 @@ export default function BookingForm({
                         setFormModified(true);
                       }}
                       min={3}
-                      max={12}
+                      max={24}
                       step={1}
                       className="w-full"
                       disabled={disabled || isFetching}
                     />
                     {/* <div className="text-xs text-muted-foreground">
                       <div>• <strong>3-6 hours:</strong> Higher hourly rates</div>
-                      <div>• <strong>6-12 hours:</strong> Lower hourly rates</div>
+                      <div>• <strong>6-24 hours:</strong> Lower hourly rates</div>
                     </div> */}
                   </div>
                 )}
