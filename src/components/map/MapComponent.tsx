@@ -393,7 +393,9 @@ const MapComponent = ({
           .map(coord => `${coord[0]},${coord[1]}`)
           .join(';');
         
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesString}?access_token=${accessToken}&geometries=geojson&overview=full&steps=true&continue_straight=true`;
+        // Use driving profile but optimize for shortest distance by adding alternatives parameter
+        // This will return multiple route options and we'll select the shortest one
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesString}?access_token=${accessToken}&geometries=geojson&overview=full&steps=true&continue_straight=true&alternatives=true`;
 
 
         const response = await fetch(url);
@@ -410,7 +412,10 @@ const MapComponent = ({
         const data = await response.json();
         
         if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
+          // Select the shortest route (by distance) from available alternatives
+          const route = data.routes.reduce((shortest: any, current: any) => 
+            current.distance < shortest.distance ? current : shortest
+          );
           
           // Remove existing route layer and source if they exist
           if (map.current) {
