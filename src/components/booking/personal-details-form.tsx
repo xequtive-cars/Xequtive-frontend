@@ -723,7 +723,7 @@ export function PersonalDetailsForm({
                     </Link>{" "}
                     and{" "}
                     <Link
-                      href="/privacy"
+                      href="/policy"
                       target="_blank"
                       className="text-primary underline underline-offset-4 hover:text-primary/80"
                       onClick={(e: React.MouseEvent) => e.stopPropagation()}

@@ -286,7 +286,7 @@ export function PersonalDetailsForm({
                       <FormLabel className="text-sm font-medium">
                         I agree to the{" "}
                         <Link
-                          href="/legal/terms-of-service"
+                          href="/terms"
                           target="_blank"
                           className="text-primary hover:underline"
                         >
@@ -294,7 +294,7 @@ export function PersonalDetailsForm({
                         </Link>{" "}
                         and{" "}
                         <Link
-                          href="/legal/privacy-policy"
+                          href="/policy"
                           target="_blank"
                           className="text-primary hover:underline"
                         >

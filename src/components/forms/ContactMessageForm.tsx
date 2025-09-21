@@ -216,7 +216,7 @@ export default function ContactMessageForm() {
           >
             I've read and agree with{" "}
             <a
-              href="/legal/terms-of-service"
+              href="/terms"
               className="text-[#8B0000] hover:underline font-medium"
               target="_blank"
               rel="noopener noreferrer"
@@ -225,7 +225,7 @@ export default function ContactMessageForm() {
             </a>{" "}
             and{" "}
             <a
-              href="/legal/privacy-policy"
+              href="/policy"
               className="text-[#8B0000] hover:underline font-medium"
               target="_blank"
               rel="noopener noreferrer"

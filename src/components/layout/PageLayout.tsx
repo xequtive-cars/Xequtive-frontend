@@ -152,7 +152,7 @@ export default function PageLayout({
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="/legal/terms-of-service"
+                    href="/terms"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Terms of Service
@@ -160,7 +160,7 @@ export default function PageLayout({
                 </li>
                 <li>
                   <Link
-                    href="/legal/privacy-policy"
+                    href="/policy"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Privacy Policy
@@ -212,13 +212,13 @@ export default function PageLayout({
             </p>
             <div className="flex items-center gap-6">
               <Link
-                href="/legal/terms-of-service"
+                href="/terms"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Terms
               </Link>
               <Link
-                href="/legal/privacy-policy"
+                href="/policy"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacy
