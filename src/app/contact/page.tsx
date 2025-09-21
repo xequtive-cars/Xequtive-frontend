@@ -1,10 +1,9 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { Mail, Phone, Clock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
+import ContactMessageForm from "@/components/forms/ContactMessageForm";
 
 export default function ContactPage() {
   return (
@@ -22,55 +21,47 @@ export default function ContactPage() {
       </div>
 
       {/* Content */}
-      <div className="grid gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Phone className="h-6 w-6 text-primary" />
-              <div>
-                <h3 className="font-semibold">Phone</h3>
-                <p className="text-muted-foreground">+44 78 3105 4649</p>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Contact Information - 20% width */}
+        <div className="w-full lg:w-[30%]">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Phone className="h-5 w-5 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-sm">Phone</h3>
+                  <p className="text-muted-foreground text-sm">+44 78 3105 4649</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Mail className="h-6 w-6 text-primary" />
-              <div>
-                <h3 className="font-semibold">Email</h3>
-                <p className="text-muted-foreground">info@xequtive.com</p>
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-sm">Email</h3>
+                  <p className="text-muted-foreground text-sm">info@xequtive.com</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Clock className="h-6 w-6 text-primary" />
-              <div>
-                <h3 className="font-semibold">Support Hours</h3>
-                <p className="text-muted-foreground">24/7 Customer Support</p>
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-sm">Support Hours</h3>
+                  <p className="text-muted-foreground text-sm">24/7 Customer Support</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Get Help</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              Need assistance with your booking or have questions about our services? 
-              Our customer support team is here to help you 24/7.
-            </p>
-            <div className="flex gap-4">
-              <Button asChild>
-                <Link href="/help">Help Center</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/new-booking">Book Now</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Contact Message Form - 80% width */}
+        <div className="w-full lg:w-[70%]">
+          <Card>
+            <CardContent className="p-8">
+              <ContactMessageForm />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </PageLayout>
   );

@@ -345,18 +345,18 @@ function HomeContent() {
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="/help"
+                    href="/contact"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Help Center
+                    Contact Us
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/contact"
+                    href="/help"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Email Us
+                    Help Center
                   </Link>
                 </li>
                 <li>
