@@ -10,11 +10,11 @@ export function HeroSection({ isAuthenticated }: HeroSectionProps) {
   return (
     <section className="pt-20 pb-12 md:pt-24 md:pb-16 lg:pt-28 lg:pb-20 px-4 md:px-6 space-y-8 md:space-y-12 flex flex-col items-center bg-gradient-to-b from-background to-muted/20 relative overflow-hidden">
       <div className="absolute inset-0 z-0 opacity-5"></div>
-      <div className="text-center space-y-4 max-w-[800px] z-10">
+      <div className="text-center space-y-4 max-w-[900px] z-10">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-[#8B0000]">
           XEQUTIVE CARS
         </h1>
-        <p className="text-lg md:text-3xl text-muted-foreground mx-auto max-w-[800px] leading-relaxed whitespace-nowrap text-center font-semibold">
+        <p className="text-sm sm:text-lg md:text-2xl lg:text-3xl text-muted-foreground mx-auto max-w-[900px] leading-relaxed text-center font-semibold">
           PRE-BOOKED AIRPORT TRANSFER & EXECUTIVE CAR SERVICE
         </p>
         <p className="text-xl md:text-2xl text-muted-foreground mx-auto max-w-[800px] leading-relaxed">
