@@ -176,7 +176,9 @@ const VehicleSelectionContainer: React.FC<VehicleSelectionContainerProps> = ({
     const id = vehicle.id.toLowerCase();
     const name = vehicle.name.toLowerCase();
     // Comment out Estate class - don't delete from backend, just remove from frontend
-    return !id.includes("estate") && !name.includes("estate");
+    // Comment out MPV-8 - don't delete from backend, just remove from frontend
+    return !id.includes("estate") && !name.includes("estate") &&
+           !id.includes("mpv-8") && !name.includes("mpv-8");
   });
 
   // Sort vehicles by custom order instead of price

@@ -169,8 +169,7 @@ export default function CookiePolicyPage() {
               If you have questions about our use of cookies, please contact us at:
             </p>
             <div className="mt-4 space-y-2">
-              <p className="text-sm">Email: privacy@xequtive.com</p>
-              <p className="text-sm">Phone: +44 78 3105 4649</p>
+              <p className="text-sm">Email: info@xeqcars.com</p>
             </div>
           </CardContent>
         </Card>

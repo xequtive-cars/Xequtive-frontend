@@ -100,9 +100,9 @@ export default function DashboardLayout({
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE
+                XEQ CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
             </div>
             <div className="flex items-center gap-4">

@@ -143,8 +143,7 @@ export default function TermsOfServicePage() {
               For questions about these Terms of Service, please contact us at:
             </p>
             <div className="mt-4 space-y-2">
-              <p className="text-sm">Email: legal@xequtive.com</p>
-              <p className="text-sm">Phone: +44 78 3105 4649</p>
+              <p className="text-sm">Email: info@xeqcars.com</p>
             </div>
           </CardContent>
         </Card>

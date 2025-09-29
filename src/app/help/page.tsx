@@ -15,7 +15,7 @@ export default function HelpPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Help Center</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">Help Center</h1>
         <p className="text-xl text-muted-foreground mt-2">
           Find answers to common questions
         </p>
@@ -68,14 +68,14 @@ export default function HelpPage() {
               <Phone className="h-6 w-6 text-primary" />
               <div>
                 <h3 className="font-semibold">Phone Support</h3>
-                <p className="text-muted-foreground">+44 78 3105 4649</p>
+                <p className="text-muted-foreground">Contact us for phone support</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <Mail className="h-6 w-6 text-primary" />
               <div>
                 <h3 className="font-semibold">Email Support</h3>
-                <p className="text-muted-foreground">support@xequtive.com</p>
+                <p className="text-muted-foreground">info@xeqcars.com</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

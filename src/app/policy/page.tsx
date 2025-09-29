@@ -17,7 +17,7 @@ export default function PolicyPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Privacy Policy</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">Privacy Policy</h1>
         <p className="text-xl text-muted-foreground mt-2">
           Last updated: {new Date().toLocaleDateString()}
         </p>
@@ -186,10 +186,9 @@ export default function PolicyPage() {
               If you have any questions about this Privacy Policy or our data practices, please contact us:
             </p>
             <div className="bg-muted p-4 rounded-lg space-y-2">
-              <p className="text-sm"><strong>Data Protection Officer:</strong> privacy@xequtive.com</p>
-              <p className="text-sm"><strong>General Inquiries:</strong> info@xequtive.com</p>
+              <p className="text-sm"><strong>Data Protection Officer:</strong> info@xeqcars.com</p>
+              <p className="text-sm"><strong>General Inquiries:</strong> info@xeqcars.com</p>
               <p className="text-sm"><strong>Phone:</strong> +44 20 1234 5678</p>
-              <p className="text-sm"><strong>Address:</strong> 123 Luxury Lane, London, SW1A 1AA, United Kingdom</p>
             </div>
           </CardContent>
         </Card>

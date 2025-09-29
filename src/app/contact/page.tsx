@@ -14,7 +14,7 @@ export default function ContactPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Contact Us</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">Contact Us</h1>
         <p className="text-xl text-muted-foreground mt-2">
           Get in touch with our team
         </p>
@@ -33,14 +33,14 @@ export default function ContactPage() {
                 <Phone className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm">Phone</h3>
-                  <p className="text-muted-foreground text-sm">+44 78 3105 4649</p>
+                  <p className="text-muted-foreground text-sm">Contact us for phone support</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm">Email</h3>
-                  <p className="text-muted-foreground text-sm">info@xequtive.com</p>
+                  <p className="text-muted-foreground text-sm">info@xeqcars.com</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

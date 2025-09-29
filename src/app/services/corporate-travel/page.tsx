@@ -15,11 +15,8 @@ export default function CorporateTravelPage() {
       ]}
     >
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Corporate Travel</h1>
-        <p className="text-xl text-muted-foreground mt-2">
-          Professional transportation solutions for businesses
-        </p>
+      <div className="mb-4">
+        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">Corporate Travel</h1>
       </div>
 
       {/* Content */}

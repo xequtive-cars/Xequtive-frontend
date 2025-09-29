@@ -32,7 +32,7 @@ export default function PageLayout({
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE
+                XEQ CARS
               </span>
             </Link>
           </div>
@@ -83,14 +83,14 @@ export default function PageLayout({
                   <span className="font-bold text-sm md:text-lg">X</span>
                 </div>
                 <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                  XEQUTIVE
+                XEQUTIVE CARS
                 </span>
               </Link>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             <div>
-              <h3 className="text-lg font-semibold mb-5">XEQUTIVE</h3>
+              <h3 className="text-lg font-semibold mb-5">XEQ CARS</h3>
               <ul className="space-y-3">
                 <li>
                   <Link
@@ -197,10 +197,10 @@ export default function PageLayout({
                 </li>
                 <li>
                   <Link
-                    href="tel:+447831054649"
+                    href="/faq"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    +44 78 3105 4649
+                    FAQ
                   </Link>
                 </li>
               </ul>
@@ -208,7 +208,7 @@ export default function PageLayout({
           </div>
           <div className="border-t mt-10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} XEQUTIVE. All rights reserved.
+              &copy; {new Date().getFullYear()} XEQUTIVE CARS. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link

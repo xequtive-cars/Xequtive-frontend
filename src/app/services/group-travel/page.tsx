@@ -16,7 +16,7 @@ export default function GroupTravelPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Group Travel</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">Group Travel</h1>
         <p className="text-xl text-muted-foreground mt-2">
           Comfortable and efficient group transportation
         </p>

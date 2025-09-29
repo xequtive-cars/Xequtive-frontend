@@ -18,14 +18,12 @@ export default function AirportTransfersPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#8B0000]">AIRPORT TRANSFERS</h1>
-        <p className="text-xl text-muted-foreground mt-2">
-          Professional and reliable airport transfer services
-        </p>
       </div>
 
       {/* Images Section */}
       <div className="grid md:grid-cols-2 gap-6 mb-12">
-        <div className="relative h-64 md:h-80 rounded-lg overflow-hidden">
+        {/* First image - hidden on mobile, shown first on desktop */}
+        <div className="hidden md:block relative h-64 md:h-80 rounded-lg overflow-hidden">
           <Image
             src="/images/airport-transfer/xeq-airport-transfer-1.jpg"
             alt="Airport Transfer Service"
@@ -33,6 +31,7 @@ export default function AirportTransfersPage() {
             className="object-cover"
           />
         </div>
+        {/* Second image - shown first on mobile, second on desktop */}
         <div className="relative h-64 md:h-80 rounded-lg overflow-hidden">
           <Image
             src="/images/airport-transfer/xeq-airport-transfer-2.jpg"
@@ -95,7 +94,7 @@ export default function AirportTransfersPage() {
               <div>
                 <h3 className="font-semibold mb-2">24/7 Support Team</h3>
                 <p className="text-muted-foreground">
-                  To connect you with your driver
+                  To help us connect you with your driver
                 </p>
               </div>
             </div>
@@ -105,12 +104,22 @@ export default function AirportTransfersPage() {
               <div>
                 <h3 className="font-semibold mb-2">Advanced Return Bookings</h3>
                 <p className="text-muted-foreground">
-                  Option available for return bookings
+                  Option available for return bookings (10% discount applied)
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* First image - shown before Book Your Airport Transfer on mobile only */}
+        <div className="block md:hidden relative h-64 rounded-lg overflow-hidden">
+          <Image
+            src="/images/airport-transfer/xeq-airport-transfer-1.jpg"
+            alt="Airport Transfer Service"
+            fill
+            className="object-cover"
+          />
+        </div>
 
         <Card>
           <CardHeader>
@@ -118,8 +127,8 @@ export default function AirportTransfersPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              Experience the convenience and reliability of our professional airport transfer service. 
-              Book your journey today and enjoy a stress-free travel experience.
+              
+              Schedule and book your journey with us in advance and enjoy a reliable travel experience.
             </p>
             <div className="flex gap-4">
               <Button asChild size="lg">

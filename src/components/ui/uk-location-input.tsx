@@ -158,10 +158,15 @@ export default function UKLocationInput({
       return;
     }
     
-    // Use setTimeout to allow for suggestion clicks, but with longer delay for categories
-    setTimeout(() => {
-      setShowSuggestions(false);
-    }, 300);
+    // For mobile devices, be more careful about closing dropdown
+    // Only close if we're not in a category view or terminal selection
+    if (dropdownView === 'default' && !selectedCategory) {
+      // Use setTimeout to allow for suggestion clicks, but with longer delay for mobile
+      setTimeout(() => {
+        setShowSuggestions(false);
+      }, 300);
+    }
+    // Don't close dropdown when in category views or terminal selection
   };
 
   // Handle input click - ensure dropdown opens
@@ -169,7 +174,17 @@ export default function UKLocationInput({
     setShowSuggestions(true);
   };
 
-  // Handle outside click
+  // Handle manual dropdown close (for mobile UX)
+  const handleCloseDropdown = () => {
+    setShowSuggestions(false);
+    setDropdownView('default');
+    setSelectedCategory(null);
+    setCategoryLocations([]);
+    setTerminalLocations([]);
+    setSelectedLocation(null);
+  };
+
+  // Handle outside click and touch events
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -181,19 +196,48 @@ export default function UKLocationInput({
         suggestionsRef.current &&
         !suggestionsRef.current.contains(target)
       ) {
-        setShowSuggestions(false);
-        setDropdownView('default');
-        setSelectedCategory(null);
-        setCategoryLocations([]);
+        // Only close dropdown if we're in default view
+        // This prevents closing when navigating through categories/terminals
+        if (dropdownView === 'default' && !selectedCategory) {
+          setShowSuggestions(false);
+          setDropdownView('default');
+          setSelectedCategory(null);
+          setCategoryLocations([]);
+        }
       }
     };
 
-    // Only add listener when dropdown is visible
+    const handleTouchOutside = (event: TouchEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't close if touching on input or dropdown
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(target) &&
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(target)
+      ) {
+        // Only close dropdown if we're in default view
+        // This prevents closing when navigating through categories/terminals
+        if (dropdownView === 'default' && !selectedCategory) {
+          setShowSuggestions(false);
+          setDropdownView('default');
+          setSelectedCategory(null);
+          setCategoryLocations([]);
+        }
+      }
+    };
+
+    // Only add listeners when dropdown is visible
     if (showSuggestions) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleTouchOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleTouchOutside);
+      };
     }
-  }, [showSuggestions]);
+  }, [showSuggestions, dropdownView, selectedCategory]);
 
   // Hooks
   const { getCurrentLocation } = useGeolocation();
@@ -1049,6 +1093,34 @@ export default function UKLocationInput({
             }
           }}
         >
+          {/* Dropdown header with close button for mobile UX */}
+          {(dropdownView !== 'default' || selectedCategory) && (
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
+              <div className="text-sm font-medium text-foreground">
+                {dropdownView === 'terminals' ? 'Select Terminal' :
+                 dropdownView === 'airports' ? 'Airports' :
+                 dropdownView === 'trains' ? 'Train Stations' :
+                 dropdownView === 'cruise_terminals' ? 'Cruise Terminals' :
+                 'Location Search'}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseDropdown();
+                }}
+                className="
+                  p-1 rounded-full 
+                  hover:bg-muted/70 
+                  transition-colors duration-200
+                  text-muted-foreground hover:text-foreground
+                "
+                aria-label="Close dropdown"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          
           {/* Dropdown content */}
           {renderDropdownContent()}
         </div>

@@ -13,9 +13,9 @@ export default function PressPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Press</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">Press</h1>
         <p className="text-xl text-muted-foreground mt-2">
-          Media resources and press information
+          Media resources and press information will be published here.
         </p>
       </div>
 
@@ -27,8 +27,7 @@ export default function PressPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              For media inquiries, press releases, and company information, 
-              please contact our press team.
+              Media resources and press information will be published here.
             </p>
             <div className="flex items-center gap-4">
               <FileText className="h-5 w-5 text-muted-foreground" />
@@ -44,11 +43,11 @@ export default function PressPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm">press@xequtive.com</span>
+              <span className="text-sm">info@xeqcars.com</span>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm">+44 78 3105 4649</span>
+              <span className="text-sm">Contact us for press inquiries</span>
             </div>
           </CardContent>
         </Card>

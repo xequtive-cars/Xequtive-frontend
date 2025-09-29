@@ -45,9 +45,9 @@ function HomeContent() {
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE
+                XEQ CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
           </div>
           {/* Only the navigation is auth-aware, everything else renders immediately */}
@@ -64,12 +64,9 @@ function HomeContent() {
           <div className="container">
             <div className="flex flex-col items-center text-center mb-16">
               <div className="w-16 h-1 bg-primary mb-6 rounded-full"></div>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                Why Choose XEQUTIVE
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-0">
+                Why Choose XEQ CARS
               </h2>
-              <p className="text-xl text-muted-foreground max-w-[600px] leading-relaxed">
-                Reliable service with premium options for executives & luxury travellers
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -84,7 +81,7 @@ function HomeContent() {
                   icon: <CheckCircle2 className="h-8 w-8" />,
                   title: "Premium Vehicles",
                   description:
-                    "Choose from a range of luxury vehicles maintained to the highest standards.",
+                    "Choose from a range of vehicles maintained to the highest standards.",
                 },
                 {
                   icon: <Clock className="h-8 w-8" />,
@@ -175,19 +172,11 @@ function HomeContent() {
                       {vehicle.name}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="px-5 pb-0">
+                  <CardContent className="px-5 pb-5">
                     <CardDescription className="text-sm leading-relaxed">
                       {vehicle.description}
                     </CardDescription>
                   </CardContent>
-                  <CardFooter className="p-2 px-5">
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-md flex items-center justify-center hover:bg-primary hover:border-primary transition-all duration-300"
-                    >
-                      Learn More <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
                 </Card>
               ))}
             </div>
@@ -206,9 +195,9 @@ function HomeContent() {
             />
           </div>
           <div className="container flex flex-col items-center text-center space-y-8 relative z-10">
-            <div className="w-16 h-1 bg-primary mb-2 rounded-full"></div>
+            <div className="w-16 h-1 bg-primary mb-6 rounded-full"></div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Ready to experience premium travel?
+              Ready to experience XEQUTIVE travel?
             </h2>
             <p className="text-xl max-w-[600px] text-muted-foreground leading-relaxed">
               Book your first ride today and enjoy the XEQUTIVE difference.
@@ -238,15 +227,15 @@ function HomeContent() {
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE
+              XEQUTIVE CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             <div>
-              <h3 className="text-lg font-semibold mb-5">XEQUTIVE</h3>
+              <h3 className="text-lg font-semibold mb-5">XEQ CARS</h3>
               <ul className="space-y-3">
                 <li>
                   <Link
@@ -361,10 +350,10 @@ function HomeContent() {
                 </li>
                 <li>
                   <Link
-                    href="tel:+447831054649"
+                    href="/faq"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    +44 78 3105 4649
+                    FAQ
                   </Link>
                 </li>
               </ul>
@@ -372,7 +361,7 @@ function HomeContent() {
           </div>
           <div className="border-t mt-10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} XEQUTIVE. All rights reserved.
+              &copy; {new Date().getFullYear()} XEQUTIVE CARS. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link
@@ -414,9 +403,9 @@ export default function Home() {
                 <span className="font-bold text-sm md:text-lg">X</span>
               </div>
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE
+                XEQ CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQUTIVE" width={120} height={120} /> */}
+              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
               </div>
               <nav className="flex items-center gap-5">
