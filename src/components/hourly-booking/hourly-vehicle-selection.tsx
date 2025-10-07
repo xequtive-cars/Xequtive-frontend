@@ -122,16 +122,17 @@ export default function HourlyVehicleSelection({
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
 
   // Filter out Estate class vehicles (commented out for future use)
-  const filteredVehicles = fareData.fare?.vehicleOptions 
-    ? fareData.fare.vehicleOptions.filter(vehicle => {
-        const id = vehicle.id.toLowerCase();
-        const name = vehicle.name.toLowerCase();
-        // Comment out Estate class - don't delete from backend, just remove from frontend
-        // Comment out MPV-8 - don't delete from backend, just remove from frontend
-        return !id.includes("estate") && !name.includes("estate") &&
-               !id.includes("mpv-8") && !name.includes("mpv-8");
-      })
-    : [];
+        const filteredVehicles = fareData.fare?.vehicleOptions 
+          ? fareData.fare.vehicleOptions.filter(vehicle => {
+              const id = vehicle.id.toLowerCase();
+              const name = vehicle.name.toLowerCase();
+              // Comment out Estate class - don't delete from backend, just remove from frontend
+              // Comment out regular MPV-8 (not Executive MPV-8) - don't delete from backend, just remove from frontend
+              return !id.includes("estate") && !name.includes("estate") &&
+                     !(id.includes("mpv-8") && !id.includes("executive")) && 
+                     !(name.includes("mpv-8") && !name.includes("executive"));
+            })
+          : [];
 
   // Sort vehicles by type order
   const sortedVehicles = [...filteredVehicles].sort(
