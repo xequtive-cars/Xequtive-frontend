@@ -828,10 +828,10 @@ export default function BookingForm({
                       className="w-full"
                       disabled={disabled || isFetching}
                     />
-                    {/* <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       <div>• <strong>3-6 hours:</strong> Higher hourly rates</div>
                       <div>• <strong>6-24 hours:</strong> Lower hourly rates</div>
-                    </div> */}
+                    </div>
                   </div>
                 )}
 

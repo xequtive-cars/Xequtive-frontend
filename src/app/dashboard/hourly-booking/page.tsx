@@ -199,7 +199,7 @@ const formatDate = (date: Date): string => {
 // Validate and correct time format
 const validateTime = (time: string): string => {
   // If no time is provided, default to a reasonable time (not 12:00)
-  // Since we need 24 hours advance notice, default to 00:00 (midnight)
+  // Since we need 8 hours advance notice, default to 00:00 (midnight)
   if (!time) return "00:00";
 
   // Split time into hours and minutes
@@ -2559,7 +2559,7 @@ export default function HourlyBookingPage() {
               </DialogTitle>
               <DialogDescription className="text-base">
                 Your booking has been successfully created and is now being
-                processed
+                processed.
               </DialogDescription>
             </DialogHeader>
 
@@ -2574,10 +2574,6 @@ export default function HourlyBookingPage() {
                 <h4 className="font-medium text-slate-800 mb-2">
                   What happens next?
                 </h4>
-                <p className="text-sm text-slate-700">
-                  One of our agents will contact you shortly to confirm your
-                  booking details. Please keep your phone available.
-                </p>
                 <p className="text-sm text-slate-700 mt-2 font-semibold">
                   <a
                     href="https://wa.me/447831054649"

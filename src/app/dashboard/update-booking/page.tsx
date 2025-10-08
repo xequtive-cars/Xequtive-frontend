@@ -729,14 +729,13 @@ function UpdateBookingClientComponent({
                 </div>
               Booking Updated
               </DialogTitle>
-            <DialogDescription className="text-base">Your booking has been successfully updated and is now being processed</DialogDescription>
+            <DialogDescription className="text-base">Your booking has been successfully updated and is now being processed.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <p className="mb-2 text-sm font-medium">Booking Reference:</p>
             <div className="text-lg font-bold font-mono bg-primary/10 py-3 px-4 rounded-md text-center mb-4">{bookingSuccess.bookingId}</div>
               <div className="bg-slate-50 border border-slate-200 rounded-md p-4 mb-4">
               <h4 className="font-medium text-slate-800 mb-2">What happens next?</h4>
-              <p className="text-sm text-slate-700">One of our agents will contact you shortly to confirm your updated booking details. Please keep your phone available.</p>
               </div>
             {bookingSuccess.notifications && bookingSuccess.notifications.length > 0 && (
                   <div className="mt-4 p-3 rounded-md bg-amber-50 border border-amber-200">

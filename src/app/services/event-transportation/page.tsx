@@ -17,9 +17,9 @@ export default function EventTransportationPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#8B0000]">EVENTS:</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#8B0000]">EVENT TRANSPORTATION</h1>
         <p className="text-lg md:text-xl text-muted-foreground mt-2">
-          Flexible and customized booking options for events and special occasions
+          Flexible and customized booking options for events, groups and special occasions.
         </p>
       </div>
 
@@ -66,7 +66,7 @@ export default function EventTransportationPage() {
               <div>
                 <h3 className="font-semibold mb-2">Hourly Car Service</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Book car service by the hour (4 - 24 hours) with fixed hourly rates, 
+                  Book car service by the hour (3 - 8 hours) with fixed hourly rates, 
                   unlimited stops and no additional waiting time charges.
                 </p>
               </div>
@@ -107,19 +107,7 @@ export default function EventTransportationPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Weddings & Special Occasions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground leading-relaxed">
-              Make your special day memorable with our luxury transportation services. 
-              From elegant wedding cars to VIP event transportation, we ensure your 
-              special occasions are perfectly catered for.
-            </p>
-          </CardContent>
-        </Card>
-
+    
         <Card>
           <CardHeader>
             <CardTitle>Book Your Event Transportation</CardTitle>

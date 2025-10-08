@@ -15,10 +15,7 @@ export default function FAQPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight text-[#8B0000]">FREQUENTLY ASKED QUESTIONS</h1>
-        <p className="text-xl text-muted-foreground mt-2">
-          Find answers to common questions about our services
-        </p>
+        <h1 className="text-4xl font-bold tracking-tight text-primary">FREQUENTLY ASKED QUESTIONS</h1>
       </div>
 
       {/* FAQ Content */}
@@ -28,7 +25,7 @@ export default function FAQPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <HelpCircle className="h-6 w-6 text-blue-600" />
-              How can I check for lost & found property?
+              How can I report lost & found property?
             </CardTitle>
           </CardHeader>
           <CardContent>

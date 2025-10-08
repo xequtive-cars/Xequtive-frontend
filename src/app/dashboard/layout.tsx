@@ -187,7 +187,7 @@ export default function DashboardLayout({
           <footer className="border-t py-6">
             <div className="container flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-center md:text-left">
               <p className="text-sm text-muted-foreground">
-                &copy; {new Date().getFullYear()} Xequtive. All rights reserved.
+                &copy; {new Date().getFullYear()} XEQUTIVE CARS. All rights reserved.
               </p>
             </div>
           </footer>

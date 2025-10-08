@@ -19,7 +19,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Xequtive - Premium Car Service",
+  title: "XEQUTIVE CARS - Premium Car Service",
   description: "Luxury transportation services for executives",
 };
 

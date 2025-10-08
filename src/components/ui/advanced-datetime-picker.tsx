@@ -67,11 +67,11 @@ export function AdvancedTimePicker({
     } else if (isTomorrow) {
       // For tomorrow, calculate the minimum hour
       const hoursToAdd = 24 - now.getHours();
-      const minHour = Math.max(0, 24 - hoursToAdd);
+      const minHour = Math.max(0, 8 - hoursToAdd);
       return `${minHour.toString().padStart(2, "0")}:00`;
     }
     
-    // For any future date beyond 24h, all hours are valid
+    // For any future date beyond 8h, all hours are valid
     return "00:00";
   }, [validLockedDate, minimumDate, now]);
 
@@ -138,7 +138,7 @@ export function AdvancedTimePicker({
 
         {!isDateTimeValid && (
           <div className="text-xs text-destructive bg-destructive/10 p-2 rounded text-center">
-            Bookings require 24 hours advance notice
+            Bookings require 8 hours advance notice
           </div>
         )}
       </PopoverContent>

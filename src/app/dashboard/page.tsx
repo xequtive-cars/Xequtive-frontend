@@ -241,7 +241,7 @@ export default function DashboardPage() {
   return (
       <div className="space-y-8">
         <div className="flex flex-col gap-3">
-          <h1 className="text-3xl font-bold">Welcome to Xequtive</h1>
+          <h1 className="text-3xl font-bold">Welcome to XEQUTIVE CARS</h1>
           <p className="text-muted-foreground">
             Premium transportation at your service
           </p>

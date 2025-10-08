@@ -118,32 +118,30 @@ export function DatePicker({
             <CalendarIcon className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
-          <div className="p-3">
+        <PopoverContent className="w-auto p-0 scale-75 sm:scale-100 origin-top-left" align="start" side="bottom" sideOffset={4}>
+          <div className="p-1">
             <div className="flex items-center justify-between w-full pb-2 mb-2 border-b">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={handlePreviousMonth}
                 disabled={
                   currentMonth.getMonth() === today.getMonth() &&
                   currentMonth.getFullYear() === today.getFullYear()
                 }
-                className="rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground disabled:opacity-40 touch-manipulation"
+                className="rounded-full text-foreground hover:bg-muted hover:text-accent-foreground disabled:opacity-40 touch-manipulation h-12 w-12 p-0"
               >
-                <ArrowLeft size={17} />
+                <ArrowLeft size={32} />
                 <span className="sr-only">Previous month</span>
               </Button>
-              <h2 className="text-sm font-medium">
+              <h2 className="text-xs font-medium">
                 {format(currentMonth, "MMM yyyy")}
               </h2>
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={handleNextMonth}
-                className="rounded-full p-0 text-foreground hover:bg-muted hover:text-accent-foreground touch-manipulation"
+                className="rounded-full text-foreground hover:bg-muted hover:text-accent-foreground touch-manipulation h-12 w-12 p-0"
               >
-                <ArrowRight size={16} />
+                <ArrowRight size={32} />
                 <span className="sr-only">Next month</span>
               </Button>
             </div>
@@ -213,7 +211,7 @@ export function DatePicker({
           {date && isToday(date) && (
             <div className="px-3 pb-3 text-xs text-muted-foreground">
               <p className="text-center">
-                Bookings for today require at least 24 hours advance notice
+                Bookings for today require at least 8 hours advance notice
               </p>
             </div>
           )}

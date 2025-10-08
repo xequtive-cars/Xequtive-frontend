@@ -43,9 +43,9 @@ export function TimePicker({
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false);
 
-  // Get now and minimum booking time (24 hours from now)
+  // Get now and minimum booking time (8 hours from now)
   const now = React.useMemo(() => new Date(), []);
-  const minBookingTime = React.useMemo(() => addHours(now, 24), [now]);
+  const minBookingTime = React.useMemo(() => addHours(now, 8), [now]);
 
   // Check if selectedDate is today or tomorrow
   const today = new Date();
@@ -79,15 +79,15 @@ export function TimePicker({
         const hoursToAdd = 24 - now.getHours();
         // If the current time is after the hour we're checking on the next day
         if (now.getHours() > 0) {
-          return Math.max(0, 24 - hoursToAdd);
+          return Math.max(0, 8 - hoursToAdd);
         }
         return 0;
       }
 
-      return 24; // No valid hours
+      return 8; // No valid hours
     }
 
-    // For any future date beyond 24h, all hours are valid
+    // For any future date beyond 8h, all hours are valid
     return 0;
   }, [selectedDate, minBookingTime, isToday, isTomorrow, now]);
 
@@ -96,7 +96,7 @@ export function TimePicker({
     if (!selectedDate) return { hours: 0, minutes: 0 };
     
     const minHour = getMinValidHour();
-    if (minHour >= 24) return { hours: 0, minutes: 0 }; // No valid hours
+    if (minHour >= 8) return { hours: 0, minutes: 0 }; // No valid hours
     
     return { hours: minHour, minutes: 0 };
   }, [selectedDate, getMinValidHour]);
@@ -166,7 +166,7 @@ export function TimePicker({
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
 
-  // Check if the selected date and time are valid (at least 24 hours in the future)
+  // Check if the selected date and time are valid (at least 8 hours in the future)
   const isTimeValid = (h: number, m: number): boolean => {
     if (!selectedDate) return true;
 
@@ -389,7 +389,7 @@ export function TimePicker({
             {/* Warning message for invalid times */}
             {!isTimeValid(hours, minutes) && (
               <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md">
-                Bookings require minimum 24 hours advance notice
+                Bookings require minimum 8 hours advance notice
               </div>
             )}
 

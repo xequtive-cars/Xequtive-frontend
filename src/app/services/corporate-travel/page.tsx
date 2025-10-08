@@ -29,9 +29,9 @@ export default function CorporateTravelPage() {
             <div className="flex items-start gap-4">
               <Building2 className="h-6 w-6 text-blue-600 mt-1 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold mb-2">Business Meetings</h3>
+                <h3 className="font-semibold mb-2">Business Accounts</h3>
                 <p className="text-muted-foreground">
-                  Reliable transportation for executives attending important business meetings and conferences.
+                  Reliable executive transportation for regular business clients and corporations.
                 </p>
               </div>
             </div>
@@ -71,13 +71,13 @@ export default function CorporateTravelPage() {
               <div>
                 <h3 className="font-semibold mb-2">Executive Fleet</h3>
                 <p className="text-muted-foreground">
-                  Luxury vehicles suitable for executive travel and client transportation.
+                  Premium vehicles suitable for executive and business travel.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-
+        {/* TODO CREATE BUSINESS ACCOUNT */}
         <Card>
           <CardHeader>
             <CardTitle>Book Corporate Travel</CardTitle>
@@ -89,7 +89,7 @@ export default function CorporateTravelPage() {
             </p>
             <div className="flex gap-4">
               <Button asChild size="lg">
-                <Link href="/dashboard/hourly-booking">Book Now</Link>
+                <Link href="/dashboard/new-booking">Book Now</Link>
               </Button>
               <Button variant="outline" asChild size="lg">
                 <Link href="/contact">Contact Us</Link>

@@ -290,14 +290,6 @@ function HomeContent() {
                     Event Transportation
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/dashboard/hourly-booking"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Hourly Booking
-                  </Link>
-                </li>
               </ul>
             </div>
             <div>

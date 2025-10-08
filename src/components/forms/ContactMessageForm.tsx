@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect, useRef } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,7 @@ const contactFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
+  inquiryType: z.string().min(1, "Please select an inquiry type"),
   phone: z.string().min(1, "Phone number is required"),
   message: z.string().min(10, "Message must be at least 10 characters"),
   agreeToTerms: z.boolean().refine((val) => val === true, "You must agree to the terms of service"),
@@ -31,13 +33,17 @@ export default function ContactMessageForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [selectedInquiryType, setSelectedInquiryType] = useState<string>("");
+  const lastValidValue = useRef<string>("");
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
+    mode: "onBlur",
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
+      inquiryType: "",
       phone: "",
       message: "",
       agreeToTerms: false,
@@ -60,6 +66,22 @@ export default function ContactMessageForm() {
       }
     }
   }, [user, form]);
+
+  // Sync selected inquiry type with form
+  useEffect(() => {
+    if (selectedInquiryType && selectedInquiryType.trim() !== "") {
+      form.setValue("inquiryType", selectedInquiryType, { 
+        shouldValidate: true,
+        shouldDirty: true 
+      });
+      form.clearErrors("inquiryType");
+      
+      // Force validation trigger
+      setTimeout(() => {
+        form.trigger("inquiryType");
+      }, 100);
+    }
+  }, [selectedInquiryType, form]);
 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
@@ -92,7 +114,7 @@ export default function ContactMessageForm() {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight mb-3">Send us message</h2>
+        <h2 className="text-3xl font-bold tracking-tight mb-3">Contact us</h2>
         <p className="text-muted-foreground text-lg">
           Please fill in the form below to get in touch with us.
         </p>
@@ -161,19 +183,62 @@ export default function ContactMessageForm() {
           </div>
         </div>
 
-        {/* Email Address */}
-        <div className="space-y-2">
-          <Input
-            type="email"
-            placeholder="Email Address"
-            {...form.register("email")}
-            className="h-14 text-lg"
-          />
-          {form.formState.errors.email && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.email.message}
-            </p>
-          )}
+        {/* Email Address and Inquiry Type */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Input
+              type="email"
+              placeholder="Email Address"
+              {...form.register("email")}
+              className="h-14 text-lg"
+            />
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.email.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Select
+              value={selectedInquiryType}
+              onValueChange={(value) => {
+                if (value && value.trim() !== "") {
+                  lastValidValue.current = value;
+                  setSelectedInquiryType(value);
+                } else {
+                  setSelectedInquiryType(lastValidValue.current);
+                }
+              }}
+            >
+              <SelectTrigger className="h-14 text-sm text-left">
+                <SelectValue placeholder="Select inquiry type">
+                  {selectedInquiryType ? (
+                    <span className="text-foreground">
+                      {selectedInquiryType === "bookings" && "Bookings"}
+                      {selectedInquiryType === "payments" && "Payments"}
+                      {selectedInquiryType === "business-account" && "Business Account"}
+                      {selectedInquiryType === "lost-property" && "Lost Property"}
+                      {selectedInquiryType === "other" && "Other"}
+                    </span>
+                  ) : (
+                    "Select inquiry type"
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="text-left">
+                <SelectItem value="bookings" className="text-left">Bookings</SelectItem>
+                <SelectItem value="payments" className="text-left">Payments</SelectItem>
+                <SelectItem value="business-account" className="text-left">Business Account</SelectItem>
+                <SelectItem value="lost-property" className="text-left">Lost Property</SelectItem>
+                <SelectItem value="other" className="text-left">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {form.formState.errors.inquiryType && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.inquiryType.message}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Message */}

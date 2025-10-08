@@ -478,7 +478,7 @@ export function HourlyBookingForm({ className }: HourlyBookingFormProps) {
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>4 hours minimum</span>
-                      <span>24 hours maximum</span>
+                      <span>8 hours maximum</span>
                     </div>
                   </div>
                 )}

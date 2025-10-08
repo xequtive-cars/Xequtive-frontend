@@ -264,9 +264,9 @@ export const getFareEstimate = async (
     // Validate enhanced parameters
     if (request.bookingType === 'hourly') {
       const hoursValue = request.hours;
-      if (!hoursValue || hoursValue < 3 || hoursValue > 24) {
-        throw new Error("Hours must be between 3 and 24 for hourly bookings");
-      }
+    if (!hoursValue || hoursValue < 3 || hoursValue > 24) {
+      throw new Error("Hours must be between 3 and 24 for hourly bookings");
+    }
     }
 
     if (request.bookingType === 'return') {

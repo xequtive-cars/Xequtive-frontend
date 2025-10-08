@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PageLayout from "@/components/layout/PageLayout";
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Xequtive',
-  description: 'Privacy Policy for Xequtive luxury transportation services',
+  title: 'Privacy Policy | XEQUTIVE CARS',
+  description: 'Privacy Policy for XEQUTIVE CARS luxury transportation services',
 };
 
 export default function PolicyPage() {
@@ -31,7 +31,7 @@ export default function PolicyPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
-              Xequtive ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our luxury transportation services and website.
+              XEQUTIVE CARS ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our luxury transportation services and website.
             </p>
           </CardContent>
         </Card>
@@ -161,7 +161,7 @@ export default function PolicyPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
-              We retain your personal information for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law. Booking information is typically retained for 7 years for accounting and legal purposes.
+              We retain your personal information for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law. Booking information is typically retained for 12 Months or for the duration of your account is active for accounting and legal purposes.
             </p>
           </CardContent>
         </Card>
@@ -187,8 +187,6 @@ export default function PolicyPage() {
             </p>
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <p className="text-sm"><strong>Data Protection Officer:</strong> info@xeqcars.com</p>
-              <p className="text-sm"><strong>General Inquiries:</strong> info@xeqcars.com</p>
-              <p className="text-sm"><strong>Phone:</strong> +44 20 1234 5678</p>
             </div>
           </CardContent>
         </Card>

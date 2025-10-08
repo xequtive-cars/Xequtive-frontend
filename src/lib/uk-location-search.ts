@@ -1199,7 +1199,7 @@ class UKLocationSearchService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Xequtive-Booking-App/1.0' // Required by Nominatim
+          'User-Agent': 'XEQUTIVE-CARS-Booking-App/1.0' // Required by Nominatim
         },
         cache: 'force-cache'
       });

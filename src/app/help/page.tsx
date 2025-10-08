@@ -68,7 +68,7 @@ export default function HelpPage() {
               <Phone className="h-6 w-6 text-primary" />
               <div>
                 <h3 className="font-semibold">Phone Support</h3>
-                <p className="text-muted-foreground">Contact us for phone support</p>
+                <p className="text-muted-foreground">Contact us for emergencies and urgent support (if your booking is within 24 hours)</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

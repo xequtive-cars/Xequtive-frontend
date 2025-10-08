@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PageLayout from "@/components/layout/PageLayout";
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Xequtive',
-  description: 'Terms of Service for Xequtive luxury transportation services',
+  title: 'Terms of Service | XEQUTIVE CARS',
+  description: 'Terms of Service for XEQUTIVE CARS luxury transportation services',
 };
 
 export default function TermsPage() {
@@ -31,7 +31,7 @@ export default function TermsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
-              By accessing and using Xequtive's services, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+              By accessing and using XEQUTIVE CARS's services, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
             </p>
           </CardContent>
         </Card>
@@ -42,7 +42,7 @@ export default function TermsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Xequtive provides luxury transportation services including airport transfers, corporate travel, event transportation, and group travel services throughout the United Kingdom.
+              XEQUTIVE CARS provides luxury transportation services including airport transfers, corporate travel, event transportation, and group travel services throughout the United Kingdom.
             </p>
             <ul className="list-disc list-inside text-muted-foreground space-y-2">
               <li>Airport transfers to and from major UK airports</li>
@@ -94,7 +94,7 @@ export default function TermsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Xequtive's liability is limited to the cost of the service provided. We are not liable for:
+              XEQUTIVE CARS's liability is limited to the cost of the service provided. We are not liable for:
             </p>
             <ul className="list-disc list-inside text-muted-foreground space-y-2">
               <li>Delays due to traffic conditions or weather</li>
@@ -137,7 +137,7 @@ export default function TermsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
-              Xequtive reserves the right to modify these terms at any time. Changes will be posted on this page and will become effective immediately upon posting. Continued use of our services after changes constitutes acceptance of the new terms.
+              XEQUTIVE CARS reserves the right to modify these terms at any time. Changes will be posted on this page and will become effective immediately upon posting. Continued use of our services after changes constitutes acceptance of the new terms.
             </p>
           </CardContent>
         </Card>
