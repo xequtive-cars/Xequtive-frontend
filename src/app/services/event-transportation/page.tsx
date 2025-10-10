@@ -66,7 +66,7 @@ export default function EventTransportationPage() {
               <div>
                 <h3 className="font-semibold mb-2">Hourly Car Service</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Book car service by the hour (3 - 8 hours) with fixed hourly rates, 
+                  Book car service by the hour (3 - 24 hours) with fixed hourly rates, 
                   unlimited stops and no additional waiting time charges.
                 </p>
               </div>

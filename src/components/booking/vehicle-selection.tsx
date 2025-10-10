@@ -19,21 +19,47 @@ export type { VehicleOption, FareResponse };
 
 // Helper function to get vehicle image path based on vehicle ID
 const getVehicleImagePath = (vehicleId: string): string => {
-  if (vehicleId.includes("standard")) {
-    return "/images/vehicles/xequtive-1-removebg-preview.png";
-  } else if (vehicleId.includes("executive")) {
-    return "/images/vehicles/xequtive-2-removebg-preview.png";
-  } else if (vehicleId.includes("mpv") || vehicleId.includes("van")) {
-    return "/images/vehicles/xequtive-5-removebg-preview.png";
-  } else if (vehicleId.includes("estate")) {
-    return "/images/vehicles/xequtive-6-removebg-preview.png";
-  } else if (vehicleId.includes("luxury")) {
-    return "/images/vehicles/xequtive-8-removebg-preview.png";
-  } else if (vehicleId.includes("vip")) {
-    return "/images/vehicles/xequtive-9-removebg-preview.png";
+  const id = vehicleId.toLowerCase();
+  
+  // Standard Saloon
+  if (id.includes("standard") || id.includes("saloon")) {
+    return "/images/vehicles/standard-saloon.png";
   }
-  // Default image
-  return "/images/vehicles/xequtive-3-removebg-preview.png";
+  // Estate
+  else if (id.includes("estate")) {
+    return "/images/vehicles/estate.png";
+  }
+  // MPV-6 Seater
+  else if (id.includes("mpv-6") || (id.includes("mpv") && id.includes("6"))) {
+    return "/images/vehicles/mpv-6-seater.png";
+  }
+  // MPV-8 Seater
+  else if (id.includes("mpv-8") || (id.includes("mpv") && id.includes("8"))) {
+    return "/images/vehicles/mpv-8-seater.png";
+  }
+  // Executive Saloon
+  else if (id.includes("executive") && (id.includes("saloon") || !id.includes("mpv"))) {
+    return "/images/vehicles/executive-saloon.png";
+  }
+  // Executive MPV
+  else if (id.includes("executive") && id.includes("mpv")) {
+    return "/images/vehicles/executive-mpv.png";
+  }
+  // VIP Saloon
+  else if (id.includes("vip") && (id.includes("saloon") || !id.includes("mpv") && !id.includes("suv"))) {
+    return "/images/vehicles/vip-saloon.png";
+  }
+  // VIP SUV
+  else if (id.includes("vip") && (id.includes("suv") || id.includes("mpv"))) {
+    return "/images/vehicles/vip-suv.png";
+  }
+  // WAV (Wheelchair Accessible Vehicle)
+  else if (id.includes("wav") || id.includes("wheelchair") || id.includes("accessible")) {
+    return "/images/vehicles/wav.png";
+  }
+  
+  // Default fallback
+  return "/images/vehicles/standard-saloon.png";
 };
 
 // Helper function to get vehicle type order for sorting
@@ -396,98 +422,42 @@ export default function VehicleSelection({
       >
         <CardContent className="py-2 px-3">
           <div className="flex flex-col h-full">
-            <div className="flex items-center gap-2">
-              {/* Vehicle Image - responsive sizing */}
-              <div className="relative w-16 sm:w-20 md:w-24 h-12 sm:h-14 md:h-16 flex-shrink-0 flex items-center justify-center">
+            <div className="flex items-center justify-between">
+              {/* Vehicle Details - Left Side */}
+              <div className="flex items-center gap-2 flex-1">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm sm:text-base truncate">
+                      {vehicle.name}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      <span>{vehicle.capacity.passengers}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Luggage className="h-3 w-3" />
+                      <span>{vehicle.capacity.luggage}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle Image with Price Overlay - Right Side */}
+              <div className="relative w-20 sm:w-24 md:w-28 h-16 sm:h-20 md:h-24 flex-shrink-0">
                 <Image
                   src={vehicleImagePath}
                   alt={vehicle.name}
-                  width={80}
-                  height={50}
-                  className="object-contain transform scale-125 sm:scale-150 md:scale-175"
+                  width={112}
+                  height={80}
+                  className="object-contain w-full h-full"
                 />
-              </div>
-
-              <div className="flex-1 flex justify-between items-center gap-2 min-w-0">
-                <h3 className="font-bold text-lg sm:text-xl md:text-xl truncate min-w-0 flex-1">
-                  {vehicle.name}
-                </h3>
-                <div className="text-right min-w-0 flex-shrink-0">
-                  {bookingType === 'return' ? (
-                    <div className="space-y-1">
-                      <div className="font-bold text-sm sm:text-lg md:text-xl tracking-tight font-mono text-foreground notranslate whitespace-nowrap">
-                        £{vehicle.price.amount}
-                      </div>
-                    </div>
-                  ) : bookingType === 'hourly' ? (
-                    <div className="space-y-1">
-                      <div className="font-bold text-sm sm:text-lg md:text-xl tracking-tight font-mono notranslate whitespace-nowrap">
-                        £{vehicle.price.amount}
-                      </div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        Total for {hours}h
-                      </div>
-                      {vehicle.hourlyRate ? (
-                        <div className="text-xs text-foreground font-medium notranslate">
-                          £{vehicle.hourlyRate}/hour
-                        </div>
-                      ) : (
-                        <div className="text-xs text-muted-foreground notranslate">
-                          £{(vehicle.price.amount / hours).toFixed(0)}/hour
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="font-bold text-sm sm:text-lg md:text-xl tracking-tight font-mono notranslate whitespace-nowrap">
-                      £{vehicle.price.amount}
-                    </div>
-                  )}
+                {/* Price Badge - Top Left of Image */}
+                <div className="absolute top-1 left-1 bg-white/95 text-black text-xs font-bold px-2 py-1 rounded shadow-sm">
+                  £{vehicle.price.amount}
                 </div>
               </div>
-            </div>
-
-            {/* Description - with better spacing */}
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1 mb-2 line-clamp-1">
-              {vehicle.description}
-            </div>
-
-            {/* Capacity Badges - responsive sizing */}
-            <div className="mt-auto">
-                                  <div className="flex flex-wrap gap-1 sm:gap-2 mb-2">
-                      <Badge
-                        variant={capacity.passengerOk ? "outline" : "destructive"}
-                        className="text-xs sm:text-sm py-0 h-5 sm:h-6"
-                      >
-                        {vehicle.capacity.passengers} Passengers
-                      </Badge>
-                      <Badge
-                        variant={capacity.luggageOk ? "outline" : "destructive"}
-                        className="text-xs sm:text-sm py-0 h-5 sm:h-6"
-                      >
-                        {vehicle.capacity.luggage} Luggage
-                      </Badge>
-                {vehicle.features?.includes("WiFi") && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs sm:text-sm py-0 h-5 sm:h-6"
-                  >
-                    <Wifi size={12} className="mr-1" /> WiFi
-                  </Badge>
-                )}
-              </div>
-
-              {/* Selection Button */}
-              <Button
-                variant={
-                  selectedVehicleId === vehicle.id ? "default" : "outline"
-                }
-                size="sm"
-                className="w-full h-7 sm:h-8 text-xs sm:text-sm font-medium"
-                onClick={() => handleVehicleSelect(vehicle.id)}
-                disabled={!capacity.isOk}
-              >
-                {selectedVehicleId === vehicle.id ? "Selected" : "Select"}
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -514,53 +484,44 @@ export default function VehicleSelection({
             )}
             onClick={() => capacity.isOk && handleVehicleSelect(vehicle.id)}
           >
-            <CardContent className="py-2 px-3 flex items-center">
-              {/* Left: Vehicle Image - responsive sizing */}
-              <div className="relative w-20 sm:w-24 md:w-28 h-14 sm:h-16 flex-shrink-0 flex items-center justify-center">
+            <CardContent className="py-2 px-3 flex items-center justify-between">
+              {/* Vehicle Details - Left Side */}
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm sm:text-base truncate">
+                  {vehicle.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    <span>{vehicle.capacity.passengers}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Luggage className="h-3 w-3" />
+                    <span>{vehicle.capacity.luggage}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle Image with Price Overlay - Right Side */}
+              <div className="relative w-20 sm:w-24 md:w-28 h-16 sm:h-20 md:h-24 flex-shrink-0">
                 <Image
                   src={vehicleImagePath}
                   alt={vehicle.name}
                   width={112}
-                  height={70}
-                  className="object-contain transform scale-150 sm:scale-175 md:scale-200"
+                  height={80}
+                  className="object-contain w-full h-full"
                 />
-              </div>
-
-              {/* Middle: Vehicle Details - responsive text sizes */}
-              <div className="flex-1 ml-3 sm:ml-4">
-                <h3 className="font-bold text-sm xs:text-[17px] sm:text-2xl md:text-xl mb-1 sm:mb-2">
-                  {vehicle.name}
-                </h3>
-
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs xs:text-sm sm:text-base text-muted-foreground">
-                  <span className="flex items-center">
-                    <Badge
-                      variant="secondary"
-                      className="h-4 xs:h-5 sm:h-6 mr-1 text-xs"
-                    >
-                      {vehicle.capacity.passengers}
-                    </Badge>
-                    Passengers
-                  </span>
-                  <span className="flex items-center">
-                    <Badge
-                      variant="secondary"
-                      className="h-4 xs:h-5 sm:h-6 mr-1 text-xs"
-                    >
-                      {vehicle.capacity.luggage}
-                    </Badge>
-                    Luggage
-                  </span>
+                {/* Price Badge - Top Left of Image */}
+                <div className="absolute top-1 left-1 bg-white/95 text-black text-xs font-bold px-2 py-1 rounded shadow-sm">
+                  £{vehicle.price.amount}
                 </div>
               </div>
-
-              {/* Right: Price - responsive text sizes */}
-              <div className="text-right ml-2">
-                {bookingType === 'return' ? (
-                  <div className="space-y-1">
-                    <div className="font-bold text-lg xs:text-xl sm:text-2xl md:text-2xl tracking-tight font-mono text-foreground">
-                      £{vehicle.price.amount}
-                    </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
                   </div>
                 ) : bookingType === 'hourly' ? (
                   <div className="space-y-1">

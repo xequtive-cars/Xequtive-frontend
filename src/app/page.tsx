@@ -41,13 +41,10 @@ function HomeContent() {
         <div className="container flex h-14 md:h-16 items-center justify-between px-4">
           <div className="flex items-center gap-1 md:gap-2">
             <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-sm md:text-lg">X</span>
-              </div>
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10" />
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQ CARS
+                XEQUTIVE CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
           </div>
           {/* Only the navigation is auth-aware, everything else renders immediately */}
@@ -391,13 +388,10 @@ export default function Home() {
             <div className="container flex h-14 md:h-16 items-center justify-between px-4">
               <div className="flex items-center gap-1 md:gap-2">
               <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-sm md:text-lg">X</span>
-              </div>
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10" />
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQ CARS
+                XEQUTIVE CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
               </div>
               <nav className="flex items-center gap-5">

@@ -19,21 +19,47 @@ export type { HourlyVehicleOption, HourlyFareResponse };
 
 // Helper function to get vehicle image path based on vehicle ID
 const getVehicleImagePath = (vehicleId: string): string => {
-  if (vehicleId.includes("standard")) {
-    return "/images/vehicles/xequtive-1-removebg-preview.png";
-  } else if (vehicleId.includes("executive")) {
-    return "/images/vehicles/xequtive-2-removebg-preview.png";
-  } else if (vehicleId.includes("mpv") || vehicleId.includes("van")) {
-    return "/images/vehicles/xequtive-5-removebg-preview.png";
-  } else if (vehicleId.includes("estate")) {
-    return "/images/vehicles/xequtive-6-removebg-preview.png";
-  } else if (vehicleId.includes("luxury")) {
-    return "/images/vehicles/xequtive-8-removebg-preview.png";
-  } else if (vehicleId.includes("vip")) {
-    return "/images/vehicles/xequtive-9-removebg-preview.png";
+  const id = vehicleId.toLowerCase();
+  
+  // Standard Saloon
+  if (id.includes("standard") || id.includes("saloon")) {
+    return "/images/vehicles/standard-saloon.png";
   }
-  // Default image
-  return "/images/vehicles/xequtive-3-removebg-preview.png";
+  // Estate
+  else if (id.includes("estate")) {
+    return "/images/vehicles/estate.png";
+  }
+  // MPV-6 Seater
+  else if (id.includes("mpv-6") || (id.includes("mpv") && id.includes("6"))) {
+    return "/images/vehicles/mpv-6-seater.png";
+  }
+  // MPV-8 Seater
+  else if (id.includes("mpv-8") || (id.includes("mpv") && id.includes("8"))) {
+    return "/images/vehicles/mpv-8-seater.png";
+  }
+  // Executive Saloon
+  else if (id.includes("executive") && (id.includes("saloon") || !id.includes("mpv"))) {
+    return "/images/vehicles/executive-saloon.png";
+  }
+  // Executive MPV
+  else if (id.includes("executive") && id.includes("mpv")) {
+    return "/images/vehicles/executive-mpv.png";
+  }
+  // VIP Saloon
+  else if (id.includes("vip") && (id.includes("saloon") || !id.includes("mpv") && !id.includes("suv"))) {
+    return "/images/vehicles/vip-saloon.png";
+  }
+  // VIP SUV
+  else if (id.includes("vip") && (id.includes("suv") || id.includes("mpv"))) {
+    return "/images/vehicles/vip-suv.png";
+  }
+  // WAV (Wheelchair Accessible Vehicle)
+  else if (id.includes("wav") || id.includes("wheelchair") || id.includes("accessible")) {
+    return "/images/vehicles/wav.png";
+  }
+  
+  // Default fallback
+  return "/images/vehicles/standard-saloon.png";
 };
 
 // Helper function to get vehicle type order for sorting

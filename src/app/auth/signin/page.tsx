@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +21,6 @@ import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ChevronLeft, Mail } from "lucide-react";
-import Link from "next/link";
 import { StepProgressBar } from "@/components/auth/StepProgressBar";
 import { AuthPageProtection } from "@/components/auth/AuthPageProtection";
 import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
@@ -551,13 +552,10 @@ function Navbar() {
       <div className="container flex h-20 py-5 items-center justify-between">
         <div className="flex items-center gap-2">
         <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-sm md:text-lg">X</span>
-              </div>
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10" />
               <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQ CARS
+                XEQUTIVE CARS
               </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
             </Link>
         </div>
         <AuthAwareNavigation />
