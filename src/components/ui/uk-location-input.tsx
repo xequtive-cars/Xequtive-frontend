@@ -12,7 +12,7 @@ import {
   Loader2,
   X,
   ArrowLeft,
-  Building
+  Anchor
 } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useToast } from "@/components/ui/use-toast";
@@ -578,7 +578,7 @@ export default function UKLocationInput({
                   fetchCategoryLocations('airport');
                 }}
                 className="
-                  flex items-center justify-center space-x-2 
+                  flex items-center justify-center space-x-1 
                   px-4 py-5 
                   text-sm font-semibold
                   bg-background border border-green-200 hover:border-green-300
@@ -589,7 +589,7 @@ export default function UKLocationInput({
                   dark:text-green-400 dark:hover:text-green-300
                 "
               >
-                <Plane className="w-5 h-5" />
+                <Plane className="w-6 h-6 text-green-600" style={{ display: 'inline-block', fill: 'currentColor', minWidth: '24px', minHeight: '24px' }} />
                 <span>Airports</span>
               </button>
               <button
@@ -601,7 +601,7 @@ export default function UKLocationInput({
                   fetchCategoryLocations('train_station');
                 }}
                 className="
-                  flex items-center justify-center space-x-2 
+                  flex items-center justify-center space-x-1 
                   px-4 py-5 
                   text-sm font-semibold
                   bg-background border border-blue-200 hover:border-blue-300
@@ -612,7 +612,7 @@ export default function UKLocationInput({
                   dark:text-blue-400 dark:hover:text-blue-300
                 "
               >
-                <Train className="w-5 h-5" />
+                <Train className="w-6 h-6 text-blue-600" style={{ display: 'inline-block', fill: 'currentColor', minWidth: '24px', minHeight: '24px' }} />
                 <span>Stations</span>
               </button>
               <button
@@ -624,7 +624,7 @@ export default function UKLocationInput({
                   fetchCategoryLocations('cruise_terminal');
                 }}
                 className="
-                  flex items-center justify-center space-x-2 
+                  flex items-center justify-center space-x-1 
                   px-3 py-5 
                   text-sm font-semibold
                   bg-background border border-purple-200 hover:border-purple-300
@@ -635,7 +635,7 @@ export default function UKLocationInput({
                   dark:text-purple-400 dark:hover:text-purple-300
                 "
               >
-                <Building className="w-5 h-5" />
+                <Anchor className="w-6 h-6 text-purple-600" style={{ display: 'inline-block', fill: 'currentColor', minWidth: '24px', minHeight: '24px' }} />
                 <span>Cruise</span>
               </button>
             </div>
@@ -770,11 +770,11 @@ export default function UKLocationInput({
                 >
                   <div className="flex items-start space-x-3">
                     {dropdownView === 'airports' ? (
-                      <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <Plane className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
                     ) : dropdownView === 'trains' ? (
-                      <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                      <Train className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
                     ) : (
-                      <Building className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                      <Anchor className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm break-words leading-tight">
@@ -839,11 +839,11 @@ export default function UKLocationInput({
           <div className="px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-start space-x-3">
               {selectedCategory === 'airport' ? (
-                <Plane className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <Plane className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
               ) : selectedCategory === 'train_station' ? (
-                <Train className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <Train className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
               ) : (
-                <Building className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                <Anchor className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
               )}
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm break-words leading-tight">
@@ -893,7 +893,7 @@ export default function UKLocationInput({
             }}
           >
                   <div className="flex items-start space-x-3">
-                    <Building className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <Anchor className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm break-words leading-tight">
                         {terminal.mainText || terminal.name || terminal.address}

@@ -41,10 +41,7 @@ function HomeContent() {
         <div className="container flex h-14 md:h-16 items-center justify-between px-4">
           <div className="flex items-center gap-1 md:gap-2">
             <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <Image src="/logo.png" alt="XEQUTIVE CARS" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10" />
-              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE CARS
-              </span>
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={120} height={40} className="w-30 h-12 md:w-32 md:h-14" />
             </Link>
           </div>
           {/* Only the navigation is auth-aware, everything else renders immediately */}
@@ -388,10 +385,7 @@ export default function Home() {
             <div className="container flex h-14 md:h-16 items-center justify-between px-4">
               <div className="flex items-center gap-1 md:gap-2">
               <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <Image src="/logo.png" alt="XEQUTIVE CARS" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10" />
-              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE CARS
-              </span>
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={120} height={40} className="w-30 h-12 md:w-32 md:h-14" />
             </Link>
               </div>
               <nav className="flex items-center gap-5">

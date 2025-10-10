@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
-import { Wifi } from "lucide-react";
+import { Wifi, Users, Luggage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -22,12 +22,32 @@ const getVehicleImagePath = (vehicleId: string): string => {
   const id = vehicleId.toLowerCase();
   
   // Standard Saloon
-  if (id.includes("standard") || id.includes("saloon")) {
+  if (id.includes("standard") && id.includes("saloon")) {
     return "/images/vehicles/standard-saloon.png";
+  }
+  // Standard MPV-8
+  else if (id.includes("standard") && id.includes("mpv") && id.includes("8")) {
+    return "/images/vehicles/standard-mpv-8.png";
   }
   // Estate
   else if (id.includes("estate")) {
     return "/images/vehicles/estate.png";
+  }
+  // VIP Saloon
+  else if (id.includes("vip") && (id.includes("saloon") || !id.includes("mpv") && !id.includes("suv"))) {
+    return "/images/vehicles/vip-saloon.png";
+  }
+  // VIP SUV/MPV (using executive-mpv.png)
+  else if (id.includes("vip") && (id.includes("suv") || id.includes("mpv"))) {
+    return "/images/vehicles/executive-mpv.png";
+  }
+  // Executive Saloon
+  else if (id.includes("executive") && (id.includes("saloon") || !id.includes("mpv"))) {
+    return "/images/vehicles/executive-saloon.png";
+  }
+  // Executive MPV (using mpv-8-seater.png)
+  else if (id.includes("executive") && id.includes("mpv")) {
+    return "/images/vehicles/mpv-8-seater.png";
   }
   // MPV-6 Seater
   else if (id.includes("mpv-6") || (id.includes("mpv") && id.includes("6"))) {
@@ -36,26 +56,6 @@ const getVehicleImagePath = (vehicleId: string): string => {
   // MPV-8 Seater
   else if (id.includes("mpv-8") || (id.includes("mpv") && id.includes("8"))) {
     return "/images/vehicles/mpv-8-seater.png";
-  }
-  // Executive Saloon
-  else if (id.includes("executive") && (id.includes("saloon") || !id.includes("mpv"))) {
-    return "/images/vehicles/executive-saloon.png";
-  }
-  // Executive MPV
-  else if (id.includes("executive") && id.includes("mpv")) {
-    return "/images/vehicles/executive-mpv.png";
-  }
-  // VIP Saloon
-  else if (id.includes("vip") && (id.includes("saloon") || !id.includes("mpv") && !id.includes("suv"))) {
-    return "/images/vehicles/vip-saloon.png";
-  }
-  // VIP SUV
-  else if (id.includes("vip") && (id.includes("suv") || id.includes("mpv"))) {
-    return "/images/vehicles/vip-suv.png";
-  }
-  // WAV (Wheelchair Accessible Vehicle)
-  else if (id.includes("wav") || id.includes("wheelchair") || id.includes("accessible")) {
-    return "/images/vehicles/wav.png";
   }
   
   // Default fallback
@@ -378,7 +378,13 @@ export default function VehicleSelection({
       {/* Mobile & Tablet View: Vehicle Selection First */}
       <div className="lg:hidden">
         {/* Vehicle selection container with increased height */}
-        <div className="mb-6 overflow-y-auto max-h-[calc(85vh-8rem+100px)]">
+        <div 
+          className="mb-6 overflow-y-auto max-h-[calc(85vh-8rem+100px)] [&::-webkit-scrollbar]:hidden"
+          style={{
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none', /* Internet Explorer 10+ */
+          }}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {sortedVehicles.map((vehicle) => renderVehicleCard(vehicle))}
           </div>
@@ -394,7 +400,13 @@ export default function VehicleSelection({
         {getJourneySummary()}
 
         {/* Vehicle Options */}
-        <div className="overflow-y-auto pr-2 flex-grow">
+        <div 
+          className="overflow-y-auto flex-grow [&::-webkit-scrollbar]:hidden"
+          style={{
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none', /* Internet Explorer 10+ */
+          }}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {sortedVehicles.map((vehicle) => renderVehicleCard(vehicle))}
           </div>
@@ -420,44 +432,40 @@ export default function VehicleSelection({
           !capacity.isOk && "opacity-80"
         )}
       >
-        <CardContent className="py-2 px-3">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between">
-              {/* Vehicle Details - Left Side */}
-              <div className="flex items-center gap-2 flex-1">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm sm:text-base truncate">
-                      {vehicle.name}
-                    </h3>
+            <CardContent className="py-0 px-3 lg:py-0">
+          <div className="flex items-center justify-between">
+            {/* Vehicle Details - Left Side */}
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm sm:text-xl truncate ml-2">
+                  {vehicle.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Users className="h-5 w-5 ml-2" />
+                  <span>{vehicle.capacity.passengers}</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Users className="h-3 w-3" />
-                      <span>{vehicle.capacity.passengers}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Luggage className="h-3 w-3" />
-                      <span>{vehicle.capacity.luggage}</span>
-                    </div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Luggage className="h-5 w-5 ml-2" />
+                    <span>{vehicle.capacity.luggage}</span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Vehicle Image with Price Overlay - Right Side */}
-              <div className="relative w-20 sm:w-24 md:w-28 h-16 sm:h-20 md:h-24 flex-shrink-0">
-                <Image
-                  src={vehicleImagePath}
-                  alt={vehicle.name}
-                  width={112}
-                  height={80}
-                  className="object-contain w-full h-full"
-                />
+            {/* Vehicle Image with Price Overlay - Right Side */}
+            <div className="relative w-20 sm:w-28 md:w-36 lg:w-44 h-14 sm:h-18 md:h-24 lg:h-32 flex-shrink-0 mt-1 lg:mt-2">
+              <Image
+                src={vehicleImagePath}
+                alt={vehicle.name}
+                width={112}
+                height={80}
+                className="object-contain w-full h-full"
+              />
                 {/* Price Badge - Top Left of Image */}
-                <div className="absolute top-1 left-1 bg-white/95 text-black text-xs font-bold px-2 py-1 rounded shadow-sm">
+                <div className="absolute top-[-10px] left-[-10px] sm:top-1 sm:left-1 text-2xl sm:text-3xl font-bold text-foreground" style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}>
                   £{vehicle.price.amount}
                 </div>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -484,26 +492,26 @@ export default function VehicleSelection({
             )}
             onClick={() => capacity.isOk && handleVehicleSelect(vehicle.id)}
           >
-            <CardContent className="py-2 px-3 flex items-center justify-between">
+            <CardContent className="py-0 pl-4 pr-3 flex items-center justify-between mt-[-10px]">
               {/* Vehicle Details - Left Side */}
               <div className="flex-1">
-                <h3 className="font-semibold text-sm sm:text-base truncate">
+                <h3 className="font-semibold text-sm sm:text-xl truncate ml-2">
                   {vehicle.name}
                 </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Users className="h-3 w-3" />
+                <div className="flex items-center gap-2 mt-2 mb-[-20px]">
+                  <div className="flex items-center gap-1 text-lg text-muted-foreground">
+                    <Users className="h-5 w-5 ml-2" />
                     <span>{vehicle.capacity.passengers}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Luggage className="h-3 w-3" />
+                  <div className="flex items-center gap-1 text-lg text-muted-foreground">
+                    <Luggage className="h-5 w-5 ml-2" />
                     <span>{vehicle.capacity.luggage}</span>
                   </div>
                 </div>
               </div>
 
               {/* Vehicle Image with Price Overlay - Right Side */}
-              <div className="relative w-20 sm:w-24 md:w-28 h-16 sm:h-20 md:h-24 flex-shrink-0">
+              <div className="relative w-24 sm:w-40 md:w-42 lg:w-44 h-16 sm:h-20 md:h-28 lg:h-32 flex-shrink-0 mb-[-20px] lg:mb-[-40px] sm:mb-[-20px] md:mb-[-40px]">
                 <Image
                   src={vehicleImagePath}
                   alt={vehicle.name}
@@ -512,43 +520,9 @@ export default function VehicleSelection({
                   className="object-contain w-full h-full"
                 />
                 {/* Price Badge - Top Left of Image */}
-                <div className="absolute top-1 left-1 bg-white/95 text-black text-xs font-bold px-2 py-1 rounded shadow-sm">
+                <div className="absolute top-[0px] sm:top-[0px] md:top-[7px] lg:top-[17px] left-[-20px] sm:left-[-20px] md:left-[0px] lg:left-[0px] text-[22px] font-bold text-foreground">
                   £{vehicle.price.amount}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-                  </div>
-                ) : bookingType === 'hourly' ? (
-                  <div className="space-y-1">
-                    <div className="font-bold text-lg xs:text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
-                      £{vehicle.price.amount}
-                    </div>
-                    {vehicle.hourlyRate ? (
-                      <div className="text-xs text-foreground font-medium notranslate">
-                        £{vehicle.hourlyRate}/hour
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground notranslate">
-                        £{(vehicle.price.amount / hours).toFixed(0)}/hour
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="font-bold text-lg xs:text-xl sm:text-2xl md:text-2xl tracking-tight font-mono">
-                    £{vehicle.price.amount}
-                  </div>
-                )}
-
-                {selectedVehicleId === vehicle.id && (
-                  <div className="text-xs sm:text-sm text-primary font-medium">
-                    Selected
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

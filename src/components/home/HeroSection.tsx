@@ -14,10 +14,10 @@ export function HeroSection({ isAuthenticated }: HeroSectionProps) {
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-[#8B0000]">
           XEQUTIVE CARS
         </h1>
-        <p className="text-sm sm:text-lg md:text-2xl lg:text-3xl text-muted-foreground mx-auto max-w-[900px] leading-relaxed text-center font-semibold">
+        <p className="text-sm sm:text-lg md:text-2xl lg:text-3xl text-black dark:text-muted-foreground mx-auto max-w-[900px] leading-relaxed text-center font-semibold">
           PRE-BOOKED AIRPORT TRANSFER & EXECUTIVE CAR SERVICE
         </p>
-        <p className="text-xl md:text-2xl text-muted-foreground mx-auto max-w-[800px] leading-relaxed">
+        <p className="text-xl md:text-2xl text-black dark:text-muted-foreground mx-auto max-w-[800px] leading-relaxed">
           Experience reliable transportation with premium vehicle options.
         </p>
       </div>
@@ -46,7 +46,7 @@ export function HeroSection({ isAuthenticated }: HeroSectionProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-8">
           <div className="text-white text-xl font-medium">
-            Premium Transportation Experience
+            Reliable Transportation Experience
           </div>
         </div>
       </div>

@@ -142,6 +142,9 @@ function UpdateBookingClientComponent({
   const [showMap, setShowMap] = useState(false);
   const [userLocation, setUserLocation] = useState<{latitude: number; longitude: number;} | null>(null);
   const [locationPermission, setLocationPermission] = useState<{denied: boolean; error: string | null;}>({denied: false, error: null});
+  const [bookingType, setBookingType] = useState<'one-way' | 'hourly' | 'return'>('one-way');
+  const [hours, setHours] = useState<number>(1);
+  const [multipleVehicles, setMultipleVehicles] = useState<number>(1);
 
   // Redux states
   const booking = useAppSelector((state) => state.booking);
@@ -481,7 +484,8 @@ function UpdateBookingClientComponent({
                   <BookingForm
                   pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}
                   dropoffAddress={dropoffAddress} setDropoffAddress={setDropoffAddress}
-                  stopAddresses={stopAddresses} pickupLocation={pickupLocation ? {
+                  stopAddresses={stopAddresses} setStopAddresses={setStopAddresses}
+                  pickupLocation={pickupLocation ? {
                     address: pickupLocation.address || '',
                     latitude: pickupLocation.latitude,
                     longitude: pickupLocation.longitude,
@@ -512,6 +516,7 @@ function UpdateBookingClientComponent({
                       category: undefined,
                     }
                   } : null}
+                  setPickupLocation={setPickupLocation} setDropoffLocation={setDropoffLocation}
                   selectedDate={selectedDate} setSelectedDate={setSelectedDate}
                   selectedTime={selectedTime} setSelectedTime={setSelectedTime}
                   passengers={passengers} setPassengers={setPassengers}
@@ -529,6 +534,9 @@ function UpdateBookingClientComponent({
                     getAdditionalRequestsSummary={getAdditionalRequestsSummary}
                   onGoToAdditionalRequests={() => setCurrentStep("additionalRequests")}
                   disabled={locationPermission.denied} reorderStops={reorderStops}
+                  bookingType={bookingType} setBookingType={setBookingType}
+                  hours={hours} setHours={setHours}
+                  multipleVehicles={multipleVehicles} setMultipleVehicles={setMultipleVehicles}
                   />
                 )}
               </div>
@@ -729,7 +737,7 @@ function UpdateBookingClientComponent({
                 </div>
               Booking Updated
               </DialogTitle>
-            <DialogDescription className="text-base">Your booking has been successfully updated and is now being processed.</DialogDescription>
+            <DialogDescription className="text-base">Your booking has been successfully updated and is now being processed. We have sent a booking confirmation to your email.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <p className="mb-2 text-sm font-medium">Booking Reference:</p>

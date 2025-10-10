@@ -19,8 +19,20 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "XEQUTIVE CARS - Premium Car Service",
-  description: "Luxury transportation services for executives",
+  title: "XEQUTIVE - Executive Car Service",
+  description: "Reliable Airport Transfer, Car & Chauffeuring Service",
+  metadataBase: new URL('https://xeqcars.com'),
+  openGraph: {
+    title: "XEQUTIVE - Executive Car Service",
+    description: "Reliable Airport Transfer, Car & Chauffeuring Service",
+    url: "https://xeqcars.com",
+    siteName: "XEQUTIVE",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "XEQUTIVE - Executive Car Service",
+    description: "Reliable Airport Transfer, Car & Chauffeuring Service",
+  },
 };
 
 // Force dynamic rendering to avoid React 19 SSR useContext bug
@@ -34,6 +46,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Favicon */}
+        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="shortcut icon" href="/logo.png" type="image/png" />
         {/* Mapbox GL CSS is imported above */}
         {/* Google Translate Scripts */}
         <Script

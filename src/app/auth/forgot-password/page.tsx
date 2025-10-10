@@ -49,7 +49,6 @@ export default function ForgotPasswordPage() {
                 <span className="font-bold text-xs md:text-lg">X</span>
               </div>
               <span className="font-bold text-base md:text-2xl tracking-tight">
-                XEQUTIVE CARS
               </span>
             </Link>
             <ThemeToggle />

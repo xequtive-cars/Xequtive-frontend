@@ -552,10 +552,7 @@ function Navbar() {
       <div className="container flex h-20 py-5 items-center justify-between">
         <div className="flex items-center gap-2">
         <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <Image src="/logo.png" alt="XEQUTIVE CARS" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10" />
-              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-                XEQUTIVE CARS
-              </span>
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={120} height={40} className="w-30 h-12 md:w-32 md:h-14" />
             </Link>
         </div>
         <AuthAwareNavigation />

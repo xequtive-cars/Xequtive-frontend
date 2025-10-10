@@ -685,7 +685,7 @@ export default function NewBookingPageRedux() {
               <strong>{bookingSuccess.bookingId}</strong>
             </p>
             <p className="text-center text-sm text-gray-500">
-              You will receive a confirmation email with all your booking
+              We have sent a booking confirmation to your email with all your booking
               details.
             </p>
             <DialogFooter className="sm:justify-center">

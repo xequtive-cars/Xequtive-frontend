@@ -126,7 +126,6 @@ export default function TermsPage() {
             </p>
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <p className="text-sm"><strong>Email:</strong> info@xeqcars.com</p>
-              <p className="text-sm"><strong>Phone:</strong> +44 20 1234 5678</p>
             </div>
           </CardContent>
         </Card>
