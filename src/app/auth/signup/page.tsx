@@ -20,19 +20,15 @@ import { useAuthLoading } from "@/contexts/AuthLoadingContext";
 import FormTransition from "@/components/auth/FormTransition";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ChevronLeft, Mail } from "lucide-react";
-import { StepProgressBar } from "@/components/auth/StepProgressBar";
+import { ChevronLeft, Mail, Shield } from "lucide-react";
 import { AuthPageProtection } from "@/components/auth/AuthPageProtection";
 import { AuthAwareNavigation } from "@/components/auth/AuthAwareNavigation";
+import { OTPInput } from '@/components/ui/otp-input';
 
-// Step 1: Email form schema
-const emailSchema = z.object({
-  email: z.string().email("Invalid email address"),
-});
-
-// Step 2: Password form schema
+// Step 1: Combined email and password form schema
 const credentialsSchema = z
   .object({
+    email: z.string().email("Invalid email address"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -44,16 +40,18 @@ const credentialsSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  });
+
+// Step 2: Email verification schema
+const verificationSchema = z.object({
+  otp: z.string().length(6, 'OTP must be 6 digits').regex(/^\d+$/, 'OTP must contain only numbers'),
 });
 
-type EmailFormData = z.infer<typeof emailSchema>;
 type CredentialsFormData = z.infer<typeof credentialsSchema>;
+type VerificationFormData = z.infer<typeof verificationSchema>;
 
-// Define the steps of the signup process (now only 2 steps)
-type SignupStep = "email" | "credentials";
-
-// Fix type issues with CustomEvent
-type StepChangeEvent = CustomEvent<{ step: SignupStep }>;
+// Define the steps of the signup process (now 2 steps)
+type SignupStep = "credentials" | "verification";
 
 function SignUpForm({
   onStepChange,
@@ -67,9 +65,9 @@ function SignUpForm({
 
   // Read initial state from query parameters
   const [currentStep, setCurrentStep] = useState<SignupStep>(
-    (searchParams.get('step') as SignupStep) || "email"
+    (searchParams.get('step') as SignupStep) || "credentials"
   );
-  const prevStepRef = useRef<SignupStep>("email");
+  const prevStepRef = useRef<SignupStep>("credentials");
   const [formData, setFormData] = useState({
     email: searchParams.get('email') || "",
     password: searchParams.get('password') || "",
@@ -80,6 +78,9 @@ function SignUpForm({
   const { isAuthenticated } = useAuth();
   const { showLoading } = useAuthLoading();
   const [isLoading, setIsLoading] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [rateLimitTime, setRateLimitTime] = useState(0);
 
   // Update query parameters when form data or step changes
   useEffect(() => {
@@ -107,37 +108,23 @@ function SignUpForm({
   // No need for redirect logic here - middleware handles it
 
   // Initialize forms for each step
-  const emailForm = useForm<EmailFormData>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: {
-      email: formData.email,
-    },
-  });
-
   const credentialsForm = useForm<CredentialsFormData>({
     resolver: zodResolver(credentialsSchema),
     defaultValues: {
+      email: formData.email,
       password: formData.password,
       confirmPassword: formData.confirmPassword,
     },
   });
 
-  // Handle email step submission
-  const onEmailSubmit = async (data: EmailFormData) => {
-    setError(null);
+  const verificationForm = useForm<VerificationFormData>({
+    resolver: zodResolver(verificationSchema),
+    defaultValues: {
+      otp: '',
+    },
+  });
 
-    // Update the form data with the email
-    setFormData(prev => ({
-      ...prev,
-      email: data.email,
-    }));
-
-    // Move to the credentials step
-    setCurrentStep("credentials");
-    onStepChange("credentials");
-  };
-
-  // Handle credentials step submission (final step)
+  // Handle credentials step submission - now requests email verification
   const onCredentialsSubmit = async (data: CredentialsFormData) => {
     setError(null);
     setIsLoading(true);
@@ -145,31 +132,138 @@ function SignUpForm({
     // Update form data with credentials
     const completeFormData = {
       ...formData,
+      email: data.email,
       password: data.password,
       confirmPassword: data.confirmPassword,
     };
+    setFormData(completeFormData);
 
     try {
-      // Register user with email and password only (no name or phone required)
-      const result = await authService.register(
-        "", // Empty fullName - will be collected later
-        completeFormData.email,
-        completeFormData.password,
-        completeFormData.confirmPassword,
-        "" // Empty phoneNumber - will be collected later
-      );
+      // Request email verification instead of creating account directly
+      const result = await authService.requestEmailVerification(data.email);
 
       if (result.success) {
-        onComplete();
-        window.location.href = "/dashboard";
+        // Move to verification step
+        setCurrentStep("verification");
+        onStepChange("verification");
       } else {
-        setError(result.error?.message || "Sign up failed");
+        // Check for rate limiting error
+        if (result.error?.message?.includes('Please wait')) {
+          const waitTimeMatch = result.error.message.match(/(\d+)/);
+          if (waitTimeMatch) {
+            const waitTime = parseInt(waitTimeMatch[1]);
+            setRateLimitTime(waitTime * 60); // Convert to seconds
+            
+            // Start countdown
+            const interval = setInterval(() => {
+              setRateLimitTime(prev => {
+                if (prev <= 1) {
+                  clearInterval(interval);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          }
         }
+        setError(result.error?.message || "Failed to send verification code");
+      }
     } catch (error) {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle verification step submission - creates account after verification
+  const onVerificationSubmit = async (data: VerificationFormData) => {
+    setError(null);
+    setIsVerifying(true);
+
+    try {
+      // First verify the email code
+      const verifyResult = await authService.verifyEmailCode(formData.email, data.otp);
+
+      if (!verifyResult.success) {
+        throw new Error(verifyResult.error?.message || "Invalid verification code");
+      }
+
+      // Now create the account
+      const registerResult = await authService.register(
+        "", // Empty fullName - will be collected later
+        formData.email,
+        formData.password,
+        formData.confirmPassword,
+        "" // Empty phoneNumber - will be collected later
+      );
+
+      if (registerResult.success) {
+        onComplete();
+        window.location.href = "/dashboard";
+      } else {
+        setError(registerResult.error?.message || "Account creation failed");
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred. Please try again.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Handle OTP change
+  const handleOTPChange = (value: string) => {
+    setOtpValue(value);
+    verificationForm.setValue('otp', value);
+  };
+
+  // Handle resend verification code
+  const handleResendVerification = async () => {
+    if (rateLimitTime > 0) return;
+    
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await authService.resendEmailVerification(formData.email);
+
+      if (!result.success) {
+        throw new Error(result.error?.message || "Failed to resend verification code");
+      }
+
+      setOtpValue('');
+      verificationForm.setValue('otp', '');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to resend verification code");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Password strength indicator based on backend requirements
+  const getPasswordStrength = (password: string) => {
+    if (!password) return { strength: 0, label: '', color: '', requirements: [] };
+    
+    const requirements = [
+      { test: password.length >= 8 && password.length <= 128, label: '8-128 characters' },
+      { test: /[a-z]/.test(password), label: 'Lowercase letter' },
+      { test: /[A-Z]/.test(password), label: 'Uppercase letter' },
+      { test: /[0-9]/.test(password), label: 'Number' },
+    ];
+    
+    const passedRequirements = requirements.filter(req => req.test).length;
+    const totalRequirements = requirements.length;
+    
+    const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-red-600', 'bg-green-500'];
+    
+    return {
+      strength: passedRequirements,
+      label: labels[passedRequirements - 1] || '',
+      color: colors[passedRequirements - 1] || 'bg-gray-300',
+      requirements,
+      passedRequirements,
+      totalRequirements
+    };
   };
 
   // Helper function to render sign-up with Google button
@@ -190,147 +284,115 @@ function SignUpForm({
   );
 
   return (
-    <Card className="w-full max-w-sm mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
-      <CardHeader className="space-y-1 pb-2 px-4 pt-4">
-        <CardTitle className="text-xl font-bold text-center">
-          {currentStep === "email" && "Create your account"}
-          {currentStep === "credentials" && "Set your password"}
+    <Card className="w-full max-w-lg mx-auto border border-border/50 bg-background shadow-xl transition-all duration-300">
+      <CardHeader className="space-y-1 pb-0 px-4 pt-2">
+        <CardTitle className="text-2xl font-bold text-center">
+          {currentStep === "credentials" && "Create your account"}
+          {currentStep === "verification" && "Verify your email"}
         </CardTitle>
-        <CardDescription className="text-center text-sm">
-          {currentStep === "email" && "Enter your email to get started"}
-          {currentStep === "credentials" && "Create a secure password for your account"}
+        <CardDescription className="text-center text-base">
+          {currentStep === "credentials" && "Enter your email and create a secure password"}
+          {currentStep === "verification" && `We've sent a 6-digit verification code to ${formData.email}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-2">
         <div className="relative">
           <FormTransition
-            isActive={currentStep === "email"}
-            direction="forward"
-            animationKey="email-step"
-          >
-            <Form {...emailForm}>
-              <form
-                onSubmit={emailForm.handleSubmit(onEmailSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={emailForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-sm font-semibold">
-                        Email
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type="email"
-                            placeholder="you@example.com"
-                            {...field}
-                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
-                          />
-                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-
-                {error && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3 text-destructive text-sm">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full h-9 text-sm font-semibold"
-                  disabled={emailForm.formState.isSubmitting}
-                >
-                  {emailForm.formState.isSubmitting ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    "Continue"
-                  )}
-                </Button>
-              </form>
-            </Form>
-            {renderGoogleSignUp()}
-          </FormTransition>
-
-          <FormTransition
             isActive={currentStep === "credentials"}
             direction="forward"
             animationKey="credentials-step"
           >
-            {/* Back button - top left */}
-            <div className="flex justify-start mb-4">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="p-2 h-8 text-xs font-medium"
-                onClick={() => setCurrentStep("email")}
-              >
-                <ChevronLeft className="h-3 w-3 mr-1" />
-                Back
-              </Button>
-            </div>
-            
             <Form {...credentialsForm}>
               <form
                 onSubmit={credentialsForm.handleSubmit(onCredentialsSubmit)}
                 className="space-y-4"
               >
-                <div className="mb-2 text-sm flex justify-between items-center">
-                  <div className="flex items-center gap-2 font-medium">
-                    <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm">{formData.email}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-primary h-5 px-2"
-                    onClick={() => setCurrentStep("email")}
-                  >
-                    Change
-                  </Button>
-                </div>
+                <FormField
+                  control={credentialsForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type="email"
+                            placeholder="Enter your email"
+                            {...field}
+                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-xl"
+                          />
+                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                            <Mail className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-sm" />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={credentialsForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-sm font-semibold">
-                        Password
-                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
+                            placeholder="Enter your password"
                             {...field}
-                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
+                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-xl"
                           />
                           <div
-                            className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
+                            className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                            <EyeOff className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
                             )}
                           </div>
                         </div>
                       </FormControl>
-                      <FormMessage className="text-xs" />
+                      <FormMessage className="text-sm" />
+                      
+                      {/* Password strength indicator */}
+                      {credentialsForm.watch('password') && (
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrength(credentialsForm.watch('password')).color}`}
+                                style={{ width: `${((getPasswordStrength(credentialsForm.watch('password')).passedRequirements || 0) / (getPasswordStrength(credentialsForm.watch('password')).totalRequirements || 1)) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {getPasswordStrength(credentialsForm.watch('password')).label} ({(getPasswordStrength(credentialsForm.watch('password')).passedRequirements || 0)}/{(getPasswordStrength(credentialsForm.watch('password')).totalRequirements || 0)})
+                            </span>
+                          </div>
+                          
+                          {/* Password requirements checklist */}
+                          <div className="space-y-1">
+                            {getPasswordStrength(credentialsForm.watch('password')).requirements.map((req, index) => (
+                              <div key={index} className="flex items-center space-x-2 text-xs">
+                                <div className={`w-3 h-3 rounded-full flex items-center justify-center ${
+                                  req.test ? 'bg-green-500' : 'bg-gray-300'
+                                }`}>
+                                  {req.test && (
+                                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span className={req.test ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
+                                  {req.label}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -340,30 +402,27 @@ function SignUpForm({
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-sm font-semibold">
-                        Confirm Password
-                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
+                            placeholder="Confirm your password"
                             {...field}
-                            className="h-10 pl-3 pr-10 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-sm"
+                            className="h-12 pl-4 pr-12 rounded-lg border-border focus-visible:ring-1 focus-visible:ring-offset-0 transition-all text-xl"
                           />
                           <div
-                            className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
+                            className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                            <EyeOff className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
                             )}
                           </div>
                         </div>
                       </FormControl>
-                      <FormMessage className="text-xs" />
+                      <FormMessage className="text-sm" />
                     </FormItem>
                   )}
                 />
@@ -377,22 +436,97 @@ function SignUpForm({
 
                 <Button
                   type="submit"
-                  className="w-full h-9 text-sm font-semibold"
+                  className="w-full h-11 text-base font-semibold"
                   disabled={credentialsForm.formState.isSubmitting || isLoading}
                 >
                   {credentialsForm.formState.isSubmitting || isLoading ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    "Create account"
+                    "Sign Up"
                   )}
                 </Button>
+              </form>
+            </Form>
+            {renderGoogleSignUp()}
+          </FormTransition>
+
+          <FormTransition
+            isActive={currentStep === "verification"}
+            direction="forward"
+            animationKey="verification-step"
+          >
+            <Form {...verificationForm}>
+              <form
+                onSubmit={verificationForm.handleSubmit(onVerificationSubmit)}
+                className="space-y-5"
+              >
+                <div className="mb-2 text-base flex justify-between items-center">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-base">{formData.email}</span>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <p>{error}</p>
+                  </div>
+                )}
+
+                {rateLimitTime > 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2 text-yellow-800">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <p>Please wait {Math.ceil(rateLimitTime / 60)} minutes before requesting another verification code</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <OTPInput
+                    value={otpValue}
+                    onChange={handleOTPChange}
+                    disabled={isVerifying}
+                    autoFocus
+                  />
+                  {verificationForm.formState.errors.otp && (
+                    <p className="text-sm text-red-500">{verificationForm.formState.errors.otp.message}</p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-semibold"
+                  disabled={isVerifying || otpValue.length !== 6}
+                >
+                  {isVerifying ? (
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "Verify & Create Account"
+                  )}
+                </Button>
+
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleResendVerification}
+                    disabled={rateLimitTime > 0 || isLoading}
+                    className="text-sm"
+                  >
+                    {rateLimitTime > 0 ? (
+                      `Resend in ${Math.ceil(rateLimitTime / 60)}m ${rateLimitTime % 60}s`
+                    ) : (
+                      'Resend Code'
+                    )}
+                  </Button>
+                </div>
               </form>
             </Form>
           </FormTransition>
         </div>
       </CardContent>
       <CardFooter className="flex justify-center border-t p-3">
-        <div className="text-xs text-center">
+        <div className="text-sm text-center">
           Already have an account?{" "}
           <Link
             href="/auth/signin"
@@ -427,7 +561,7 @@ export default function SignupPage() {
     <AuthPageProtection>
       <div className="flex min-h-screen flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-0">
           <SignUpFormWithProgress />
         </main>
       </div>
@@ -436,69 +570,12 @@ export default function SignupPage() {
 }
 
 function SignUpFormWithProgress() {
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const totalSteps = 2;
-
-  // Update progress when the form step changes
-  useEffect(() => {
-    const handleStepChange = (e: StepChangeEvent) => {
-      const step = e.detail.step;
-      if (step === "email") {
-        setCurrentStep(1);
-        setIsCompleted(false);
-      } else if (step === "credentials") {
-        setCurrentStep(2);
-        setIsCompleted(false);
-      }
-    };
-
-    const handleFormCompletion = () => {
-      setIsCompleted(true);
-    };
-
-    // Create event listeners
-    window.addEventListener("stepChange", handleStepChange as EventListener);
-    window.addEventListener(
-      "formComplete",
-      handleFormCompletion as EventListener
-    );
-
-    return () => {
-      window.removeEventListener(
-        "stepChange",
-        handleStepChange as EventListener
-      );
-      window.removeEventListener(
-        "formComplete",
-        handleFormCompletion as EventListener
-      );
-    };
-  }, []);
-
   return (
-    <>
-      <StepProgressBar
-        currentStep={currentStep}
-        totalSteps={totalSteps}
-        completed={isCompleted}
-        className="-mt-0"
+    <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-0">
+      <SignUpForm
+        onStepChange={() => {}}
+        onComplete={() => {}}
       />
-
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 mt-4">
-        <SignUpForm
-          onStepChange={(step) => {
-            // Dispatch a custom event when step changes
-            window.dispatchEvent(
-              new CustomEvent("stepChange", { detail: { step } })
-            );
-          }}
-          onComplete={() => {
-            // Dispatch a custom event when form is completed
-            window.dispatchEvent(new Event("formComplete"));
-          }}
-        />
-      </main>
-    </>
+    </main>
   );
 }

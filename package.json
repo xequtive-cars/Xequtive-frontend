@@ -41,7 +41,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "country-codes-flags-phone-codes": "^1.1.1",
-    "crisp-sdk-web": "^1.0.25",
     "date-fns": "^4.1.0",
     "firebase": "^11.6.1",
     "framer-motion": "^12.12.1",

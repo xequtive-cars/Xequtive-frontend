@@ -1857,7 +1857,7 @@ export default function HourlyBookingPage() {
                           </Button>
                         </h2>
                       </div>
-                      <div className="overflow-y-auto flex-1 p-3 h-full">
+                      <div className="overflow-y-auto flex-1 px-0 py-3 h-full">
                         {/* Add CSS to resize vehicle cards by 40% */}
                         <style jsx global>{`
                           /* Make vehicle cards larger and better designed */

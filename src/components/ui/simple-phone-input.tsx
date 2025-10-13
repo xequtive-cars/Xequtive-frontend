@@ -28,19 +28,19 @@ const COUNTRY_PHONE_FORMATS: Record<string, {
   // United Kingdom
   GB: {
     format: "#### ### ###",
-    placeholder: "7911 234 567",
+    placeholder: "Enter phone number",
     maxLength: 12
   },
   // United States
   US: {
     format: "(###) ### ####",
-    placeholder: "(555) 123 4567",
+    placeholder: "Enter phone number",
     maxLength: 14
   },
   // India
   IN: {
     format: "## #### ####",
-    placeholder: "98 1234 5678",
+    placeholder: "Enter phone number",
     maxLength: 12
   },
   // Default fallback

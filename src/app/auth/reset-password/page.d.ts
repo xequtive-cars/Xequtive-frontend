@@ -1,1 +1,2 @@
-export default function ResetPasswordPage(): import("react").JSX.Element;
+// TypeScript declarations for reset password page
+export default function ResetPasswordPage(): JSX.Element;

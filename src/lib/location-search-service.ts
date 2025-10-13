@@ -65,6 +65,7 @@ export interface PopularLocationCategory {
 
 class LocationSearchService {
   private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
+  private readonly hotelCacheTimeout = 30 * 60 * 1000; // 30 minutes for hotels
   private cache = new Map<string, { data: any; timestamp: number; expiresAt: number }>();
   
   // Pre-defined popular locations for instant loading
@@ -176,11 +177,12 @@ class LocationSearchService {
   /**
    * Set data in cache with expiration
    */
-  private setCachedData(key: string, data: any): void {
+  private setCachedData(key: string, data: any, timeout?: number): void {
+    const cacheTimeout = timeout || this.cacheTimeout;
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      expiresAt: Date.now() + this.cacheTimeout
+      expiresAt: Date.now() + cacheTimeout
     });
   }
 
@@ -454,14 +456,17 @@ class LocationSearchService {
   }
 
   /**
-   * Fetch category-specific locations (airports, train stations, or cruise terminals)
+   * Fetch category-specific locations (airports, train stations, cruise terminals, or hotels)
    */
-  async fetchCategoryLocations(category: 'airport' | 'train_station' | 'cruise_terminal'): Promise<LocationSearchResponse> {
+  async fetchCategoryLocations(category: 'airport' | 'train_station' | 'cruise_terminal' | 'hotel'): Promise<LocationSearchResponse> {
     try {
       // Check cache first
       const cacheKey = `category_${category}`;
       const cached = this.getCachedData(cacheKey);
       if (cached) {
+        if (category === 'hotel') {
+          console.log(`Loading ${cached.length} hotels from cache`);
+        }
         return {
           success: true,
           data: cached
@@ -474,13 +479,19 @@ class LocationSearchService {
         categoryLocations = UK_AIRPORTS;
       } else if (category === 'train_station') {
         categoryLocations = UK_STATIONS;
-      } else {
+      } else if (category === 'cruise_terminal') {
         // Convert cruise terminals to location suggestion format
         categoryLocations = UK_CRUISE_TERMINALS.map(convertCruiseTerminalToLocationSuggestion);
+      } else if (category === 'hotel') {
+        // For hotels, use OpenStreetMap search with caching
+        console.log('Fetching hotels from API...');
+        categoryLocations = await this.searchHotels();
+        console.log(`Found ${categoryLocations.length} hotels`);
       }
       
-      // Cache the results
-      this.setCachedData(cacheKey, categoryLocations);
+      // Cache the results with longer timeout for hotels
+      const timeout = category === 'hotel' ? this.hotelCacheTimeout : this.cacheTimeout;
+      this.setCachedData(cacheKey, categoryLocations, timeout);
 
       return {
         success: true,
@@ -510,9 +521,72 @@ class LocationSearchService {
   }
 
   /**
+   * Search for hotels using OpenStreetMap/Nominatim API
+   */
+  private async searchHotels(): Promise<LocationSuggestion[]> {
+    try {
+      // Search for hotels in major UK cities using Nominatim
+      const cities = ['London', 'Manchester', 'Birmingham', 'Liverpool', 'Leeds', 'Sheffield', 'Bristol', 'Newcastle', 'Nottingham', 'Leicester'];
+      const allHotels: LocationSuggestion[] = [];
+
+      for (const city of cities) {
+        try {
+          // Use Nominatim API to search for hotels
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=hotels+in+${encodeURIComponent(city)}&format=json&countrycodes=gb&limit=10&addressdetails=1&extratags=1`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const hotels = data
+              .filter((place: any) => 
+                place.type === 'tourism' || 
+                place.class === 'tourism' ||
+                place.display_name.toLowerCase().includes('hotel') ||
+                place.display_name.toLowerCase().includes('inn') ||
+                place.display_name.toLowerCase().includes('lodge') ||
+                place.display_name.toLowerCase().includes('guesthouse')
+              )
+              .slice(0, 5) // Limit to 5 hotels per city
+              .map((place: any) => ({
+                id: `nominatim-${place.place_id}`,
+                address: place.display_name,
+                mainText: place.display_name.split(',')[0] || 'Hotel',
+                secondaryText: city,
+                latitude: parseFloat(place.lat),
+                longitude: parseFloat(place.lon),
+                coordinates: {
+                  lat: parseFloat(place.lat),
+                  lng: parseFloat(place.lon)
+                },
+                metadata: {
+                  primaryType: 'hotel',
+                  category: 'hotel',
+                  placeId: place.place_id,
+                  city: city,
+                  osmType: place.type,
+                  osmClass: place.class
+                }
+              }));
+            
+            allHotels.push(...hotels);
+          }
+        } catch (error) {
+          console.error(`Error searching hotels in ${city}:`, error);
+        }
+      }
+
+      return allHotels.slice(0, 50); // Return max 50 hotels
+    } catch (error) {
+      console.error('Error searching hotels:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get fallback data for specific categories
    */
-  private getFallbackCategoryData(category: 'airport' | 'train_station' | 'cruise_terminal'): LocationSuggestion[] {
+  private getFallbackCategoryData(category: 'airport' | 'train_station' | 'cruise_terminal' | 'hotel'): LocationSuggestion[] {
     if (category === 'airport') {
       return [
         {
@@ -607,9 +681,12 @@ class LocationSearchService {
           metadata: { primaryType: 'train_station', region: 'UK' }
         }
       ];
-    } else {
+    } else if (category === 'cruise_terminal') {
       // Cruise terminals fallback
       return UK_CRUISE_TERMINALS.map(convertCruiseTerminalToLocationSuggestion);
+    } else {
+      // Hotels fallback - return empty array for now
+      return [];
     }
   }
 

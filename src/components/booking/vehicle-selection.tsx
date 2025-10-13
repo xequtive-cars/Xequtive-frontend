@@ -385,7 +385,7 @@ export default function VehicleSelection({
             msOverflowStyle: 'none', /* Internet Explorer 10+ */
           }}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {sortedVehicles.map((vehicle) => renderVehicleCard(vehicle))}
           </div>
         </div>
@@ -416,6 +416,34 @@ export default function VehicleSelection({
   );
 
   // Helper function to render a vehicle card (extracted for reuse)
+  // Helper function to get vehicle description
+  const getVehicleDescription = (vehicle: VehicleOption): string => {
+    const id = vehicle.id.toLowerCase();
+    const name = vehicle.name.toLowerCase();
+    
+    // Custom descriptions based on vehicle type
+    if (id.includes('standard') && id.includes('saloon')) {
+      return 'Regular / Electric Vehicle (basic comfort)';
+    } else if (id.includes('executive') && id.includes('saloon')) {
+      return 'Mercedes E-Class (or Similar, spacious, extra-comfort)';
+    } else if (id.includes('vip') && id.includes('saloon')) {
+      return 'Mercedes S Class (or Similar, extra-spacious, luxury interior)';
+    } else if (id.includes('mpv-6')) {
+      return 'Large People Carrier (basic comfort)';
+    } else if (id.includes('mpv-8')) {
+      return 'Extra-Large People Carrier (basic comfort)';
+    } else if (id.includes('executive') && id.includes('mpv')) {
+      return 'Mercedes Vito (or Similar, extra-spacious, extra-comfort)';
+    } else if (id.includes('vip') && (id.includes('suv') || id.includes('mpv'))) {
+      return 'Mercedes V Class (or Similar, extra-spacious, luxury interior)';
+    } else if (id.includes('estate')) {
+      return 'Regular / SUV Vehicle (bigger boot, basic comfort)';
+    }
+    
+    // Fallback to API description or default
+    return vehicle.description || 'Comfortable and reliable transportation';
+  };
+
   const renderVehicleCard = (vehicle: VehicleOption) => {
     const capacity = checkVehicleCapacity(vehicle);
     
@@ -425,7 +453,7 @@ export default function VehicleSelection({
       <Card
         key={vehicle.id}
         className={cn(
-          "border transition-all duration-200",
+          "w-full border transition-all duration-200",
           selectedVehicleId === vehicle.id
             ? "border-primary shadow-md"
             : "hover:border-muted-foreground/20 border-border/60",
@@ -492,26 +520,29 @@ export default function VehicleSelection({
             )}
             onClick={() => capacity.isOk && handleVehicleSelect(vehicle.id)}
           >
-            <CardContent className="py-0 pl-4 pr-3 flex items-center justify-between mt-[-10px]">
+            <CardContent className="py-0 pl-2 pt-2 pb-4 lg:pb-0 sm:pl-4 md:pl-4 lg:pl-4 pr-3 flex items-center justify-between mt-[-10px]">
               {/* Vehicle Details - Left Side */}
               <div className="flex-1">
                 <h3 className="font-semibold text-sm sm:text-xl truncate ml-2">
                   {vehicle.name}
                 </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground ml-2 mt-1 mb-2">
+                  {getVehicleDescription(vehicle)}
+                </p>
                 <div className="flex items-center gap-2 mt-2 mb-[-20px]">
                   <div className="flex items-center gap-1 text-lg text-muted-foreground">
-                    <Users className="h-5 w-5 ml-2" />
-                    <span>{vehicle.capacity.passengers}</span>
+                    <Users className="h-4 w-4 sm:h-5 md:h-5 lg:h-5 ml-2" />
+                    <span className="text-sm sm:text-base md:text-base lg:text-base">{vehicle.capacity.passengers}</span>
                   </div>
                   <div className="flex items-center gap-1 text-lg text-muted-foreground">
-                    <Luggage className="h-5 w-5 ml-2" />
-                    <span>{vehicle.capacity.luggage}</span>
+                    <Luggage className="h-4 w-4 sm:h-5 md:h-5 lg:h-5 ml-0 sm:ml-2 md:ml-2 lg:ml-2 " />
+                    <span className="text-sm sm:text-base md:text-base lg:text-base">{vehicle.capacity.luggage}</span>
                   </div>
                 </div>
               </div>
 
               {/* Vehicle Image with Price Overlay - Right Side */}
-              <div className="relative w-24 sm:w-40 md:w-42 lg:w-44 h-16 sm:h-20 md:h-28 lg:h-32 flex-shrink-0 mb-[-20px] lg:mb-[-40px] sm:mb-[-20px] md:mb-[-40px]">
+              <div className="relative w-40 sm:w-40 md:w-42 lg:w-44 h-16 sm:h-20 md:h-28 lg:h-32 flex-shrink-0 mb-[-20px] lg:mb-[-40px] sm:mb-[-20px] md:mb-[-40px]">
                 <Image
                   src={vehicleImagePath}
                   alt={vehicle.name}
@@ -520,7 +551,7 @@ export default function VehicleSelection({
                   className="object-contain w-full h-full"
                 />
                 {/* Price Badge - Top Left of Image */}
-                <div className="absolute top-[0px] sm:top-[0px] md:top-[7px] lg:top-[17px] left-[-20px] sm:left-[-20px] md:left-[0px] lg:left-[0px] text-[22px] font-bold text-foreground">
+                <div className="absolute top-[-5px] sm:top-[-10px] md:top-[2px] lg:top-[0px] left-[-20px] sm:left-[-20px] md:left-[0px] lg:left-[0px] text-[16px] sm:text-[22px] md:text-[22px] lg:text-[22px] font-bold text-foreground">
                   £{vehicle.price.amount}
                 </div>
               </div>

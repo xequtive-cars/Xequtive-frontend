@@ -18,19 +18,18 @@ import {
   Loader2,
   Check,
   Camera,
-  BellRing,
   Lock,
   LogOut,
   Calendar,
   BookOpen,
   UserCheck,
+  ChevronLeft,
 } from "lucide-react";
 import { Loading3D } from "@/components/ui/loading-3d";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,10 +48,6 @@ export default function ProfilePage() {
     fullName: "",
     email: "",
     phoneNumber: "",
-    notifications: {
-      email: true,
-      sms: true,
-    },
   });
 
   // Set mounted state to handle hydration
@@ -107,16 +102,6 @@ export default function ProfilePage() {
     });
   };
 
-  const handleSwitchChange = (key: string, checked: boolean) => {
-    setFormData({
-      ...formData,
-      notifications: {
-        ...formData.notifications,
-        [key]: checked,
-      },
-    });
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
 
@@ -127,7 +112,6 @@ export default function ProfilePage() {
       const response = await authService.updateProfile({
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
-        notifications: formData.notifications
       });
 
       if (!response.success) {
@@ -206,6 +190,18 @@ export default function ProfilePage() {
       transition={{ duration: 0.5 }}
       className="container mx-auto max-w-6xl p-2 md:p-3 md:py-6"
     >
+      {/* Back button */}
+      <div className="mb-4 md:mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => window.history.back()}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Dashboard
+        </Button>
+      </div>
+      
       <div className="flex flex-col space-y-3 md:grid md:grid-cols-3 md:gap-6 md:space-y-0">
         {/* Left sidebar with profile card */}
         <div className="md:col-span-1">
@@ -410,8 +406,8 @@ export default function ProfilePage() {
                             </div>
                             
                             {/* Second row: Full Name and Phone Number (side by side on desktop) */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
-                              <div className="space-y-1 md:space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4">
+                              <div className="space-y-1 md:space-y-2 md:col-span-2">
                                 <Label
                                   htmlFor="fullName"
                                   className="text-xs md:text-sm font-medium"
@@ -429,7 +425,7 @@ export default function ProfilePage() {
                                 />
                               </div>
                               
-                              <div className="space-y-1 md:space-y-2">
+                              <div className="space-y-1 md:space-y-2 md:col-span-3">
                                 <Label
                                   htmlFor="phoneNumber"
                                   className="text-xs md:text-sm font-medium"
@@ -473,65 +469,6 @@ export default function ProfilePage() {
                               </Button>
                             </motion.div>
                           )}
-                        </CardContent>
-                      </Card>
-
-                      <Card className="border border-border/40 shadow-sm overflow-hidden">
-                        <CardHeader className="pb-2 md:pb-4 p-3 md:p-6">
-                          <div className="flex items-center gap-2">
-                            <BellRing className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                            <CardTitle className="text-base md:text-xl">Notification Preferences</CardTitle>
-                          </div>
-                          <CardDescription className="text-xs md:text-sm">
-                            Choose how you want to be notified
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-3 md:pb-6 p-3 md:p-6">
-                          <div className="space-y-3 md:space-y-5">
-                            <div className="flex items-center justify-between py-2 md:py-3 border-b">
-                              <div className="space-y-0.5">
-                                <Label
-                                  htmlFor="email-notifications"
-                                  className="text-xs md:text-sm font-medium"
-                                >
-                                  Email Notifications
-                                </Label>
-                                <p className="text-xs md:text-sm text-muted-foreground">
-                                  Receive booking confirmations and updates via
-                                  email
-                                </p>
-                              </div>
-                              <Switch
-                                id="email-notifications"
-                                checked={formData.notifications.email}
-                                onCheckedChange={(checked: boolean) =>
-                                  handleSwitchChange("email", checked)
-                                }
-                                disabled={!isEditing}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between py-2 md:py-3">
-                              <div className="space-y-0.5">
-                                <Label
-                                  htmlFor="sms-notifications"
-                                  className="text-xs md:text-sm font-medium"
-                                >
-                                  SMS Notifications
-                                </Label>
-                                <p className="text-xs md:text-sm text-muted-foreground">
-                                  Receive text messages about your bookings
-                                </p>
-                              </div>
-                              <Switch
-                                id="sms-notifications"
-                                checked={formData.notifications.sms}
-                                onCheckedChange={(checked: boolean) =>
-                                  handleSwitchChange("sms", checked)
-                                }
-                                disabled={!isEditing}
-                              />
-                            </div>
-                          </div>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -583,47 +520,6 @@ export default function ProfilePage() {
                                   authentication.
                                 </p>
                               )}
-                            </div>
-                          </div>
-
-                          {user?.authProvider !== "google" && (
-                            <div className="grid grid-cols-1 gap-4 pt-2">
-                              <Button
-                                variant="outline"
-                                className="w-full md:w-auto h-8 md:h-auto text-xs md:text-sm"
-                              >
-                                Change Password
-                              </Button>
-                            </div>
-                          )}
-
-                          <div className="pt-2 md:pt-4 border-t">
-                            <h3 className="font-medium mb-2 md:mb-4 text-sm md:text-lg">
-                              Two-Factor Authentication
-                            </h3>
-                            <div className="flex items-start gap-3 md:gap-6 bg-muted/30 p-3 md:p-5 rounded-lg">
-                              <div className="p-2 md:p-3 bg-primary/10 rounded-full shrink-0">
-                                <Shield className="h-4 w-4 md:h-6 md:w-6 text-primary" />
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-medium text-xs md:text-base">
-                                  Enhance Your Account Security
-                                </h4>
-                                <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">
-                                  Add an extra layer of security by enabling
-                                  two-factor authentication. This feature uses
-                                  your phone to verify your identity when you
-                                  sign in, providing maximum protection for your
-                                  account.
-                                </p>
-                                <Button
-                                  variant="outline"
-                                  className="mt-2 md:mt-4 h-7 md:h-auto text-xs md:text-sm"
-                                  disabled
-                                >
-                                  Coming Soon
-                                </Button>
-                              </div>
                             </div>
                           </div>
 

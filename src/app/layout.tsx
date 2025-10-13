@@ -12,7 +12,7 @@ import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { CookieConsentProvider } from "@/components/providers/cookie-consent-provider";
 import { Toaster as SonnerToaster } from "sonner";
 import { cn } from "@/lib/utils";
-import CrispChatWrapper from "@/components/CrispChatWrapper";
+import TawkToChat from "@/components/TawkToChat";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -20,18 +20,18 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "XEQUTIVE - Executive Car Service",
-  description: "Reliable Airport Transfer, Car & Chauffeuring Service",
+  description: "Airport Transfer & Executive Car Service",
   metadataBase: new URL('https://xeqcars.com'),
   openGraph: {
     title: "XEQUTIVE - Executive Car Service",
-    description: "Reliable Airport Transfer, Car & Chauffeuring Service",
+    description: "Airport Transfer & Executive Car Service",
     url: "https://xeqcars.com",
     siteName: "XEQUTIVE",
   },
   twitter: {
     card: "summary_large_image",
     title: "XEQUTIVE - Executive Car Service",
-    description: "Reliable Airport Transfer, Car & Chauffeuring Service",
+    description: "Airport Transfer & Executive Car Service",
   },
 };
 
@@ -47,8 +47,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Favicon */}
-        <link rel="icon" href="/logo.png" type="image/png" />
-        <link rel="shortcut icon" href="/logo.png" type="image/png" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.png" type="image/png" />
         {/* Mapbox GL CSS is imported above */}
         {/* Google Translate Scripts */}
         <Script
@@ -77,12 +77,23 @@ export default function RootLayout({
             >
               <CookieConsentProvider>
                 <AnalyticsProvider>
-                  <CrispChatWrapper />
+                  <TawkToChat />
                   {/* Hidden Google Translate Element */}
                   <div id="google_translate_element" style={{ display: "none" }} />
                   {children}
                   <Toaster />
-                  <SonnerToaster />
+                  <SonnerToaster 
+                    theme="system"
+                    className="toaster group"
+                    toastOptions={{
+                      classNames: {
+                        toast: "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+                        description: "group-[.toast]:text-muted-foreground",
+                        actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+                        cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+                      },
+                    }}
+                  />
                 </AnalyticsProvider>
               </CookieConsentProvider>
             </ThemeProvider>

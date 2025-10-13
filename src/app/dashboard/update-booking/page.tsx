@@ -609,7 +609,7 @@ function UpdateBookingClientComponent({
                   </div>
                 <div className="w-full lg:w-[42%] lg:max-h-[calc(100vh-5.5rem)] overflow-hidden lg:flex lg:flex-col">
                   <div className="p-3 border-b"><h2 className="text-base font-semibold">Select Vehicle</h2></div>
-                    <div className="overflow-y-auto flex-1 p-3 h-full">
+                    <div className="overflow-y-auto flex-1 px-0 py-3 h-full">
                       {fareData && (
                         <VehicleSelection
                         fareData={fareData} pickupLocation={pickupLocation} dropoffLocation={dropoffLocation}

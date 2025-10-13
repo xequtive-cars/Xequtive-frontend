@@ -217,13 +217,7 @@ function HomeContent() {
           <div className="flex items-center justify-center mb-10">
             <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center space-x-1 md:space-x-2">
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <span className="font-bold text-sm md:text-lg">X</span>
-              </div>
-              <span className="font-bold text-lg md:text-2xl tracking-tight text-primary">
-              XEQUTIVE CARS
-              </span>
-              {/* <Image src="/xeq-logo.png" alt="XEQ CARS" width={120} height={120} /> */}
+              <Image src="/logo.png" alt="XEQUTIVE CARS" width={120} height={40} className="h-8 md:h-10 w-auto" />
             </Link>
             </div>
           </div>

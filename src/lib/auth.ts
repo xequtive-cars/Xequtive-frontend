@@ -673,4 +673,406 @@ export const authService = {
       };
     }
   },
+
+  // Send OTP for password reset
+  sendPasswordResetOTP: async (email: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/password-reset/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Failed to send OTP",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to send OTP",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Send OTP error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to send OTP",
+        },
+      };
+    }
+  },
+
+  // Verify OTP for password reset
+  verifyPasswordResetOTP: async (email: string, otp: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/password-reset/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          otp,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Invalid OTP",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Invalid OTP",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Verify OTP error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to verify OTP",
+        },
+      };
+    }
+  },
+
+  // Reset password with OTP
+  resetPasswordWithOTP: async (email: string, otp: string, newPassword: string, confirmPassword: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/password-reset/reset`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          otp,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Failed to reset password",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to reset password",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Reset password error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to reset password",
+        },
+      };
+    }
+  },
+
+  // Check OTP status (optional)
+  checkOTPStatus: async (email: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/password-reset/check-otp-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Failed to check OTP status",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to check OTP status",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Check OTP status error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to check OTP status",
+        },
+      };
+    }
+  },
+
+  // Email verification functions
+  requestEmailVerification: async (email: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/email-verification/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Failed to send verification code",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to send verification code",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Request email verification error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to send verification code",
+        },
+      };
+    }
+  },
+
+  verifyEmailCode: async (email: string, otp: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/email-verification/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          otp,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Invalid verification code",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Invalid verification code",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Verify email code error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to verify code",
+        },
+      };
+    }
+  },
+
+  resendEmailVerification: async (email: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = getApiBaseUrl();
+
+      const response = await fetch(`${apiUrl}/api/email-verification/resend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: {
+            message: errorData.error?.message || "Failed to resend verification code",
+            details: errorData.error?.details,
+          },
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || "Failed to resend verification code",
+            details: data.error?.details,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data,
+      };
+    } catch (error) {
+      console.error("Resend email verification error:", error);
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to resend verification code",
+        },
+      };
+    }
+  },
 };

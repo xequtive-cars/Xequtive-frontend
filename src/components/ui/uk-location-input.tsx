@@ -12,7 +12,8 @@ import {
   Loader2,
   X,
   ArrowLeft,
-  Anchor
+  Anchor,
+  Building
 } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useToast } from "@/components/ui/use-toast";
@@ -117,29 +118,47 @@ export default function UKLocationInput({
   const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
   const [popularLocations, setPopularLocations] = useState<LocationSuggestion[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  // State for dropdown view management
-  const [dropdownView, setDropdownView] = useState<'default' | 'airports' | 'trains' | 'cruise_terminals' | 'terminals'>('default');
-  const [selectedCategory, setSelectedCategory] = useState<'airport' | 'train_station' | 'cruise_terminal' | null>(null);
+  // State for dropdown view management (includes hotels)
+  const [dropdownView, setDropdownView] = useState<'default' | 'airports' | 'trains' | 'cruise_terminals' | 'hotels' | 'terminals'>('default');
+  const [selectedCategory, setSelectedCategory] = useState<'airport' | 'train_station' | 'cruise_terminal' | 'hotel' | null>(null);
   const [categoryLocations, setCategoryLocations] = useState<LocationSuggestion[]>([]);
   const [terminalLocations, setTerminalLocations] = useState<LocationSuggestion[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationSuggestion | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [categorySearchQuery, setCategorySearchQuery] = useState<string>('');
+  const [hotelsPage, setHotelsPage] = useState(1);
+  const [allHotels, setAllHotels] = useState<LocationSuggestion[]>([]);
 
   // Filtered locations based on search query
   const filteredCategoryLocations = useMemo(() => {
     if (!categorySearchQuery.trim()) {
+      if (selectedCategory === 'hotel') {
+        // For hotels, show paginated results
+        return allHotels.slice(0, hotelsPage * 10);
+      }
       return categoryLocations;
     }
     
     const query = categorySearchQuery.toLowerCase();
-    return categoryLocations.filter(location => 
+    const filtered = categoryLocations.filter(location => 
       location.mainText?.toLowerCase().includes(query) ||
       location.address?.toLowerCase().includes(query) ||
       location.secondaryText?.toLowerCase().includes(query)
     );
-  }, [categoryLocations, categorySearchQuery]);
+    
+    if (selectedCategory === 'hotel') {
+      // For hotels, also search in allHotels and show paginated results
+      const hotelFiltered = allHotels.filter(location => 
+        location.mainText?.toLowerCase().includes(query) ||
+        location.address?.toLowerCase().includes(query) ||
+        location.secondaryText?.toLowerCase().includes(query)
+      );
+      return hotelFiltered.slice(0, hotelsPage * 10);
+    }
+    
+    return filtered;
+  }, [categoryLocations, categorySearchQuery, selectedCategory, allHotels, hotelsPage]);
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -196,14 +215,14 @@ export default function UKLocationInput({
         suggestionsRef.current &&
         !suggestionsRef.current.contains(target)
       ) {
-        // Only close dropdown if we're in default view
-        // This prevents closing when navigating through categories/terminals
-        if (dropdownView === 'default' && !selectedCategory) {
-          setShowSuggestions(false);
-          setDropdownView('default');
-          setSelectedCategory(null);
-          setCategoryLocations([]);
-        }
+        // Close dropdown when clicking outside
+        setShowSuggestions(false);
+        setDropdownView('default');
+        setSelectedCategory(null);
+        setCategoryLocations([]);
+        setTerminalLocations([]);
+        setAllHotels([]);
+        setHotelsPage(1);
       }
     };
 
@@ -217,14 +236,14 @@ export default function UKLocationInput({
         suggestionsRef.current &&
         !suggestionsRef.current.contains(target)
       ) {
-        // Only close dropdown if we're in default view
-        // This prevents closing when navigating through categories/terminals
-        if (dropdownView === 'default' && !selectedCategory) {
-          setShowSuggestions(false);
-          setDropdownView('default');
-          setSelectedCategory(null);
-          setCategoryLocations([]);
-        }
+        // Close dropdown when touching outside
+        setShowSuggestions(false);
+        setDropdownView('default');
+        setSelectedCategory(null);
+        setCategoryLocations([]);
+        setTerminalLocations([]);
+        setAllHotels([]);
+        setHotelsPage(1);
       }
     };
 
@@ -315,22 +334,36 @@ export default function UKLocationInput({
     }
   }, []);
 
-  // Fetch category-specific locations (airports, train stations, or cruise terminals)
-  const fetchCategoryLocations = useCallback(async (category: 'airport' | 'train_station' | 'cruise_terminal') => {
+  // Fetch category-specific locations (airports, train stations, cruise terminals, or hotels)
+  const fetchCategoryLocations = useCallback(async (category: 'airport' | 'train_station' | 'cruise_terminal' | 'hotel') => {
     try {
       setIsSearching(true);
       
-      const response = await locationSearchService.fetchCategoryLocations(category);
-      
-              if (response.success && response.data) {
+      if (category === 'hotel') {
+        // For hotels, fetch all hotels and store them
+        const response = await locationSearchService.fetchCategoryLocations(category);
+        if (response.success && response.data) {
+          setAllHotels(response.data);
+          setCategoryLocations(response.data.slice(0, 10)); // Show first 10
+          setHotelsPage(1);
+        } else {
+          setAllHotels([]);
+          setCategoryLocations([]);
+        }
+      } else {
+        // For other categories, use existing logic
+        const response = await locationSearchService.fetchCategoryLocations(category);
+        if (response.success && response.data) {
           setCategoryLocations(response.data);
         } else {
-          // Failed to fetch category locations - use fallback
-        setCategoryLocations([]);
+          setCategoryLocations([]);
+        }
       }
     } catch (error) {
-        // Error fetching category locations - use fallback
-        setCategoryLocations([]);
+      setCategoryLocations([]);
+      if (category === 'hotel') {
+        setAllHotels([]);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -568,7 +601,7 @@ export default function UKLocationInput({
           {/* Category Buttons */}
           <div className="px-4 py-2">
             <div className="text-xs font-medium text-muted-foreground mb-2">Quick Access</div>
-            <div className="grid grid-cols-3 gap-2 w-full">
+            <div className="grid grid-cols-2 gap-2 w-full">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -581,7 +614,7 @@ export default function UKLocationInput({
                   flex items-center justify-center space-x-1 
                   px-4 py-5 
                   text-sm font-semibold
-                  bg-background border border-green-200 hover:border-green-300
+                  bg-background border-2 border-green-200 hover:border-green-300
                   text-green-600 hover:text-green-700
                   rounded-lg 
                   transition-colors duration-150
@@ -589,7 +622,7 @@ export default function UKLocationInput({
                   dark:text-green-400 dark:hover:text-green-300
                 "
               >
-                <Plane className="w-6 h-6 text-green-600" style={{ display: 'inline-block', fill: 'currentColor', minWidth: '24px', minHeight: '24px' }} />
+                <Plane className="w-6 h-6 text-green-600" style={{ display: 'block', minWidth: '24px', minHeight: '24px' }} />
                 <span>Airports</span>
               </button>
               <button
@@ -604,7 +637,7 @@ export default function UKLocationInput({
                   flex items-center justify-center space-x-1 
                   px-4 py-5 
                   text-sm font-semibold
-                  bg-background border border-blue-200 hover:border-blue-300
+                  bg-background border-2 border-blue-200 hover:border-blue-300
                   text-blue-600 hover:text-blue-700
                   rounded-lg 
                   transition-colors duration-150
@@ -612,7 +645,7 @@ export default function UKLocationInput({
                   dark:text-blue-400 dark:hover:text-blue-300
                 "
               >
-                <Train className="w-6 h-6 text-blue-600" style={{ display: 'inline-block', fill: 'currentColor', minWidth: '24px', minHeight: '24px' }} />
+                <Train className="w-6 h-6 text-blue-600" style={{ display: 'block', minWidth: '24px', minHeight: '24px' }} />
                 <span>Stations</span>
               </button>
               <button
@@ -627,7 +660,7 @@ export default function UKLocationInput({
                   flex items-center justify-center space-x-1 
                   px-3 py-5 
                   text-sm font-semibold
-                  bg-background border border-purple-200 hover:border-purple-300
+                  bg-background border-2 border-purple-200 hover:border-purple-300
                   text-purple-600 hover:text-purple-700
                   rounded-lg 
                   transition-colors duration-150
@@ -635,8 +668,31 @@ export default function UKLocationInput({
                   dark:text-purple-400 dark:hover:text-purple-300
                 "
               >
-                <Anchor className="w-6 h-6 text-purple-600" style={{ display: 'inline-block', fill: 'currentColor', minWidth: '24px', minHeight: '24px' }} />
+                <Anchor className="w-6 h-6 text-purple-600" style={{ display: 'block', minWidth: '24px', minHeight: '24px' }} />
                 <span>Cruise</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDropdownView('hotels');
+                  setSelectedCategory('hotel');
+                  setCategorySearchQuery('');
+                  fetchCategoryLocations('hotel');
+                }}
+                className="
+                  flex items-center justify-center space-x-1 
+                  px-3 py-5 
+                  text-sm font-semibold
+                  bg-background border-2 border-orange-200 hover:border-orange-300
+                  text-orange-600 hover:text-orange-700
+                  rounded-lg 
+                  transition-colors duration-150
+                  dark:bg-background dark:border-orange-700 dark:hover:border-orange-600
+                  dark:text-orange-400 dark:hover:text-orange-300
+                "
+              >
+                <Building className="w-6 h-6 text-orange-600" style={{ display: 'block', minWidth: '24px', minHeight: '24px' }} />
+                <span>Hotels</span>
               </button>
             </div>
           </div>
@@ -681,8 +737,8 @@ export default function UKLocationInput({
         );
       }
 
-    // Show category results (airports/trains/cruise terminals)
-    if (dropdownView === 'airports' || dropdownView === 'trains' || dropdownView === 'cruise_terminals') {
+    // Show category results (airports/trains/cruise terminals/hotels)
+    if (dropdownView === 'airports' || dropdownView === 'trains' || dropdownView === 'cruise_terminals' || dropdownView === 'hotels') {
       return (
         <div className="space-y-1">
           {/* Back button */}
@@ -712,6 +768,7 @@ export default function UKLocationInput({
             <div className="text-xs font-medium text-muted-foreground">
               {dropdownView === 'airports' ? 'Airports' : 
                dropdownView === 'trains' ? 'Train Stations' : 
+               dropdownView === 'hotels' ? 'Hotels' :
                'Cruise Terminals'}
             </div>
           </div>
@@ -773,6 +830,8 @@ export default function UKLocationInput({
                       <Plane className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
                     ) : dropdownView === 'trains' ? (
                       <Train className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
+                    ) : (dropdownView as any) === 'hotels' ? (
+                      <Building className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
                     ) : (
                       <Anchor className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" style={{ display: 'block', minWidth: '20px', minHeight: '20px' }} />
                     )}
@@ -790,11 +849,27 @@ export default function UKLocationInput({
             </div>
           )}
 
+          {/* Load More button for hotels */}
+          {!isSearching && selectedCategory === 'hotel' && allHotels.length > hotelsPage * 10 && (
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHotelsPage(prev => prev + 1);
+                }}
+                className="w-full py-2 px-4 text-sm font-medium text-primary hover:text-primary/80 hover:bg-primary/5 rounded-lg transition-colors duration-200"
+              >
+                Load More Hotels ({allHotels.length - (hotelsPage * 10)} remaining)
+              </button>
+            </div>
+          )}
+
           {/* No results */}
           {!isSearching && categoryLocations.length === 0 && (
             <div className="p-4 text-center text-muted-foreground">
               <p className="text-sm">No {dropdownView === 'airports' ? 'airports' : 
-                dropdownView === 'trains' ? 'stations' : 'cruise terminals'} found</p>
+                dropdownView === 'trains' ? 'stations' : 
+                (dropdownView as any) === 'hotels' ? 'hotels' : 'cruise terminals'} found</p>
             </div>
           )}
 
@@ -1101,6 +1176,7 @@ export default function UKLocationInput({
                  dropdownView === 'airports' ? 'Airports' :
                  dropdownView === 'trains' ? 'Train Stations' :
                  dropdownView === 'cruise_terminals' ? 'Cruise Terminals' :
+                 dropdownView === 'hotels' ? 'Hotels' :
                  'Location Search'}
               </div>
               <button
